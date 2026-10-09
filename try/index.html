@@ -147,6 +147,14 @@ select { padding-right: 8px; }
 .sw input:checked + span::after { transform: translateX(20px); }
 .sw input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* **Accounts and Planned, one at a time, like the app.** Two chips over one card: the chosen
+   one is lighter with an accent rim, the other sinks into the ground, which is the app's own
+   rule. Planned was a card at the foot of a long column, where nobody reached it. */
+.money-tabs { display: flex; gap: 8px; margin: 4px 0 -4px; }
+.money-tabs button { border: 1px solid var(--rule); background: var(--sunken); color: var(--ink-2); border-radius: 999px; padding: 8px 16px; cursor: pointer; font-size: var(--fs-small); }
+.money-tabs button[aria-selected="true"] { background: var(--raised); color: var(--ink); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.money-tabs .n { color: var(--faint); font-weight: 400; margin-left: 4px; font-variant-numeric: tabular-nums; }
+
 /* segmented */
 .seg { display: inline-flex; background: var(--sunken); border-radius: 10px; padding: 3px; gap: 2px; }
 .seg button { border: 0; background: transparent; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-family: var(--mono); font-size: 0.78rem; color: var(--ink-2); white-space: nowrap; }
@@ -309,14 +317,19 @@ footer a { color: var(--ink-2); }
         <p class="foot">What comes next is a guess, and the line leans on it. Inflation is not taken out of any of these.</p>
       </section>
 
-      <section class="card" aria-labelledby="h-accounts">
+      <div class="money-tabs" role="tablist" aria-label="Your money">
+        <button type="button" role="tab" id="tab-accounts" aria-controls="card-accounts" aria-selected="true">Accounts<span class="n" id="tab-accounts-n"></span></button>
+        <button type="button" role="tab" id="tab-planned" aria-controls="card-planned" aria-selected="false">Planned<span class="n" id="tab-planned-n"></span></button>
+      </div>
+
+      <section class="card" id="card-accounts" role="tabpanel" aria-labelledby="h-accounts">
         <div class="card-head"><h2 id="h-accounts">Accounts</h2><span class="label" id="acct-count"></span></div>
         <div id="accounts"></div>
         <button type="button" class="add" id="add-account">+ Add account</button>
         <p class="foot">Each account grows one way: not at all, at the assumed return, or at its own rate. Interest or dividends are paid out as cash unless you leave them in the account.</p>
       </section>
 
-      <section class="card" aria-labelledby="h-planned">
+      <section class="card" id="card-planned" role="tabpanel" aria-labelledby="h-planned" hidden>
         <div class="card-head"><h2 id="h-planned">Planned</h2><span class="label" id="planned-count"></span></div>
         <div id="planned"></div>
         <button type="button" class="add" id="add-planned">+ Add planned item</button>
@@ -398,11 +411,8 @@ function exampleState() {
     target: 250000,
     accounts: [
       { id: 1, name: "Current account", kind: "asset", value: 48000, invested: false, pays: null, availableFromAge: null },
-      { id: 2, name: "Savings", kind: "asset", value: 6500, invested: false, pays: { basis: "rate", ratePct: 4, amount: 0, frequency: "quarterly", reinvested: false }, availableFromAge: null },
-      { id: 3, name: "UK brokerage", kind: "asset", value: 12065, invested: true, pays: null, availableFromAge: null },
-      { id: 4, name: "Copenhagen account", kind: "asset", value: 6090, invested: false, pays: null, availableFromAge: null },
-      { id: 5, name: "State pension", kind: "asset", value: 64000, invested: true, pays: null, availableFromAge: 60 },
-      { id: 6, name: "Car loan", kind: "liability", value: 22000, invested: false, pays: { basis: "amount", ratePct: 0, amount: 1100, frequency: "monthly", reinvested: false }, availableFromAge: null },
+      { id: 2, name: "State pension", kind: "asset", value: 64000, invested: true, pays: null, availableFromAge: 60 },
+      { id: 3, name: "Car loan", kind: "liability", value: 22000, invested: false, pays: { basis: "amount", ratePct: 0, amount: 1100, frequency: "monthly", reinvested: false }, availableFromAge: null },
     ],
     // The app's example carries one planned item: flights home every June, from the next one.
     planned: [
@@ -411,7 +421,7 @@ function exampleState() {
   };
 }
 let state = exampleState();
-let nextId = 7;
+let nextId = 4;
 let nextPlannedId = 2;
 let horizon = 24;
 
@@ -571,7 +581,7 @@ $("add-account").addEventListener("click", () => {
   renderAccounts(); draw(false);
   const last = $("accounts").lastElementChild; if (last) { last.scrollIntoView({ block: "nearest", behavior: "smooth" }); const n = last.querySelector("input.name"); if (n) { n.focus(); n.select(); } }
 });
-$("reset").addEventListener("click", () => { state = exampleState(); nextId = 7; nextPlannedId = 2; setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in USD"; renderAccounts(); renderPlanned(); draw(true); });
+$("reset").addEventListener("click", () => { state = exampleState(); nextId = 4; nextPlannedId = 2; setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in USD"; renderAccounts(); renderPlanned(); draw(true); });
 
 /* ---------- forms: planned ---------- */
 const REPEATS = [["once", "Once"], ["monthly", "Monthly"], ["quarterly", "Quarterly"], ["halfyearly", "Half-yearly"], ["yearly", "Yearly"]];
@@ -787,10 +797,30 @@ chart.addEventListener("pointercancel", () => { tracking = false; hideCross(); }
 chart.addEventListener("pointerleave", () => { if (!tracking) hideCross(); });
 document.querySelectorAll(".panel .seg button").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll(".panel .seg button").forEach((o) => o.setAttribute("aria-pressed", o === b ? "true" : "false")); horizon = Number(b.dataset.h); draw(true); }));
 
+/* ---------- Accounts / Planned chips ---------- */
+function showMoney(which) {
+  const planned = which === "planned";
+  $("tab-accounts").setAttribute("aria-selected", planned ? "false" : "true");
+  $("tab-planned").setAttribute("aria-selected", planned ? "true" : "false");
+  $("card-accounts").hidden = planned;
+  $("card-planned").hidden = !planned;
+}
+$("tab-accounts").addEventListener("click", () => showMoney("accounts"));
+$("tab-planned").addEventListener("click", () => showMoney("planned"));
+// The counts on the chips follow the lists, so a reader can see Planned has something in it.
+function countTabs() {
+  $("tab-accounts-n").textContent = state.accounts.length;
+  $("tab-planned-n").textContent = state.planned.length;
+}
+new MutationObserver(countTabs).observe($("accounts"), { childList: true });
+new MutationObserver(countTabs).observe($("planned"), { childList: true });
+countTabs();
+
 /* ---------- go ---------- */
 setFormatter(); fillAssumptions(); renderAccounts(); renderPlanned(); sizeChart(); draw(true);
 let resizeTimer = 0; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { sizeChart(); draw(false); }, 120); });
 })();
+
 </script>
 </body>
 </html>
