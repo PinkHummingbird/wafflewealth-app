@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WaffleWealth — Where your money is heading</title>
+<meta name="description" content="Tell it what you have, earn and spend. WaffleWealth draws your net worth month by month, up to ten years out. No bank connections, no account. For iPhone.">
+<meta property="og:title" content="WaffleWealth — Where your money is heading">
+<meta property="og:description" content="Your net worth, drawn forward month by month from what you type. Nothing leaves your phone.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14100A" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/icon.png">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Tokens are the app's own (App/WaffleWealth/Design/Tokens.swift): warm paper ground,
+   honey accent, a cool slate for what is owed. Light palette on :root, dark redefined below. */
+:root {
+  --ground: #FBF7F0;
+  --raised: #FFFDF8;
+  --sunken: #F2ECE1;
+  --ink: #2A1D0E;
+  --ink-2: #6E5C43;
+  --faint: #9C8B72;
+  --accent: #A96A11;
+  --honey: #E9A33C;
+  --on-accent: #FFFDF8;
+  --owed: #3E5C8C;
+  --alert: #B3261E;
+  --rule: #E7DECF;
+  --shadow: 0 1px 0 rgba(42, 29, 14, 0.04), 0 12px 32px -16px rgba(42, 29, 14, 0.25);
+
+  --display: "Familjen Grotesk", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+  --body: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --fs-hero: clamp(2.5rem, 1.4rem + 4.6vw, 4.4rem);
+  --fs-h2: clamp(1.7rem, 1.2rem + 1.8vw, 2.4rem);
+  --fs-h3: 1.2rem;
+  --fs-body: 1.0625rem;
+  --fs-small: 0.9rem;
+  --fs-label: 0.75rem;
+
+  --r-sm: 4px;   /* chips, bar segments */
+  --r-md: 14px;  /* a card on the ground */
+  --r-lg: 20px;  /* a tile or a sheet */
+
+  --gutter: clamp(16px, 4vw, 32px);
+  --measure: 62ch;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #14100A; --raised: #201911; --sunken: #0C0906;
+    --ink: #F4ECDF; --ink-2: #B0A08A; --faint: #7C6E5C;
+    --accent: #E9A33C; --honey: #E9A33C; --on-accent: #14100A;
+    --owed: #9FB8DE; --alert: #F2837B; --rule: #2E2519;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 16px 40px -18px rgba(0,0,0,0.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #14100A; --raised: #201911; --sunken: #0C0906;
+  --ink: #F4ECDF; --ink-2: #B0A08A; --faint: #7C6E5C;
+  --accent: #E9A33C; --honey: #E9A33C; --on-accent: #14100A;
+  --owed: #9FB8DE; --alert: #F2837B; --rule: #2E2519;
+  --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 16px 40px -18px rgba(0,0,0,0.7);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  overflow-x: clip;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg { max-width: 100%; display: block; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.15em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-sm); }
+button { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.015em; line-height: 1.1; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.wrap { max-width: 1080px; margin-inline: auto; padding-inline: var(--gutter); }
+.label {
+  font-family: var(--mono); font-size: var(--fs-label); font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint);
+}
+.fig { font-variant-numeric: tabular-nums lining-nums; }
+.muted { color: var(--ink-2); }
+
+/* ---- header ---- */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; }
+.brand .mark { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; flex: none; }
+.nav { display: flex; align-items: center; gap: 24px; font-size: var(--fs-small); }
+.nav a { color: var(--ink-2); text-decoration: none; }
+.nav a:hover { color: var(--ink); text-decoration: underline; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); font-size: var(--fs-small); white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
+@media (max-width: 640px) { .nav a { display: none; } .pill { display: none; } }
+
+/* ---- hero ---- */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 5vw, 64px); align-items: start; padding-block: clamp(24px, 5vw, 56px) clamp(40px, 6vw, 72px); }
+.hero-copy { display: flex; flex-direction: column; gap: 24px; max-width: 34rem; }
+.hero h1 { font-size: var(--fs-hero); font-weight: 700; letter-spacing: -0.03em; line-height: 0.98; }
+.hero h1 .honey { color: var(--accent); }
+.lede { font-size: 1.2rem; line-height: 1.5; color: var(--ink); max-width: 30rem; }
+.lede + .lede { color: var(--ink-2); font-size: 1.05rem; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .hero-copy { max-width: none; } }
+
+/* ---- waitlist form ---- */
+.waitlist { display: flex; flex-direction: column; gap: 10px; }
+.waitlist .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.waitlist input[type="email"] {
+  flex: 1 1 220px; min-width: 0; height: 52px; padding: 0 16px;
+  border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--raised); color: var(--ink);
+  font: inherit; font-size: 1rem;
+}
+.waitlist input[type="email"]::placeholder { color: var(--faint); }
+.waitlist input[type="email"]:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.btn {
+  height: 52px; padding: 0 22px; border: 0; border-radius: var(--r-md); cursor: pointer;
+  background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 1rem; white-space: nowrap;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.btn:hover { filter: brightness(1.06); }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { opacity: 0.6; cursor: default; }
+.btn.store { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.waitlist .note { font-size: var(--fs-small); color: var(--faint); }
+.waitlist .status { font-size: var(--fs-small); color: var(--ink-2); min-height: 1.4em; }
+.waitlist .status.ok { color: var(--accent); }
+.waitlist .status.err { color: var(--alert); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* ---- the instrument ---- */
+.panel {
+  background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg);
+  box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0;
+}
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.panel-head .now .label { margin-bottom: 4px; }
+.panel-head .now .big { font-family: var(--display); font-weight: 600; font-size: 2rem; letter-spacing: -0.02em; line-height: 1; }
+.seg { display: inline-flex; background: var(--sunken); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button {
+  border: 0; background: transparent; padding: 7px 11px; border-radius: 8px; cursor: pointer;
+  font-family: var(--mono); font-size: 0.8rem; color: var(--ink-2);
+}
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.readout { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 10px; border-block: 1px solid var(--rule); }
+.readout .when { color: var(--ink-2); font-size: var(--fs-small); }
+.readout .val { font-family: var(--display); font-weight: 600; font-size: 1.35rem; letter-spacing: -0.01em; }
+.chart { width: 100%; height: auto; touch-action: pan-y; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+.chart .grid line { stroke: var(--rule); stroke-width: 1; }
+.chart .axis text { fill: var(--faint); font-family: var(--mono); font-size: 11px; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .zero { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 4; }
+.chart .cross line { stroke: var(--rule); stroke-width: 1; }
+.chart .cross circle { fill: var(--accent); stroke: var(--raised); stroke-width: 2; }
+.chart .cross[hidden] { display: none; }
+.hint { font-size: var(--fs-small); color: var(--faint); text-align: center; }
+.example {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  background: var(--sunken); border-radius: var(--r-md); padding: 10px 14px; font-size: var(--fs-small); color: var(--ink-2);
+}
+.example strong { color: var(--ink); font-weight: 600; }
+.readings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.readings > div { border-top: 2px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.readings .v { font-family: var(--display); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.readings .k { font-size: var(--fs-small); color: var(--ink-2); }
+@media (max-width: 480px) { .readings { grid-template-columns: 1fr 1fr; } .readings > div:last-child { grid-column: 1 / -1; } .panel { padding: 16px; } }
+
+/* ---- sections ---- */
+section { padding-block: clamp(40px, 7vw, 88px); border-top: 1px solid var(--rule); }
+.sec-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px 48px; margin-bottom: clamp(24px, 4vw, 40px); }
+.sec-head h2 { font-size: var(--fs-h2); }
+.sec-head p { color: var(--ink-2); max-width: var(--measure); align-self: end; }
+@media (max-width: 720px) { .sec-head { grid-template-columns: 1fr; } }
+
+.readings-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; margin: 0; }
+.readings-list > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding-block: 20px; border-top: 1px solid var(--rule); }
+.readings-list dt { font-family: var(--display); font-weight: 600; font-size: var(--fs-h3); letter-spacing: -0.01em; }
+.readings-list dd { margin: 0; color: var(--ink-2); max-width: var(--measure); }
+@media (max-width: 720px) { .readings-list { grid-template-columns: 1fr; } }
+.nots { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0 0 18px; }
+.nots li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--sunken); color: var(--ink-2); font-size: var(--fs-small); }
+.nots li::before { content: "\00d7"; font-family: var(--mono); color: var(--honey); font-size: 1.05em; line-height: 1; }
+.punch { color: var(--ink); max-width: var(--measure); margin: 0 0 clamp(18px, 3vw, 30px); }
+
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.rule-card { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-md); padding: 22px; display: flex; flex-direction: column; gap: 8px; }
+.rule-card h3 { font-size: var(--fs-h3); }
+.rule-card p { color: var(--ink-2); }
+.rule-card .tag { align-self: flex-start; font-family: var(--mono); font-size: var(--fs-label); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: var(--r-sm); background: var(--sunken); color: var(--ink-2); }
+.rule-card .tag.owed { color: var(--owed); }
+@media (max-width: 720px) { .rules { grid-template-columns: 1fr; } }
+
+.privacy { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 32px 48px; align-items: start; }
+.privacy ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.privacy li { padding-block: 16px; border-top: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 4px 20px; }
+.privacy li strong { font-weight: 600; }
+.privacy li span { color: var(--ink-2); }
+.airplane { background: var(--ink); color: var(--ground); border-radius: var(--r-lg); padding: 28px; display: flex; flex-direction: column; gap: 12px; }
+.airplane h3 { font-size: 1.4rem; color: var(--ground); }
+.airplane p { color: color-mix(in srgb, var(--ground) 78%, transparent); }
+.airplane .label { color: var(--honey); }
+@media (max-width: 860px) { .privacy { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .privacy li { grid-template-columns: 1fr; } }
+
+.screens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 3vw, 32px); }
+.phone { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.phone .frame {
+  width: 100%; max-width: 300px; aspect-ratio: 1206 / 2622; border-radius: 12%/5.6%; overflow: hidden;
+  background: var(--sunken); border: 1px solid var(--rule); box-shadow: var(--shadow);
+}
+.phone .frame img { width: 100%; height: 100%; object-fit: cover; }
+.phone figcaption { text-align: center; color: var(--ink-2); font-size: var(--fs-small); max-width: 300px; }
+.phone figcaption strong { color: var(--ink); font-weight: 600; display: block; }
+@media (max-width: 720px) { .screens { grid-template-columns: 1fr; } .phone .frame { max-width: 260px; } }
+
+.closing { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px 64px; align-items: center; }
+.closing h2 { font-size: var(--fs-h2); }
+.closing p { color: var(--ink-2); margin-top: 12px; max-width: 30rem; }
+@media (max-width: 860px) { .closing { grid-template-columns: 1fr; } }
+
+/* ---- footer ---- */
+footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
+.foot { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px 48px; }
+.foot .fine { color: var(--ink-2); font-size: var(--fs-small); max-width: var(--measure); }
+.foot .meta { display: flex; flex-direction: column; gap: 10px; font-size: var(--fs-small); color: var(--ink-2); }
+.foot .meta a { color: var(--ink-2); }
+.copyline { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.copyline code { font-family: var(--mono); font-size: 0.85rem; color: var(--ink); background: var(--sunken); padding: 3px 7px; border-radius: var(--r-sm); user-select: all; }
+.copybtn { border: 1px solid var(--rule); background: var(--raised); color: var(--ink-2); border-radius: var(--r-sm); padding: 3px 8px; font-size: 0.8rem; cursor: pointer; }
+.copybtn:hover { color: var(--ink); }
+.foot .brandline { display: flex; align-items: center; gap: 10px; color: var(--faint); }
+.foot .brandline .mark { width: 22px; height: 22px; border-radius: 5px; overflow: hidden; }
+@media (max-width: 720px) { .foot { grid-template-columns: 1fr; } }
+
+/* ---- motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .btn, .chart .line { transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="brand" href="#top" aria-label="WaffleWealth home">
+    <span class="mark" aria-hidden="true">
+      <!-- The app icon: a waffle whose filled squares trace a rising line. -->
+      <svg viewBox="0 0 1024 1024" width="36" height="36" role="img" aria-label="WaffleWealth icon">
+        <rect width="1024" height="1024" fill="#E9A33C"/>
+        <g class="waffle">
+          <rect x="88"  y="88"  width="184" height="184" rx="40" fill="#D08A2C"/>
+          <rect x="304" y="88"  width="184" height="184" rx="40" fill="#D08A2C"/>
+          <rect x="520" y="88"  width="184" height="184" rx="40" fill="#D08A2C"/>
+          <rect x="736" y="88"  width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="88"  y="304" width="184" height="184" rx="40" fill="#D08A2C"/>
+          <rect x="304" y="304" width="184" height="184" rx="40" fill="#D08A2C"/>
+          <rect x="520" y="304" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="736" y="304" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="88"  y="520" width="184" height="184" rx="40" fill="#D08A2C"/>
+          <rect x="304" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="520" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="736" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="88"  y="736" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="304" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="520" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="736" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/>
+        </g>
+      </svg>
+    </span>
+    WaffleWealth
+  </a>
+  <nav class="nav" aria-label="Page">
+    <a href="#shows">What it shows</a>
+    <a href="#privacy">Privacy</a>
+    <a href="try/">Try it</a>
+    <span class="pill" id="status-pill">Coming to the App Store</span>
+  </nav>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div class="hero-copy">
+      <p class="label">For iPhone · Free · No account</p>
+      <h1>Where your money is <span class="honey">heading.</span></h1>
+      <p class="lede">Tell it what you have, earn and spend. It draws your net worth month by month — one month out to ten years.</p>
+      <p class="lede">All on your phone. No account, no server. And it never flatters the number: a falling line is drawn falling.</p>
+
+      <form class="waitlist" id="waitlist" novalidate>
+        <label for="email" class="label">Get one email when it's out</label>
+        <div class="row">
+          <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="waitlist-note">
+          <button class="btn" type="submit" id="submit">Tell me when it's live</button>
+        </div>
+        <label class="hp" aria-hidden="true">Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+        <p class="note" id="waitlist-note">One email on launch day, then nothing. Your address is deleted after.</p>
+      </form>
+      <div id="store-cta" hidden>
+        <a class="btn store" id="store-link" href="#">Download on the App Store</a>
+      </div>
+    </div>
+
+    <!-- The instrument itself: the app's example position, projected live, touch to read. -->
+    <div class="panel" id="instrument" aria-label="A live projection with example numbers">
+      <div class="panel-head">
+        <div class="now">
+          <p class="label">Net worth today</p>
+          <p class="big fig" id="nw-now">$0</p>
+        </div>
+        <div class="seg" role="group" aria-label="Horizon">
+          <button type="button" data-h="12" aria-pressed="false">12 mo</button>
+          <button type="button" data-h="24" aria-pressed="true">24 mo</button>
+          <button type="button" data-h="36" aria-pressed="false">36 mo</button>
+          <button type="button" data-h="120" aria-pressed="false">10 yr</button>
+        </div>
+      </div>
+
+      <div class="readout">
+        <span class="when" id="ro-when">In 24 months</span>
+        <span class="val fig" id="ro-val">$0</span>
+      </div>
+
+      <svg class="chart" id="chart" viewBox="0 0 640 320" role="img" aria-label="Projected net worth, month by month">
+        <g class="grid" id="grid"></g>
+        <g class="axis" id="axis"></g>
+        <line class="zero" id="zero" x1="0" x2="0" y1="0" y2="0" hidden></line>
+        <path class="line" id="line" d=""></path>
+        <g class="cross" id="cross" hidden>
+          <line id="cross-line" x1="0" x2="0" y1="0" y2="0"></line>
+          <circle id="cross-dot" r="5" cx="0" cy="0"></circle>
+        </g>
+      </svg>
+      <p class="hint">Touch the line for any month</p>
+
+      <div class="readings">
+        <div><span class="v fig" id="r-horizon">—</span><span class="k" id="r-horizon-k">In 24 months</span></div>
+        <div><span class="v fig" id="r-target">—</span><span class="k">Reaches $250,000</span></div>
+        <div><span class="v fig" id="r-runway">—</span><span class="k">Runway, if income stopped</span></div>
+      </div>
+
+      <p class="example"><strong>Example numbers, not yours.</strong> The position the app opens with: six accounts, three currencies, a car loan, a pension locked until sixty. <a href="try/">Change the numbers &rarr;</a></p>
+    </div>
+  </div>
+
+  <section id="shows">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Readings, not advice.</h2>
+        <p>Every figure traces back to something you typed — and the app shows you where it came from.</p>
+      </div>
+      <ul class="nots">
+        <li>Transaction tracking</li>
+        <li>Bank connections</li>
+        <li>Receipts to file</li>
+        <li>Categories to maintain</li>
+      </ul>
+      <p class="punch">Balances and monthly totals in. Change any assumption in two taps, and watch the line move.</p>
+      <dl class="readings-list">
+        <div><dt>Net worth today, and at the horizon</dt><dd>One month to ten years. Change it, the line redraws. Drag across the chart to read any month.</dd></div>
+        <div><dt>Breakdown</dt><dd>What each month is made of: money in, money out, growth, interest and dividends, and anything you have planned.</dd></div>
+        <div><dt>Runway</dt><dd>How long your money lasts if income stops. Locked money, like a pension, sits out of this one — you could not spend it.</dd></div>
+        <div><dt>Target</dt><dd>Name an amount and a date. See what it takes: save more monthly, or earn more a year. One lever at a time, never both.</dd></div>
+        <div><dt>What moves the line</dt><dd>Which assumption moves the line most, and by how much. Which one is easiest to move is yours to judge.</dd></div>
+        <div><dt>Currency exposure</dt><dd>What your position looks like if one currency moves against another.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="money">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>How it handles money.</h2>
+        <p>Four rules the engine keeps, whatever you enter. They are why the line can be trusted.</p>
+      </div>
+      <div class="rules">
+        <div class="rule-card"><span class="tag">Currencies</span><h3>Balances keep their currency.</h3><p>Held in GBP, DKK or anything else on the list, and translated only when shown — so you read it in the currency you think in.</p></div>
+        <div class="rule-card"><span class="tag">History</span><h3>Updates keep the old balance.</h3><p>Every update is a new entry, never an edit. Your history stays intact, so you can see how old projections held up.</p></div>
+        <div class="rule-card"><span class="tag">Growth</span><h3>Savings earn nothing unless you say so.</h3><p>Cash accumulates as cash. Returns apply only to accounts you mark invested, and interest pays out as cash unless you say otherwise.</p></div>
+        <div class="rule-card"><span class="tag owed">Honesty</span><h3>A falling line is drawn falling.</h3><p>Spend more than you earn and the line goes down. Never clamped at zero, never smoothed, never softened.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Nothing leaves your phone.</h2>
+        <p>No account, no sign-up. Balances, account names and projections live only on your iPhone, encrypted while it is locked.</p>
+      </div>
+      <div class="privacy">
+        <ul>
+          <li><strong>No tracking</strong><span>No analytics, no advertising, no third-party SDKs. The app has no server of its own.</span></li>
+          <li><strong>One optional request</strong><span>Daily exchange rates, off until you turn it on. It sends a three-letter currency code — never a balance, amount, account name or category.</span></li>
+          <li><strong>Yours to take</strong><span>Export everything, any time, including an encrypted backup only your passphrase opens.</span></li>
+          <li><strong>Yours to delete</strong><span>Delete the app and it is all gone. The database lives inside it.</span></li>
+        </ul>
+        <div class="airplane">
+          <p class="label">The quickest check</p>
+          <h3>Try it in Airplane Mode.</h3>
+          <p>Switch the radio off and use all of it: accounts, projection, breakdown, targets, history, export. Nothing needs a network.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens-section">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Every screen is one tap away.</h2>
+        <p>Projection, Target, Accounts, Planned, Assumptions, History, Settings — all on one hub. Nothing buried, nothing locked.</p>
+      </div>
+      <div class="screens" id="screens">
+        <figure class="phone"><div class="frame"><img src="assets/projection.png" alt="The Projection screen: net worth today, the horizon picker, and the line drawn month by month." loading="lazy" width="1206" height="2622"></div><figcaption><strong>Projection</strong>The number you open the app to see, and the line.</figcaption></figure>
+        <figure class="phone"><div class="frame"><img src="assets/behind.png" alt="The Breakdown screen: where the money sits, what moves it, and every month's figures." loading="lazy" width="1206" height="2622"></div><figcaption><strong>Breakdown</strong>Where the money sits, what moves it, and every month's figures.</figcaption></figure>
+        <figure class="phone"><div class="frame"><img src="assets/accounts.png" alt="The Accounts screen: balances in their own currencies, with what is owed listed plainly." loading="lazy" width="1206" height="2622"></div><figcaption><strong>Accounts</strong>Balances in their own currencies. What is owed, listed plainly.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="closing">
+    <div class="wrap closing">
+      <div>
+        <h2>Free, and nothing to sign up for.</h2>
+        <p>Coming to the App Store for iPhone. Leave an address and you’ll hear from us once, on the day it’s out.</p>
+      </div>
+      <form class="waitlist" id="waitlist-2" novalidate>
+        <label for="email-2" class="label">Get one email when it's out</label>
+        <div class="row">
+          <input type="email" id="email-2" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+          <button class="btn" type="submit" id="submit-2">Tell me when it's live</button>
+        </div>
+        <label class="hp" aria-hidden="true">Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
+        <p class="status" id="status-2" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <p class="fine">WaffleWealth reports figures and does not advise. The numbers you give it are assumptions, not predictions, and nothing in the app is a recommendation to save, spend, borrow or invest. The projection above uses made-up example numbers.</p>
+    <div class="meta">
+      <span class="copyline">Support: <code id="support-email">wafflewealth.app.support@gmail.com</code> <button class="copybtn" type="button" id="copy-email">Copy</button></span>
+      <span><a href="https://pinkhummingbird.github.io/wafflewealth-app/support">Support</a> · <a href="https://pinkhummingbird.github.io/wafflewealth-app/privacy">Privacy policy</a></span>
+      <span class="brandline"><span class="mark" aria-hidden="true"><svg viewBox="0 0 1024 1024" width="22" height="22"><rect width="1024" height="1024" fill="#E9A33C"/><rect x="88" y="88" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="88" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="520" y="88" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="736" y="88" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="88" y="304" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="304" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="520" y="304" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="736" y="304" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="88" y="520" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="520" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="736" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="88" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="304" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="520" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="736" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/></svg></span>© 2026 PinkHummingbird · Made for iPhone, iOS 26 or later</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   SETUP — the only two lines you need to edit.
+   1. WAITLIST_ENDPOINT: your Formspree form URL, e.g. "https://formspree.io/f/abcdwxyz".
+      Leave empty and the form explains that it isn't connected yet.
+   2. APP_STORE_URL: paste the App Store link on launch day. The form is replaced by a
+      download button everywhere on the page.
+   ============================================================ */
+const WAITLIST_ENDPOINT = "https://formspree.io/f/mvkgvver";
+const APP_STORE_URL = "";
+
+/* ---------- The example position, the same one the app loads on first launch ---------- */
+const today = new Date();
+const EXAMPLE = {
+  currency: "USD",
+  cash: 48000,                       // Current account
+  savings: 6500, savingsRatePct: 4,  // Savings: 4% a year, paid quarterly as cash
+  copenhagenDKK: 42000, dkkToUsd: 0.145,
+  brokerageGBP: 9500, gbpToUsd: 1.27, // UK brokerage: invested
+  pension: 64000,                    // State pension: invested, locked until sixty
+  loan: 22000, loanCharge: 1100,     // Car loan: 1,100 charged every month; the balance stays until a repayment is planned
+  income: 18000, spending: 11500,
+  returnPct: 6, raisePct: 4, raiseMonth: 4, spendingGrowthPct: 2,
+  planned: { name: "Flights home", amount: 4500, month: 6 }, // every June
+  target: 250000,
+};
+
+function project(months, start) {
+  // Mirrors the app's engine: income and spending are step functions (the raise lands every
+  // April, spending rises once per projection year), the invested pool grows at the annual
+  // return divided by twelve, interest is paid out as cash, and a liability's charge goes out
+  // every month while its balance stays put.
+  let cash = EXAMPLE.cash + EXAMPLE.copenhagenDKK * EXAMPLE.dkkToUsd;
+  const savings = EXAMPLE.savings;
+  let invested = EXAMPLE.brokerageGBP * EXAMPLE.gbpToUsd + EXAMPLE.pension;
+  const loan = EXAMPLE.loan;
+  const r = EXAMPLE.returnPct / 100 / 12;
+  const y = start.getFullYear(), m0 = start.getMonth();
+  const at = (i) => new Date(y, m0 + i, 1);
+  let raises = 0;
+  const points = [{ i: 0, date: at(0), value: cash + savings + invested - loan }];
+  for (let i = 1; i <= months; i++) {
+    const d = at(i), mon = d.getMonth() + 1;
+    if (mon === EXAMPLE.raiseMonth) raises += 1;
+    const income = EXAMPLE.income * Math.pow(1 + EXAMPLE.raisePct / 100, raises);
+    const spending = EXAMPLE.spending * Math.pow(1 + EXAMPLE.spendingGrowthPct / 100, Math.floor((i - 1) / 12));
+    invested += invested * r;
+    cash += income - spending;
+    if (i % 3 === 0) cash += savings * (EXAMPLE.savingsRatePct / 100) * (3 / 12);
+    cash -= EXAMPLE.loanCharge;
+    if (mon === EXAMPLE.planned.month) cash -= EXAMPLE.planned.amount;
+    points.push({ i, date: d, value: cash + savings + invested - loan });
+  }
+  return points;
+}
+
+function runwayMonths() {
+  // The app's reading: income stops, everything else keeps going, and only money you could
+  // reach is spent. The pension is locked, what is owed comes off, and the month the pool
+  // runs dry is counted.
+  let pool = EXAMPLE.cash + EXAMPLE.copenhagenDKK * EXAMPLE.dkkToUsd + EXAMPLE.savings
+    + EXAMPLE.brokerageGBP * EXAMPLE.gbpToUsd - EXAMPLE.loan;
+  let brokerage = EXAMPLE.brokerageGBP * EXAMPLE.gbpToUsd;
+  const r = EXAMPLE.returnPct / 100 / 12, m0 = today.getMonth();
+  for (let i = 1; i <= 600; i++) {
+    const growth = brokerage * r; brokerage += growth; pool += growth;
+    pool -= EXAMPLE.spending * Math.pow(1 + EXAMPLE.spendingGrowthPct / 100, Math.floor((i - 1) / 12));
+    pool -= EXAMPLE.loanCharge;
+    if (i % 3 === 0) pool += EXAMPLE.savings * (EXAMPLE.savingsRatePct / 100) * (3 / 12);
+    if (((m0 + i) % 12) + 1 === EXAMPLE.planned.month) pool -= EXAMPLE.planned.amount;
+    if (pool < 0) return i;
+  }
+  return 600;
+}
+
+/* ---------- formatting ---------- */
+const money = new Intl.NumberFormat(undefined, { style: "currency", currency: EXAMPLE.currency, maximumFractionDigits: 0 });
+const fmt = (v) => money.format(Math.round(v));
+const monthLong = (d) => d.toLocaleString(undefined, { month: "short", year: "numeric" });
+const monthAxis = (d) => d.toLocaleString(undefined, { month: "short" }) + " ’" + String(d.getFullYear()).slice(-2);
+function compact(v) {
+  const a = Math.abs(v), s = v < 0 ? "\u2212" : "";
+  if (a >= 1e6) return s + (a / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M";
+  if (a >= 1e3) return s + Math.round(a / 1e3) + "K";
+  return s + Math.round(a);
+}
+function niceTicks(lo, hi) {
+  const span = Math.max(1, hi - lo);
+  const raw = span / 4, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * p).find((s) => span / s <= 5) || 10 * p;
+  const low = Math.floor(lo / step) * step, high = Math.ceil(hi / step) * step;
+  const ticks = []; for (let t = low; t <= high + 1e-9; t += step) ticks.push(t);
+  return { low, high, ticks };
+}
+
+/* ---------- the chart ---------- */
+const chart = document.getElementById("chart");
+const gridG = document.getElementById("grid"), axisG = document.getElementById("axis");
+const linePath = document.getElementById("line"), zeroLine = document.getElementById("zero");
+const cross = document.getElementById("cross"), crossLine = document.getElementById("cross-line"), crossDot = document.getElementById("cross-dot");
+const roWhen = document.getElementById("ro-when"), roVal = document.getElementById("ro-val");
+let W = 640, H = 320;
+const PAD = { l: 58, r: 14, t: 16, b: 30 };
+function sizeChart() {
+  const w = Math.round(chart.getBoundingClientRect().width) || 640;
+  W = Math.max(280, w);
+  H = Math.round(Math.max(220, Math.min(320, W * 0.5)));
+  chart.setAttribute("viewBox", "0 0 " + W + " " + H);
+  chart.style.height = H + "px";
+}
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let horizon = 24, points = [], scale = null;
+
+/* `hidden` is an HTML property; on an SVG element it is only an attribute, so toggle that. */
+const showSvg = (node, on) => { if (on) node.removeAttribute("hidden"); else node.setAttribute("hidden", ""); };
+const svgEl = (name, attrs) => { const e = document.createElementNS("http://www.w3.org/2000/svg", name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+function draw(animate) {
+  points = project(horizon, today);
+  const vals = points.map((p) => p.value);
+  const { low, high, ticks } = niceTicks(Math.min(...vals), Math.max(...vals));
+  const x = (i) => PAD.l + (i / horizon) * (W - PAD.l - PAD.r);
+  const y = (v) => PAD.t + (1 - (v - low) / (high - low)) * (H - PAD.t - PAD.b);
+  scale = { x, y };
+
+  gridG.replaceChildren(); axisG.replaceChildren();
+  for (const t of ticks) {
+    gridG.appendChild(svgEl("line", { x1: PAD.l, x2: W - PAD.r, y1: y(t), y2: y(t) }));
+    const label = svgEl("text", { x: PAD.l - 8, y: y(t) + 4, "text-anchor": "end" });
+    label.textContent = compact(t); axisG.appendChild(label);
+  }
+  const step = Math.max(1, Math.ceil(horizon / 4));
+  for (let i = 0; i <= horizon; i += step) {
+    const anchor = i === 0 ? "start" : i >= horizon - step / 2 ? "end" : "middle";
+    const label = svgEl("text", { x: x(i), y: H - 8, "text-anchor": anchor });
+    label.textContent = monthAxis(points[i].date); axisG.appendChild(label);
+  }
+  if (low < 0 && high > 0) { zeroLine.setAttribute("x1", PAD.l); zeroLine.setAttribute("x2", W - PAD.r); zeroLine.setAttribute("y1", y(0)); zeroLine.setAttribute("y2", y(0)); showSvg(zeroLine, true); }
+  else showSvg(zeroLine, false);
+
+  linePath.style.transition = "none"; linePath.style.strokeDasharray = ""; linePath.style.strokeDashoffset = "";
+  linePath.setAttribute("d", points.map((p, i) => (i ? "L" : "M") + x(i).toFixed(2) + " " + y(p.value).toFixed(2)).join(" "));
+  if (animate && !reduced) {
+    const len = linePath.getTotalLength();
+    linePath.style.strokeDasharray = len; linePath.style.strokeDashoffset = len;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      linePath.style.transition = "stroke-dashoffset 1100ms cubic-bezier(.2,.7,.2,1)";
+      linePath.style.strokeDashoffset = 0;
+    }));
+  }
+  hideCross();
+  document.getElementById("nw-now").textContent = fmt(points[0].value);
+  document.getElementById("r-horizon").textContent = fmt(points[horizon].value);
+  document.getElementById("r-horizon-k").textContent = horizonLabel();
+}
+
+function horizonLabel() { return horizon >= 120 ? "In " + horizon / 12 + " years" : "In " + horizon + " months"; }
+function showMonth(i) {
+  const p = points[i];
+  showSvg(cross, true);
+  crossLine.setAttribute("x1", scale.x(i)); crossLine.setAttribute("x2", scale.x(i));
+  crossLine.setAttribute("y1", PAD.t); crossLine.setAttribute("y2", H - PAD.b);
+  crossDot.setAttribute("cx", scale.x(i)); crossDot.setAttribute("cy", scale.y(p.value));
+  roWhen.textContent = i === 0 ? "Today, " + monthLong(p.date) : monthLong(p.date) + " · month " + i;
+  roVal.textContent = fmt(p.value);
+}
+function hideCross() {
+  showSvg(cross, false);
+  roWhen.textContent = horizonLabel();
+  roVal.textContent = fmt(points[horizon].value);
+}
+function monthAt(evt) {
+  const r = chart.getBoundingClientRect();
+  const px = ((evt.clientX - r.left) / r.width) * W;
+  const i = Math.round(((px - PAD.l) / (W - PAD.l - PAD.r)) * horizon);
+  return Math.max(0, Math.min(horizon, i));
+}
+let tracking = false;
+chart.addEventListener("pointerdown", (e) => { tracking = true; chart.setPointerCapture(e.pointerId); showMonth(monthAt(e)); });
+chart.addEventListener("pointermove", (e) => { if (tracking || e.pointerType === "mouse") showMonth(monthAt(e)); });
+chart.addEventListener("pointerup", () => { tracking = false; });
+chart.addEventListener("pointercancel", () => { tracking = false; hideCross(); });
+chart.addEventListener("pointerleave", () => { if (!tracking) hideCross(); });
+
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".seg button").forEach((o) => o.setAttribute("aria-pressed", o === b ? "true" : "false"));
+  horizon = Number(b.dataset.h); draw(true);
+}));
+
+/* readings that do not depend on the horizon */
+(function () {
+  const far = project(600, today);
+  const hit = far.find((p) => p.value >= EXAMPLE.target);
+  document.getElementById("r-target").textContent = hit ? (hit.i === 0 ? "Already there" : monthLong(hit.date)) : "Not within 50 years";
+  const rw = runwayMonths();
+  document.getElementById("r-runway").textContent = rw + (rw === 1 ? " month" : " months");
+})();
+sizeChart();
+draw(true);
+let resizeTimer = 0;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { sizeChart(); draw(false); }, 120); });
+
+/* ---------- waitlist ---------- */
+const LIVE_SITE = "https://pinkhummingbird.github.io/wafflewealth-app/";
+/* The claude.ai preview runs the page in a sandboxed frame on claudeusercontent.com, which
+   blocks requests to other sites, so the form cannot send from there. */
+const framedBy = (() => { try { return Array.from(location.ancestorOrigins || []).join(" "); } catch (e) { return ""; } })();
+const isPreview = /claude\.ai$|claudeusercontent\.com$/.test(location.hostname)
+  || /claude\.ai/.test(framedBy) || /claude\.ai/.test(document.referrer)
+  || location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:";
+function wireForm(form, statusId) {
+  const status = document.getElementById(statusId);
+  const input = form.querySelector('input[type="email"]');
+  const button = form.querySelector('button[type="submit"]');
+  const say = (text, cls) => { status.textContent = text; status.className = "status" + (cls ? " " + cls : ""); };
+  try { if (localStorage.getItem("ww-waitlist") === "yes") { say("You're on the list. One email when it's out.", "ok"); input.hidden = true; button.hidden = true; } } catch (e) {}
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (form.querySelector('input[name="_gotcha"]').value) return;
+    const email = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That doesn't look like an email address.", "err"); input.focus(); return; }
+    if (isPreview) {
+      status.innerHTML = "";
+      status.append("This is the preview copy, which can't send. The form works on the live site: ");
+      const a = document.createElement("a"); a.href = LIVE_SITE; a.target = "_blank"; a.rel = "noopener"; a.textContent = "pinkhummingbird.github.io/wafflewealth-app";
+      status.append(a); status.className = "status"; return;
+    }
+    if (!WAITLIST_ENDPOINT) {
+      say("The waitlist isn't connected yet. Email us instead: wafflewealth.app.support@gmail.com", "err");
+      return;
+    }
+    button.disabled = true; say("Sending…");
+    try {
+      const res = await fetch(WAITLIST_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ email, source: "wafflewealth landing page" }) });
+      if (!res.ok) throw new Error(String(res.status));
+      say("You're on the list. One email when it's out.", "ok");
+      input.hidden = true; button.hidden = true;
+      try { localStorage.setItem("ww-waitlist", "yes"); } catch (e) {}
+    } catch (err) {
+      console.warn("waitlist:", err);
+      say(err instanceof TypeError
+        ? "That didn't send: something blocked the request to formspree.io, often a content blocker. Allow it and try again, or email us: wafflewealth.app.support@gmail.com"
+        : "That didn't send. Email us instead: wafflewealth.app.support@gmail.com", "err");
+      button.disabled = false;
+    }
+  });
+}
+wireForm(document.getElementById("waitlist"), "status");
+wireForm(document.getElementById("waitlist-2"), "status-2");
+
+/* launch day: one constant swaps every form for the store button */
+if (APP_STORE_URL) {
+  document.getElementById("store-link").href = APP_STORE_URL;
+  document.getElementById("store-cta").hidden = false;
+  document.getElementById("waitlist").hidden = true;
+  document.getElementById("waitlist-2").hidden = true;
+  document.getElementById("status-pill").textContent = "Now on the App Store";
+}
+
+/* support address: copy, with a selection fallback */
+document.getElementById("copy-email").addEventListener("click", async (e) => {
+  const code = document.getElementById("support-email"), btn = e.currentTarget;
+  try { await navigator.clipboard.writeText(code.textContent); btn.textContent = "Copied"; }
+  catch (err) { const range = document.createRange(); range.selectNodeContents(code); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range); btn.textContent = "Selected"; }
+  setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+});
+</script>
+</body>
+</html>
