@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Try WaffleWealth in your browser</title>
-<meta name="description" content="A working demo of WaffleWealth: change the income, spending, accounts and assumptions and watch the net worth line redraw. Nothing you type leaves this page.">
+<meta name="description" content="A working demo of WaffleWealth: change the income, spending, accounts, planned money and assumptions and watch the net worth line redraw. Nothing you type leaves this page.">
 <meta property="og:title" content="Try WaffleWealth in your browser">
 <meta property="og:description" content="Change the numbers, watch the line. Nothing you type leaves this page.">
 <meta name="robots" content="index,follow">
@@ -72,6 +72,7 @@ p { margin: 0; }
 .nav a { color: var(--ink-2); text-decoration: none; }
 .nav a:hover { color: var(--ink); text-decoration: underline; }
 .pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); font-size: var(--fs-small); white-space: nowrap; }
+@media (max-width: 520px) { .nav .pill { display: none; } } /* the heading already says it's a demo */
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
 
 /* ---- intro ---- */
@@ -83,12 +84,32 @@ p { margin: 0; }
 
 /* ---- layout ---- */
 .lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(20px, 3vw, 40px); align-items: start; padding-bottom: 56px; }
+.left { min-width: 0; }
 .forms { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.sticky { position: sticky; top: 16px; }
 @media (max-width: 900px) {
+  /* One column: the intro, then the line, then the forms. */
   .lab { grid-template-columns: 1fr; }
+  .left { display: contents; }
+  .lab .intro { order: -2; padding-bottom: 0; }
   .lab > .instrument { order: -1; }
-  .sticky { position: static; }
+}
+/* **Wide screens: two panes that scroll on their own.** The header and the footer line stay put
+   and the page itself does not scroll, so moving through the forms never moves the line and
+   reading the detail never moves the forms. A window too short for that falls back to one
+   ordinary scrolling page. */
+@media (min-width: 901px) and (min-height: 560px) {
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  body > header, body > footer { flex: none; width: 100%; }
+  main.wrap { flex: 1 1 auto; min-height: 0; width: 100%; }
+  .lab { height: 100%; padding-bottom: 0; align-items: stretch; }
+  .lab > .left, .lab > .instrument {
+    min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    /* Room inside the scroller for the cards' shadows, taken back from the layout outside. */
+    padding: 4px 14px 32px; margin-inline: -14px;
+    scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+  }
+  footer { padding-block: 12px 14px; }
 }
 
 /* ---- cards and rows (the app's grouped rows) ---- */
@@ -102,14 +123,15 @@ p { margin: 0; }
 .row .cap { display: block; font-size: var(--fs-small); color: var(--ink-2); }
 .row .ctl { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .row .unit { color: var(--ink-2); font-size: var(--fs-small); }
-input[type="text"], input[type="number"], select {
+input[type="text"], input[type="number"], input[type="date"], select {
   height: 38px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--sunken); color: var(--ink);
   font-variant-numeric: tabular-nums; min-width: 0;
 }
-input[type="text"]:focus, input[type="number"]:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 input.amt { width: 9.5em; text-align: right; }
 input.pct { width: 5em; text-align: right; }
 input.yrs { width: 4.5em; text-align: right; }
+input.day { width: 10.5em; font-family: var(--body); }
 input.code { width: 5em; text-transform: uppercase; font-family: var(--mono); }
 input.name { width: 100%; height: 40px; background: var(--raised); }
 input::placeholder { color: var(--faint); }
@@ -139,6 +161,28 @@ select { padding-right: 8px; }
 .acct .sub { display: flex; flex-direction: column; margin-left: 12px; padding-left: 12px; border-left: 2px solid var(--rule); }
 .tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 0.74rem; font-weight: 600; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 .tag.owed { background: color-mix(in srgb, var(--owed) 14%, transparent); color: var(--owed); }
+.tag.plain { background: color-mix(in srgb, var(--ink-2) 12%, transparent); color: var(--ink-2); }
+@media (max-width: 520px) { .acct .head.stack { flex-wrap: wrap; } .acct .head.stack .seg { flex: 1 1 100%; } .acct .head.stack .seg button { flex: 1; } }
+.choice { display: flex; flex-direction: column; gap: 8px; padding-block: 10px 6px; border-top: 1px solid var(--rule); }
+.choice .cap { font-size: var(--fs-small); color: var(--ink-2); }
+.detail .k.sub, .detail .v.sub { font-size: 0.82rem; }
+.detail .k.sub { color: var(--faint); padding-left: 14px; }
+.detail .v.sub { color: var(--ink-2); }
+.detail .k.lead { color: var(--ink); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.detail .v.lead { display: flex; align-items: center; justify-content: flex-end; }
+.detail .k.sub { padding-left: 20px; }
+.detail .k.lead > .chev { flex: none; width: 14px; display: inline-flex; justify-content: center; color: var(--faint); transition: transform 120ms; }
+.detail .k.lead[aria-expanded="true"] > .chev { transform: rotate(90deg); }
+.detail button.k.lead { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; font-weight: 600; color: var(--ink); }
+.detail button.k.lead.gap { padding: 6px 16px 0 0; border-top: 1px solid var(--rule); }
+.detail button.k.lead:hover > .chev { color: var(--accent); }
+.detail .v.lead { font-weight: 600; }
+.detail .k.gap, .detail .v.gap { border-top: 1px solid var(--rule); padding-top: 6px; }
+.detail .k.gap { margin-right: -16px; padding-right: 16px; } /* one unbroken rule across the column gap */
+.acct .say { font-size: var(--fs-small); color: var(--ink-2); padding: 8px 0 2px; border-top: 1px solid var(--rule); }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 18px 12px 8px; color: var(--ink-2); font-size: var(--fs-small); }
+.empty strong { font-family: var(--display); font-size: 1rem; color: var(--ink); font-weight: 600; }
+.empty svg { width: 56px; height: 56px; margin-bottom: 6px; }
 .linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 6px 0; font-weight: 600; }
 .linkbtn.quiet { color: var(--ink-2); font-weight: 500; font-size: var(--fs-small); }
 .linkbtn.quiet:hover { color: var(--alert); }
@@ -216,13 +260,14 @@ footer a { color: var(--ink-2); }
 </header>
 
 <main class="wrap">
-  <div class="intro">
-    <h1>Try it with <span class="honey">your numbers.</span></h1>
-    <p>A working demo of the app. Every figure below is editable, and the line redraws as you type. <strong>Nothing you type leaves this page</strong>: there is no server behind it and nothing is stored, so a reload starts you over with the example.</p>
-    <p>The app itself runs on your iPhone, keeps everything there, and is exact to the cent. This demo is the same arithmetic in a browser, close enough to show you what it does.</p>
-  </div>
 
   <div class="lab">
+    <div class="left">
+    <div class="intro">
+      <h1>Try it with <span class="honey">your numbers.</span></h1>
+      <p>A working demo of the app. Every figure below is editable, and the line redraws as you type. <strong>Nothing you type leaves this page</strong>: there is no server behind it and nothing is stored, so a reload starts you over with the example.</p>
+      <p>The app itself runs on your iPhone, keeps everything there, and is exact to the cent. This demo is the same arithmetic in a browser, close enough to show you what it does.</p>
+    </div>
     <div class="forms" id="forms">
       <section class="card" aria-labelledby="h-assump">
         <div class="card-head"><h2 id="h-assump">Assumptions</h2><span class="label" id="in-currency-note">Every amount in USD</span></div>
@@ -239,7 +284,7 @@ footer a { color: var(--ink-2); }
           <div class="ctl"><input class="amt" type="number" id="f-spending" inputmode="decimal" min="0" step="100"></div>
         </div>
         <div class="row">
-          <label for="f-return">Annual investment return<span class="cap">Applies to accounts marked Invested.</span></label>
+          <label for="f-return">Annual investment return<span class="cap">For accounts set to grow at the assumed return.</span></label>
           <div class="ctl"><input class="pct" type="number" id="f-return" inputmode="decimal" step="0.5"><span class="unit">%</span></div>
         </div>
         <details class="adv">
@@ -268,7 +313,14 @@ footer a { color: var(--ink-2); }
         <div class="card-head"><h2 id="h-accounts">Accounts</h2><span class="label" id="acct-count"></span></div>
         <div id="accounts"></div>
         <button type="button" class="add" id="add-account">+ Add account</button>
-        <p class="foot">Invested balances grow at the investment return rate. Everything else stays as cash. Interest or dividends are paid out as cash unless you leave them in the account.</p>
+        <p class="foot">Each account grows one way: not at all, at the assumed return, or at its own rate. Interest or dividends are paid out as cash unless you leave them in the account.</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-planned">
+        <div class="card-head"><h2 id="h-planned">Planned</h2><span class="label" id="planned-count"></span></div>
+        <div id="planned"></div>
+        <button type="button" class="add" id="add-planned">+ Add planned item</button>
+        <p class="foot" id="planned-foot">Money that arrives or leaves on a date rather than every month: a bonus, a school fee, flights home. It lands as cash in the month it falls in and earns nothing.</p>
       </section>
 
       <section class="card" aria-labelledby="h-target">
@@ -280,8 +332,9 @@ footer a { color: var(--ink-2); }
         <p class="foot">The reading reports the first month the line crosses it. It does not tell you what to do to get there.</p>
       </section>
     </div>
+    </div>
 
-    <div class="instrument sticky">
+    <div class="instrument">
       <div class="panel" aria-label="The projection, drawn from the numbers on this page">
         <div class="panel-head">
           <div class="now"><p class="label">Net worth today</p><p class="big fig" id="nw-now">$0</p></div>
@@ -310,11 +363,6 @@ footer a { color: var(--ink-2); }
         </div>
         <div class="detail" id="detail">
           <div class="t"><strong>Monthly detail</strong><span id="d-when">In 24 months</span></div>
-          <span class="k">Money in</span><span class="v fig" id="d-in">—</span>
-          <span class="k">Money out</span><span class="v fig" id="d-out">—</span>
-          <span class="k">Investment growth</span><span class="v fig" id="d-growth">—</span>
-          <span class="k">Interest &amp; dividends kept in accounts</span><span class="v fig" id="d-kept">—</span>
-          <span class="k" id="d-locked-k" hidden>Locked, counted but out of reach</span><span class="v fig" id="d-locked" hidden>—</span>
         </div>
         <p class="example"><strong>Example numbers, not yours.</strong> The position the app opens with. Change any of them, or <button type="button" class="linkbtn quiet" id="reset">start again</button>.</p>
       </div>
@@ -329,13 +377,16 @@ footer a { color: var(--ink-2); }
   </div>
 </footer>
 
-<script src="engine.js"></script>
+<script src="engine.js?v=2"></script>
 <script>
 (function () {
 "use strict";
 const E = window.WWEngine;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const today = new Date();
+
+/* A local calendar day as "YYYY-MM-DD", the value a date field holds. */
+function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
 /* ---------- the example position, as the app loads it, read in its base currency ---------- */
 function exampleState() {
@@ -353,10 +404,15 @@ function exampleState() {
       { id: 5, name: "State pension", kind: "asset", value: 64000, invested: true, pays: null, availableFromAge: 60 },
       { id: 6, name: "Car loan", kind: "liability", value: 22000, invested: false, pays: { basis: "amount", ratePct: 0, amount: 1100, frequency: "monthly", reinvested: false }, availableFromAge: null },
     ],
+    // The app's example carries one planned item: flights home every June, from the next one.
+    planned: [
+      { id: 1, name: "Flights home", direction: "out", amount: 4500, first: isoDay(new Date(today.getMonth() < 5 ? today.getFullYear() : today.getFullYear() + 1, 5, 15)), frequency: "yearly", endsOn: null, risePct: 0 },
+    ],
   };
 }
 let state = exampleState();
 let nextId = 7;
+let nextPlannedId = 2;
 let horizon = 24;
 
 /* ---------- formatting ---------- */
@@ -392,9 +448,10 @@ function fillAssumptions() { for (const k in fields) $(fields[k]).value = state[
 for (const k in fields) {
   $(fields[k]).addEventListener("input", (e) => {
     const raw = e.target.value;
-    if (k === "currency") { state.currency = raw.toUpperCase().slice(0, 3); setFormatter(); $("in-currency-note").textContent = "Every amount in " + (state.currency || "—"); renderAccounts(); }
+    if (k === "currency") { state.currency = raw.toUpperCase().slice(0, 3); setFormatter(); $("in-currency-note").textContent = "Every amount in " + (state.currency || "—"); renderAccounts(); renderPlanned(); }
     else if (k === "raiseMonth") state.raiseMonth = Number(raw);
     else state[k] = raw === "" ? 0 : Number(raw);
+    if (k === "returnPct") renderAccounts();
     draw(false);
   });
 }
@@ -426,6 +483,26 @@ function numInput(cls, value, step, onInput, unit) {
   const wrap = document.createDocumentFragment(); wrap.appendChild(i); wrap.appendChild(el("span", "unit", unit)); return wrap;
 }
 
+/* Which of the three ways an asset grows. A liability has none of them. */
+const growthMode = (a) => a.pays ? "own" : a.invested ? "assumed" : "none";
+const GROWTH_CAPTION = {
+  none: () => "Stays as it is. Right for a current account or cash at home.",
+  assumed: () => "Grows at the " + (state.returnPct || 0) + "% a year set under Assumptions. Right for shares, funds and pensions.",
+  own: () => "Earns a rate or a fixed amount you set for this account, like a savings account, a deposit or a bond.",
+};
+const CADENCE = { monthly: "monthly", quarterly: "quarterly", yearly: "yearly" };
+function accountTags(a, host) {
+  host.replaceChildren();
+  const owed = a.kind === "liability";
+  if (!owed && growthMode(a) === "assumed") host.appendChild(el("span", "tag", "Grows " + (state.returnPct || 0) + "%/yr"));
+  if (a.pays) {
+    const what = a.pays.basis === "rate" ? (Number(a.pays.ratePct) || 0) + "%/yr, paid " + CADENCE[a.pays.frequency] : fmt(Number(a.pays.amount) || 0) + " " + CADENCE[a.pays.frequency];
+    host.appendChild(el("span", "tag" + (owed ? " owed" : ""), what));
+    if (a.pays.reinvested) host.appendChild(el("span", "tag" + (owed ? " owed" : ""), owed ? "Added to what's owed" : "Kept in the account"));
+  }
+  if (a.availableFromAge != null) host.appendChild(el("span", "tag", "From " + a.availableFromAge));
+  if (owed) host.appendChild(el("span", "tag owed", "Owed"));
+}
 function renderAccounts() {
   const host = $("accounts"); host.replaceChildren();
   const code = state.currency || "USD";
@@ -434,28 +511,42 @@ function renderAccounts() {
     const card = el("div", "acct");
     const head = el("div", "head");
     const name = document.createElement("input"); name.type = "text"; name.className = "name"; name.value = a.name; name.placeholder = "Name"; name.setAttribute("aria-label", "Account name");
-    name.addEventListener("input", () => { a.name = name.value; });
+    name.addEventListener("input", () => { a.name = name.value; draw(false); });
     head.appendChild(name);
     head.appendChild(seg([["asset", "Asset"], ["liability", "Liability"]], a.kind, (v) => { a.kind = v; if (v === "liability") { a.invested = false; a.availableFromAge = null; } renderAccounts(); draw(false); }));
     card.appendChild(head);
 
+    const tagWrap = el("div"); tagWrap.style.display = "flex"; tagWrap.style.gap = "6px"; tagWrap.style.flexWrap = "wrap";
+    const changed = () => { accountTags(a, tagWrap); draw(false); };
     card.appendChild(row("Current value", numInput("amt", a.value, 100, (v) => { a.value = v; draw(false); }, code), null, true));
     if (a.kind === "asset") {
-      card.appendChild(row("Invested", sw(a.invested, (v) => { a.invested = v; draw(false); }, "Invested"), "Grows at the investment return rate."));
+      // **Either the assumed return or the account's own terms, never both.** One question with
+      // three answers, so a balance can't be set to grow twice by accident.
+      const mode = growthMode(a);
+      const choice = el("div", "choice");
+      choice.appendChild(el("span", "k", "How it grows"));
+      choice.appendChild(seg([["none", "Stays put"], ["assumed", "Assumed " + (state.returnPct || 0) + "%"], ["own", "Its own rate"]], mode, (v) => {
+        a.invested = v === "assumed";
+        a.pays = v === "own" ? (a.pays || { basis: "rate", ratePct: 3, amount: 0, frequency: "monthly", reinvested: false }) : null;
+        renderAccounts(); draw(false);
+      }, true));
+      choice.appendChild(el("span", "cap", GROWTH_CAPTION[mode]()));
+      card.appendChild(choice);
+    } else {
+      card.appendChild(row("Charges interest or fees", sw(!!a.pays, (v) => { a.pays = v ? { basis: "rate", ratePct: 3, amount: 0, frequency: "monthly", reinvested: false } : null; renderAccounts(); draw(false); }, "Charges interest or fees"),
+        "Interest on what's owed, or a fee that goes out on a schedule."));
     }
-    card.appendChild(row("Pays interest or dividends", sw(!!a.pays, (v) => { a.pays = v ? { basis: "rate", ratePct: 3, amount: 0, frequency: "monthly", reinvested: false } : null; renderAccounts(); draw(false); }, "Pays interest or dividends"),
-      a.kind === "liability" ? "Interest charged on this, or a premium that goes out on a schedule." : null));
     if (a.pays) {
       const sub = el("div", "sub");
       sub.appendChild(row("Worked out from", seg([["rate", "Rate"], ["amount", "Amount"]], a.pays.basis, (v) => { a.pays.basis = v; renderAccounts(); draw(false); }), null, true));
-      if (a.pays.basis === "rate") sub.appendChild(row("Annual rate", numInput("pct", a.pays.ratePct, 0.25, (v) => { a.pays.ratePct = v; draw(false); }, "%")));
-      else sub.appendChild(row("Each payment", numInput("amt", a.pays.amount, 50, (v) => { a.pays.amount = v; draw(false); }, code)));
+      if (a.pays.basis === "rate") sub.appendChild(row("Annual rate", numInput("pct", a.pays.ratePct, 0.25, (v) => { a.pays.ratePct = v; changed(); }, "%")));
+      else sub.appendChild(row("Each payment", numInput("amt", a.pays.amount, 50, (v) => { a.pays.amount = v; changed(); }, code)));
       const sel = document.createElement("select"); sel.setAttribute("aria-label", "Paid");
       for (const [v, l] of [["monthly", "Monthly"], ["quarterly", "Quarterly"], ["yearly", "Yearly"]]) { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); }
-      sel.value = a.pays.frequency; sel.addEventListener("change", () => { a.pays.frequency = sel.value; draw(false); });
+      sel.value = a.pays.frequency; sel.addEventListener("change", () => { a.pays.frequency = sel.value; changed(); });
       sub.appendChild(row("Paid", sel));
-      sub.appendChild(row(a.kind === "liability" ? "Add it to what's owed" : "Leave it in the account", sw(a.pays.reinvested, (v) => { a.pays.reinvested = v; draw(false); }, "Keep it in the account"),
-        a.kind === "liability" ? "Otherwise it is paid out of cash and what's owed stays where it is." : "Otherwise it becomes cash and earns nothing after that."));
+      sub.appendChild(row(a.kind === "liability" ? "Add it to what's owed" : "Leave it in the account", sw(a.pays.reinvested, (v) => { a.pays.reinvested = v; changed(); }, a.kind === "liability" ? "Add it to what's owed" : "Leave it in the account"),
+        a.kind === "liability" ? "Otherwise it is paid out of cash and what's owed stays where it is." : "Otherwise it is paid out as cash and earns nothing after that."));
       card.appendChild(sub);
     }
     if (a.kind === "asset") {
@@ -467,11 +558,7 @@ function renderAccounts() {
         card.appendChild(sub);
       }
     }
-    const tags = el("div", "row"); const tagWrap = el("div"); tagWrap.style.display = "flex"; tagWrap.style.gap = "6px"; tagWrap.style.flexWrap = "wrap";
-    if (a.invested) tagWrap.appendChild(el("span", "tag", "Invested"));
-    if (a.pays) tagWrap.appendChild(el("span", "tag" + (a.kind === "liability" ? " owed" : ""), a.pays.basis === "rate" ? a.pays.ratePct + "%/yr" : fmt(a.pays.amount) + " " + a.pays.frequency));
-    if (a.availableFromAge != null) tagWrap.appendChild(el("span", "tag", "From " + a.availableFromAge));
-    if (a.kind === "liability") tagWrap.appendChild(el("span", "tag owed", "Owed"));
+    const tags = el("div", "row"); accountTags(a, tagWrap);
     tags.appendChild(tagWrap);
     const rm = el("button", "linkbtn quiet", "Remove"); rm.type = "button";
     rm.addEventListener("click", () => { state.accounts = state.accounts.filter((x) => x !== a); renderAccounts(); draw(false); });
@@ -484,7 +571,97 @@ $("add-account").addEventListener("click", () => {
   renderAccounts(); draw(false);
   const last = $("accounts").lastElementChild; if (last) { last.scrollIntoView({ block: "nearest", behavior: "smooth" }); const n = last.querySelector("input.name"); if (n) { n.focus(); n.select(); } }
 });
-$("reset").addEventListener("click", () => { state = exampleState(); nextId = 7; setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in USD"; renderAccounts(); draw(true); });
+$("reset").addEventListener("click", () => { state = exampleState(); nextId = 7; nextPlannedId = 2; setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in USD"; renderAccounts(); renderPlanned(); draw(true); });
+
+/* ---------- forms: planned ---------- */
+const REPEATS = [["once", "Once"], ["monthly", "Monthly"], ["quarterly", "Quarterly"], ["halfyearly", "Half-yearly"], ["yearly", "Yearly"]];
+const REPEAT_PHRASE = { monthly: "every month after", quarterly: "every 3 months after", halfyearly: "every 6 months after", yearly: "every year after" };
+const dayLong = (d) => d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric" });
+const fromIso = (text) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text || ""); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null; };
+const signed = (v) => (v > 0 ? "+" : "") + fmt(v);
+function dateInput(value, min, onInput, label) {
+  const i = document.createElement("input"); i.type = "date"; i.className = "day"; i.value = value || ""; if (min) i.min = min; i.setAttribute("aria-label", label);
+  i.addEventListener("input", () => onInput(i.value)); return i;
+}
+/* The sentence under each item, in the app's words: what lands, when, and how often. */
+function plannedSentence(p) {
+  const amount = Number(p.amount) > 0 ? fmt((p.direction === "in" ? 1 : -1) * Number(p.amount)) : "The amount";
+  const first = fromIso(p.first);
+  const when = first ? "on " + dayLong(first) : "on the date above";
+  if (p.frequency === "once") return amount + " once, " + when + ".";
+  const until = p.endsOn && fromIso(p.endsOn) ? ", until " + dayLong(fromIso(p.endsOn)) : "";
+  const rise = Number(p.risePct) ? " It rises " + p.risePct + "% on each anniversary." : "";
+  return amount + " " + when + " and " + REPEAT_PHRASE[p.frequency] + until + "." + rise;
+}
+function plannedTags(p, host) {
+  host.replaceChildren();
+  const tone = p.direction === "in" ? "tag" : "tag plain";
+  const next = E.nextDate(p, today);
+  host.appendChild(el("span", tone, next ? "Next " + dayLong(next) : "Completed"));
+  if (p.frequency !== "once") host.appendChild(el("span", tone, REPEATS.find((r) => r[0] === p.frequency)[1]));
+  if (p.frequency !== "once" && Number(p.risePct)) host.appendChild(el("span", tone, "+" + p.risePct + "%/yr"));
+}
+function renderPlanned() {
+  const host = $("planned"); host.replaceChildren();
+  const code = state.currency || "USD";
+  const n = state.planned.length;
+  $("planned-count").textContent = n ? n + (n === 1 ? " item" : " items") : "";
+  $("planned-foot").hidden = !n; // the empty state already says what this is for
+  if (!n) {
+    const empty = el("div", "empty");
+    empty.innerHTML = '<svg viewBox="0 0 56 56" aria-hidden="true"><rect x="8" y="12" width="40" height="36" rx="9" fill="color-mix(in srgb, var(--honey) 22%, transparent)"/><rect x="8" y="12" width="40" height="11" rx="5" fill="var(--honey)"/><rect x="17" y="7" width="4" height="10" rx="2" fill="var(--ink)"/><rect x="35" y="7" width="4" height="10" rx="2" fill="var(--ink)"/><circle cx="20" cy="33" r="3" fill="var(--accent)"/><circle cx="28" cy="33" r="3" fill="color-mix(in srgb, var(--accent) 45%, transparent)"/><circle cx="36" cy="33" r="3" fill="color-mix(in srgb, var(--accent) 45%, transparent)"/><circle cx="20" cy="41" r="3" fill="color-mix(in srgb, var(--accent) 45%, transparent)"/></svg>';
+    empty.appendChild(el("strong", null, "Nothing planned"));
+    empty.appendChild(el("span", null, "Add money that arrives or leaves on a date: a bonus in March, a school fee every term."));
+    host.appendChild(empty);
+    return;
+  }
+  for (const p of state.planned) {
+    const card = el("div", "acct");
+    const head = el("div", "head stack");
+    const name = document.createElement("input"); name.type = "text"; name.className = "name"; name.value = p.name; name.placeholder = "Name"; name.setAttribute("aria-label", "Planned item name");
+    name.addEventListener("input", () => { p.name = name.value; });
+    head.appendChild(name);
+    head.appendChild(seg([["in", "Money in"], ["out", "Money out"]], p.direction, (v) => { p.direction = v; renderPlanned(); draw(false); }));
+    card.appendChild(head);
+
+    const say = el("p", "say", plannedSentence(p));
+    const tagWrap = el("div"); tagWrap.style.display = "flex"; tagWrap.style.gap = "6px"; tagWrap.style.flexWrap = "wrap";
+    const changed = () => { say.textContent = plannedSentence(p); plannedTags(p, tagWrap); draw(false); };
+
+    card.appendChild(row("Amount", numInput("amt", p.amount, 100, (v) => { p.amount = Math.max(0, v); changed(); }, code), null, true));
+    card.appendChild(row("First on", dateInput(p.first, null, (v) => { p.first = v; changed(); }, "First on")));
+    const sel = document.createElement("select"); sel.setAttribute("aria-label", "Repeats");
+    for (const [v, l] of REPEATS) { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); }
+    sel.value = p.frequency; sel.addEventListener("change", () => { p.frequency = sel.value; renderPlanned(); draw(false); });
+    card.appendChild(row("Repeats", sel));
+    if (p.frequency !== "once") {
+      const sub = el("div", "sub");
+      const hasEnd = p.endsOn != null;
+      sub.appendChild(row("Stops on a date", sw(hasEnd, (v) => {
+        const first = fromIso(p.first) || today;
+        p.endsOn = v ? isoDay(new Date(first.getFullYear() + 1, first.getMonth(), first.getDate())) : null;
+        renderPlanned(); draw(false);
+      }, "Stops on a date"), hasEnd ? null : "Otherwise it keeps going past the end of the chart.", true));
+      if (hasEnd) sub.appendChild(row("Last on", dateInput(p.endsOn, p.first, (v) => { p.endsOn = v || null; changed(); }, "Last on")));
+      sub.appendChild(row("Rises yearly by", numInput("pct", p.risePct, 0.5, (v) => { p.risePct = v; changed(); }, "%"),
+        "For rent or fees with a stated yearly rise. 0 means none."));
+      card.appendChild(sub);
+    }
+    card.appendChild(say);
+
+    const tags = el("div", "row"); plannedTags(p, tagWrap); tags.appendChild(tagWrap);
+    const rm = el("button", "linkbtn quiet", "Remove"); rm.type = "button";
+    rm.addEventListener("click", () => { state.planned = state.planned.filter((x) => x !== p); renderPlanned(); draw(false); });
+    tags.appendChild(rm); card.appendChild(tags);
+    host.appendChild(card);
+  }
+}
+$("add-planned").addEventListener("click", () => {
+  const first = new Date(today.getFullYear(), today.getMonth() + 1, Math.min(today.getDate(), 28));
+  state.planned.push({ id: nextPlannedId++, name: "New item", direction: "out", amount: 1000, first: isoDay(first), frequency: "once", endsOn: null, risePct: 0 });
+  renderPlanned(); draw(false);
+  const last = $("planned").lastElementChild; if (last) { last.scrollIntoView({ block: "nearest", behavior: "smooth" }); const n = last.querySelector("input.name"); if (n) { n.focus(); n.select(); } }
+});
 
 /* ---------- the chart ---------- */
 const chart = $("chart"), gridG = $("grid"), axisG = $("axis"), linePath = $("line"), reachPath = $("reach"), zeroLine = $("zero");
@@ -517,6 +694,7 @@ function draw(animate) {
   showSvg(reachPath, hasLocked); $("legend").hidden = !hasLocked;
   if (hasLocked) reachPath.setAttribute("d", path("available"));
   if (animate && !reduced) { const len = linePath.getTotalLength(); linePath.style.strokeDasharray = len; linePath.style.strokeDashoffset = len; requestAnimationFrame(() => requestAnimationFrame(() => { linePath.style.transition = "stroke-dashoffset 1100ms cubic-bezier(.2,.7,.2,1)"; linePath.style.strokeDashoffset = 0; })); }
+  buildDetail();
   hideCross();
   $("nw-now").textContent = fmt(points[0].netWorth);
   $("r-horizon").textContent = fmt(points[horizon].netWorth);
@@ -530,14 +708,68 @@ function readings() {
   const rw = E.runway(state, today);
   $("r-runway").textContent = rw == null ? "50 years or more" : rw === 0 ? "Already short" : rw + (rw === 1 ? " month" : " months");
 }
+/* The monthly detail. Each total opens with its ">" to show what it is made of: money in and
+   money out by where the money came from, the rest by account. Everything starts closed. A row
+   that never moves within the horizon is left out, so the list doesn't jump while the line is
+   scrubbed; it is rebuilt only when the numbers are redrawn. */
+const openGroups = new Set();
+let detailRows = [];
+const acctName = (a) => (a.name || "").trim() || (a.kind === "liability" ? "Unnamed debt" : "Unnamed account");
+const flow = (key) => (i) => points.slice(1, i + 1).reduce((s, q) => s + q.parts[key], 0);
+const flowBy = (key, id) => (i) => points.slice(1, i + 1).reduce((s, q) => s + (q.parts.by[key][id] || 0), 0);
+const movesKey = (key) => points.some((q) => q.parts[key] !== 0);
+const movesBy = (key, id) => points.some((q) => (q.parts.by[key][id] || 0) !== 0);
+function detailGroups() {
+  const byAccount = (key) => state.accounts.filter((a) => movesBy(key, a.id)).map((a) => ({ label: acctName(a), value: flowBy(key, a.id) }));
+  const source = (label, key, always) => (always || movesKey(key)) ? [{ label, value: flow(key) }] : [];
+  return [
+    { id: "in", label: "Money in", always: true, total: (i) => flow("income")(i) + flow("paidOut")(i) + flow("plannedIn")(i),
+      subs: [...source("Income", "income", true), ...source("Interest & dividends paid out", "paidOut"), ...source("Planned money in", "plannedIn")] },
+    { id: "out", label: "Money out", always: true, total: (i) => flow("spending")(i) + flow("chargesPaid")(i) + flow("plannedOut")(i),
+      subs: [...source("Spending", "spending", true), ...source("Interest & fees on debts", "chargesPaid"), ...source("Planned money out", "plannedOut")] },
+    { id: "growth", label: "Investment growth", signed: true, total: flow("growth"), subs: byAccount("growth") },
+    { id: "kept", label: "Interest & dividends kept in accounts", total: flow("kept"), subs: byAccount("kept") },
+    { id: "added", label: "Interest added to what you owe", total: flow("chargesAdded"), subs: byAccount("chargesAdded") },
+    // A balance on the day, not a sum over months, so it reads at month 0 as well.
+    { id: "locked", label: "Locked, counted but out of reach", atMonth: true, total: (i) => points[i].locked,
+      subs: state.accounts.filter((a) => points.some((q) => q.lockedBy[a.id] > 0)).map((a) => ({ label: acctName(a), value: (i) => points[i].lockedBy[a.id] || 0 })) },
+  ].filter((g) => g.always || g.subs.length);
+}
+function buildDetail() {
+  const host = $("detail");
+  while (host.children.length > 1) host.lastElementChild.remove(); // keep the heading
+  detailRows = [];
+  detailGroups().forEach((g, n) => {
+    const open = openGroups.has(g.id);
+    const gap = n ? " gap" : "";
+    const k = el(g.subs.length ? "button" : "span", "k lead" + gap);
+    const chev = el("span", "chev", g.subs.length ? "›" : ""); chev.setAttribute("aria-hidden", "true");
+    k.appendChild(chev); k.appendChild(document.createTextNode(g.label));
+    if (g.subs.length) {
+      k.type = "button"; k.setAttribute("aria-expanded", String(open));
+      k.setAttribute("aria-label", (open ? "Hide" : "Show") + " what makes up " + g.label.toLowerCase());
+      k.addEventListener("click", () => { if (openGroups.has(g.id)) openGroups.delete(g.id); else openGroups.add(g.id); buildDetail(); detail(shownMonth); });
+    }
+    const v = el("span", "v fig lead" + gap, "—");
+    host.appendChild(k); host.appendChild(v);
+    detailRows.push({ cell: v, group: g, value: g.total });
+    if (!open) return;
+    for (const sub of g.subs) {
+      const sk = el("span", "k sub", sub.label), sv = el("span", "v fig sub", "—");
+      host.appendChild(sk); host.appendChild(sv);
+      detailRows.push({ cell: sv, group: g, value: sub.value });
+    }
+  });
+}
+let shownMonth = 0;
 function detail(i) {
-  const p = points[i]; const sum = (k) => points.slice(1, i + 1).reduce((s, q) => s + q.parts[k], 0);
+  shownMonth = i;
+  const p = points[i];
   $("d-when").textContent = i === 0 ? "Today" : "Up to " + monthLong(p.date) + " · " + i + (i === 1 ? " month" : " months");
-  $("d-in").textContent = i === 0 ? "—" : fmt(sum("income") + sum("paidOut"));
-  $("d-out").textContent = i === 0 ? "—" : fmt(sum("spending") + sum("charges"));
-  $("d-growth").textContent = i === 0 ? "—" : fmt(sum("growth"));
-  $("d-kept").textContent = i === 0 ? "—" : fmt(sum("kept"));
-  const locked = p.locked > 0; $("d-locked-k").hidden = !locked; $("d-locked").hidden = !locked; if (locked) $("d-locked").textContent = fmt(p.locked);
+  for (const r of detailRows) {
+    const value = r.value(i);
+    r.cell.textContent = i === 0 && !r.group.atMonth ? "—" : r.group.signed ? signed(value) : fmt(value);
+  }
 }
 function showMonth(i) {
   const p = points[i]; showSvg(cross, true);
@@ -556,7 +788,7 @@ chart.addEventListener("pointerleave", () => { if (!tracking) hideCross(); });
 document.querySelectorAll(".panel .seg button").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll(".panel .seg button").forEach((o) => o.setAttribute("aria-pressed", o === b ? "true" : "false")); horizon = Number(b.dataset.h); draw(true); }));
 
 /* ---------- go ---------- */
-setFormatter(); fillAssumptions(); renderAccounts(); sizeChart(); draw(true);
+setFormatter(); fillAssumptions(); renderAccounts(); renderPlanned(); sizeChart(); draw(true);
 let resizeTimer = 0; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { sizeChart(); draw(false); }, 120); });
 })();
 </script>
