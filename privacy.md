@@ -1,6 +1,6 @@
 # WaffleWealth — Privacy Policy
 
-_Last updated: 27 September 2026_
+_Last updated: 10 October 2026_
 
 **Contact: wafflewealth.app.support@gmail.com**
 
@@ -10,10 +10,11 @@ WaffleWealth projects your net worth from figures you type in yourself. Those fi
 
 - **No account. No sign-up.** You use WaffleWealth without ever creating one.
 - **No servers of ours.** There is no backend. Nothing syncs anywhere.
-- **No tracking, no ads, no analytics, no third-party SDKs.**
+- **No tracking, no ads, no analytics, no third-party SDKs in the app.**
 - **Exactly one network request exists, it is off until you switch it on, and it carries a three-letter currency code.** Never a balance, an amount, an account name, or a category.
 - **App Privacy label: Data Not Collected.**
 - **This website has a waitlist form.** It is the one place we hold an email address, only until the launch email is sent, and it concerns the website only. See [The waitlist on this website](#the-waitlist-on-this-website).
+- **This website counts page visits** with GoatCounter, which sets no cookies and stores no personal data. The app counts nothing. See [Visits to this website](#visits-to-this-website).
 
 ## Where your data lives
 
@@ -51,9 +52,13 @@ The homepage of this website has a form for being told when the app is out. It i
 - **How long it is kept:** until that email has been sent. Then the address is deleted.
 - **How to be removed sooner:** email **wafflewealth.app.support@gmail.com** and it will be deleted.
 
+## Visits to this website
+
+This website, and only this website, counts page visits with [GoatCounter](https://www.goatcounter.com), an open-source counter. It sets no cookies, does not track you across sites, and stores no personal data: it records which page was opened, the referring site, and broad details such as browser, screen size and country, worked out from the request and not kept with your IP address. We use the totals to see whether anyone is visiting. Their handling is described in [GoatCounter's privacy policy](https://www.goatcounter.com/help/privacy). Numbers you type into the demo never leave the page.
+
 ## What we do not do
 
-- We do not collect analytics or usage data.
+- The app collects no analytics or usage data.
 - We do not use advertising or third-party tracking.
 - We do not sell or share your data with anyone.
 - We do not require or offer an account, and we do not sync to the cloud.
@@ -81,3 +86,6 @@ If this policy changes, the date at the top changes with it and the revised poli
 ## Contact
 
 Questions about privacy: **wafflewealth.app.support@gmail.com**
+
+<!-- Page visits on this website only, counted by GoatCounter: no cookies, no personal data. The app itself sends nothing. -->
+<script data-goatcounter="https://pinkhummingbird.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
