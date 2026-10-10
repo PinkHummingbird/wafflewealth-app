@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WaffleWealth — Where your money is heading</title>
-<meta name="description" content="Tell it what you have, earn and spend. WaffleWealth draws your net worth month by month, up to ten years out. No bank connections, no account. For iPhone.">
-<meta property="og:title" content="WaffleWealth — Where your money is heading">
+<title>WaffleWealth: net worth projection for iPhone</title>
+<meta name="description" content="Net worth projection for iPhone, without the spreadsheet. Type in what you have, earn and spend, and see where your net worth is heading, month by month. Free, no account, nothing leaves your phone.">
+<meta property="og:title" content="WaffleWealth: net worth projection for iPhone">
 <meta property="og:description" content="Your net worth, drawn forward month by month from what you type. Nothing leaves your phone.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
@@ -107,7 +107,7 @@ p { margin: 0; }
 .nav { display: flex; align-items: center; gap: 24px; font-size: var(--fs-small); }
 .nav a { color: var(--ink-2); text-decoration: none; }
 .nav a:hover { color: var(--ink); text-decoration: underline; }
-.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); font-size: var(--fs-small); white-space: nowrap; }
+.pill { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); font-size: var(--fs-small); white-space: nowrap; }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
 @media (max-width: 640px) { .nav a { display: none; } .pill { display: none; } }
 
@@ -235,6 +235,99 @@ section { padding-block: clamp(40px, 7vw, 88px); border-top: 1px solid var(--rul
 .closing p { color: var(--ink-2); margin-top: 12px; max-width: 30rem; }
 @media (max-width: 860px) { .closing { grid-template-columns: 1fr; } }
 
+/* ---- hero additions: two ways in, and the facts that answer "can I trust it" ---- */
+.problem { color: var(--ink-2); font-size: 1rem; max-width: 30rem; border-left: 2px solid var(--honey); padding-left: 14px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn.link, .btn.ghost { display: inline-flex; align-items: center; text-decoration: none; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+.btn.ghost:hover { border-color: var(--accent); filter: none; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 18px; list-style: none; margin: 0; padding: 0; font-size: var(--fs-small); color: var(--ink-2); }
+.facts li { display: inline-flex; align-items: center; gap: 8px; }
+.facts li::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--honey); }
+
+/* ---- how it works: a real sequence, so it is numbered ---- */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; list-style: none; margin: 0; padding: 0; counter-reset: step; }
+.steps li { counter-increment: step; background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-md); padding: 22px; display: flex; flex-direction: column; gap: 8px; }
+.steps li::before { content: counter(step); font-family: var(--mono); font-size: 0.85rem; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--sunken); color: var(--accent); font-weight: 500; }
+.steps h3 { font-size: var(--fs-h3); }
+.steps p { color: var(--ink-2); }
+.steps-foot { margin-top: 18px; color: var(--ink-2); max-width: var(--measure); }
+.steps-foot strong { color: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+
+/* ---- screens: a strip that scrolls inside itself ---- */
+.shots { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: clamp(16px, 2.5vw, 28px); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 12px; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+.shots .phone { scroll-snap-align: start; align-items: stretch; }
+.shots .phone .frame { max-width: none; }
+.shots .phone figcaption { text-align: left; max-width: none; }
+.shots picture, .shots picture img { display: block; width: 100%; height: 100%; }
+@media (min-width: 1081px) { .shots { grid-auto-columns: calc((100% - 2 * clamp(16px, 2.5vw, 28px)) / 3.4); } }
+@media (max-width: 720px) { .shots { grid-auto-columns: 68%; } }
+.scroll-hint { font-size: var(--fs-small); color: var(--faint); margin-top: 8px; }
+
+/* ---- features: the benefit first, one fact under it ---- */
+.features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; }
+.features > div { padding-block: 20px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; }
+.features h3 { font-size: var(--fs-h3); }
+.features p { color: var(--ink-2); max-width: var(--measure); }
+.features a { font-size: var(--fs-small); font-weight: 600; text-decoration: none; }
+@media (max-width: 720px) { .features { grid-template-columns: 1fr; } }
+
+/* ---- the arithmetic, shown ---- */
+.sum { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: clamp(18px, 3vw, 28px); display: grid; gap: 18px; margin-bottom: 24px; }
+.sum .eq { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+.sum .term { display: flex; flex-direction: column; gap: 2px; }
+.sum .term .k { font-size: var(--fs-small); color: var(--ink-2); }
+.sum .term .v { font-family: var(--display); font-weight: 600; font-size: clamp(1.2rem, 1rem + 1vw, 1.6rem); letter-spacing: -0.01em; }
+.sum .term.owed .v { color: var(--owed); }
+.sum .term.total .v { color: var(--accent); }
+.sum .op { font-family: var(--mono); color: var(--faint); font-size: 1.3rem; padding-bottom: 2px; }
+.sum .then { border-top: 1px solid var(--rule); padding-top: 14px; color: var(--ink-2); font-size: var(--fs-small); }
+.sum .then strong { color: var(--ink); font-weight: 600; }
+
+/* ---- more than one country ---- */
+.world { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 32px; }
+.world > div { border-top: 2px solid var(--honey); padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.world h3 { font-size: var(--fs-h3); }
+.world p { color: var(--ink-2); }
+.codes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 22px; }
+.codes span { font-family: var(--mono); font-size: 0.8rem; padding: 3px 8px; border-radius: var(--r-sm); background: var(--sunken); color: var(--ink-2); }
+@media (max-width: 760px) { .world { grid-template-columns: 1fr; } }
+
+/* ---- coming to the App Store ---- */
+.launch { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px 56px; align-items: start; }
+.launch h2 { font-size: var(--fs-h2); }
+.launch .lead { color: var(--ink-2); margin-top: 12px; max-width: 32rem; }
+.track { list-style: none; margin: 24px 0 0; padding: 0; display: flex; flex-direction: column; }
+.track li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px 14px; padding-bottom: 18px; position: relative; }
+.track li::before { content: ""; grid-row: 1 / span 2; width: 14px; height: 14px; border-radius: 50%; margin: 5px 0 0 7px; background: var(--rule); position: relative; z-index: 1; }
+.track li:not(:last-child)::after { content: ""; position: absolute; left: 13px; top: 20px; bottom: 0; width: 2px; background: var(--rule); }
+.track li.done::before, .track li.done:not(:last-child)::after { background: var(--accent); }
+.track li.now::before { background: var(--raised); box-shadow: 0 0 0 3px var(--honey); }
+.track strong { font-weight: 600; }
+.track span { color: var(--ink-2); font-size: var(--fs-small); }
+.badge-soon { align-self: flex-start; display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px 10px 12px; border-radius: 14px; background: var(--ink); color: var(--ground); }
+.badge-soon .glyph { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; flex: none; }
+.badge-soon .glyph img { width: 100%; height: 100%; }
+.badge-soon small { display: block; font-size: 0.72rem; letter-spacing: 0.02em; opacity: 0.8; }
+.badge-soon b { font-family: var(--display); font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
+.launch-card { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: clamp(18px, 3vw, 28px); display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.launch-card dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 18px; margin: 0; font-size: var(--fs-small); }
+.launch-card dt { color: var(--ink-2); }
+.launch-card dd { margin: 0; }
+@media (max-width: 860px) { .launch { grid-template-columns: 1fr; } }
+
+/* ---- FAQ ---- */
+.faq { display: flex; flex-direction: column; max-width: 46rem; }
+.faq details { border-top: 1px solid var(--rule); }
+.faq details:last-child { border-bottom: 1px solid var(--rule); }
+.faq summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: ""; width: 9px; height: 9px; flex: none; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(45deg); transition: transform 150ms; margin-right: 6px; }
+.faq details[open] summary::after { transform: rotate(-135deg); }
+.faq .a { padding-bottom: 18px; color: var(--ink-2); display: flex; flex-direction: column; gap: 10px; max-width: var(--measure); }
+@media (prefers-reduced-motion: reduce) { .faq summary::after { transition: none; } }
+
 /* ---- footer ---- */
 footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
 .foot { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px 48px; }
@@ -286,31 +379,33 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
     WaffleWealth
   </a>
   <nav class="nav" aria-label="Page">
-    <a href="#shows">What it shows</a>
+    <a href="#features">Features</a>
     <a href="#privacy">Privacy</a>
+    <a href="#faq">FAQ</a>
     <a href="try/">Try it</a>
-    <span class="pill" id="status-pill">Coming to the App Store</span>
+    <a class="pill" id="status-pill" href="#launch">Coming to the App Store</a>
   </nav>
 </header>
 
 <main id="top">
   <div class="wrap hero">
     <div class="hero-copy">
-      <p class="label">For iPhone · Free · No account</p>
-      <h1>Where your money is <span class="honey">heading.</span></h1>
-      <p class="lede">Tell it what you have, earn and spend. It draws your net worth month by month — one month out to ten years.</p>
-      <p class="lede">All on your phone. No account, no server. And it never flatters the number: a falling line is drawn falling.</p>
+      <p class="label">Net worth projection for iPhone</p>
+      <h1>Where your money is heading, <span class="honey">without the spreadsheet.</span></h1>
+      <p class="lede">Type in what you have, what you earn and what you spend. WaffleWealth draws your net worth month by month, from next month to ten years out.</p>
+      <p class="problem">I built it because my own net worth sheet grew formulas, growth rates and a tab per currency until I stopped trusting it.</p>
+      <div class="ctas">
+        <a class="btn link" href="try/">Try the demo with your numbers</a>
+        <a class="btn ghost" href="#launch">Get it on launch day</a>
+      </div>
+      <ul class="facts" aria-label="At a glance">
+        <li>Free</li>
+        <li>No account</li>
+        <li>No bank login</li>
+        <li>Nothing leaves your phone</li>
+        <li>Any currency</li>
+      </ul>
 
-      <form class="waitlist" id="waitlist" novalidate>
-        <label for="email" class="label">Get one email when it's out</label>
-        <div class="row">
-          <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="waitlist-note">
-          <button class="btn" type="submit" id="submit">Tell me when it's live</button>
-        </div>
-        <label class="hp" aria-hidden="true">Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
-        <p class="status" id="status" role="status" aria-live="polite"></p>
-        <p class="note" id="waitlist-note">One email on launch day, then nothing. Your address is deleted after.</p>
-      </form>
       <div id="store-cta" hidden>
         <a class="btn store" id="store-link" href="#">Download on the App Store</a>
       </div>
@@ -358,42 +453,96 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
     </div>
   </div>
 
-  <section id="shows">
+  <section id="how">
     <div class="wrap">
       <div class="sec-head">
-        <h2>Readings, not advice.</h2>
-        <p>Every figure traces back to something you typed — and the app shows you where it came from.</p>
+        <h2>How it works.</h2>
+        <p>Three things to tell it, about five minutes the first time. After that, a couple of minutes once a month.</p>
       </div>
-      <ul class="nots">
-        <li>Transaction tracking</li>
-        <li>Bank connections</li>
-        <li>Receipts to file</li>
-        <li>Categories to maintain</li>
-      </ul>
-      <p class="punch">Balances and monthly totals in. Change any assumption in two taps, and watch the line move.</p>
-      <dl class="readings-list">
-        <div><dt>Net worth today, and at the horizon</dt><dd>One month to ten years. Change it, the line redraws. Drag across the chart to read any month.</dd></div>
-        <div><dt>Breakdown</dt><dd>What each month is made of: money in, money out, growth, interest and dividends, and anything you have planned.</dd></div>
-        <div><dt>Runway</dt><dd>How long your money lasts if income stops. Locked money, like a pension, sits out of this one — you could not spend it.</dd></div>
-        <div><dt>Target</dt><dd>Name an amount and a date. See what it takes: save more monthly, or earn more a year. One lever at a time, never both.</dd></div>
-        <div><dt>What moves the line</dt><dd>Which assumption moves the line most, and by how much. Which one is easiest to move is yours to judge.</dd></div>
-        <div><dt>Currency exposure</dt><dd>What your position looks like if one currency moves against another.</dd></div>
-      </dl>
+      <ol class="steps">
+        <li><h3>Add your balances</h3><p>Each account in its own currency: current account, savings, pension, brokerage, the car loan. What it says today is enough.</p></li>
+        <li><h3>Say what you earn and spend</h3><p>A typical month, roughly. Add a raise, a return on investments, or a bonus that lands in March if you want to.</p></li>
+        <li><h3>Read where it's heading</h3><p>Net worth for every month ahead, what you could reach, how long it would last if income stopped, and when it hits your target.</p></li>
+      </ol>
+      <p class="steps-foot">Once a month, open <strong>Update balances</strong> and type each new figure on one screen. History then tells you what changed and which account did it.</p>
+    </div>
+  </section>
+
+  <section id="screens-section">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>On your iPhone.</h2>
+        <p>Four tabs: Projection, Your money, History and Settings. These are the app's own example numbers.</p>
+      </div>
+      <div class="shots" id="screens" tabindex="0" aria-label="App screens, scrolls sideways">
+        <figure class="phone"><div class="frame"><picture><source srcset="assets/screens/01-projection-dark.jpg" media="(prefers-color-scheme: dark)"><img src="assets/screens/01-projection-light.jpg" alt="The Projection screen: net worth, the line drawn forward, and the biggest moves since last month." loading="lazy" width="603" height="1311"></picture></div><figcaption><strong>Projection</strong>Net worth today, where it is heading, and the biggest moves since last month.</figcaption></figure>
+        <figure class="phone"><div class="frame"><picture><source srcset="assets/screens/02-projection-more-dark.jpg" media="(prefers-color-scheme: dark)"><img src="assets/screens/02-projection-more-light.jpg" alt="Sliders for income, spending and yearly return above the summary: the total in a year and the change." loading="lazy" width="603" height="1311"></picture></div><figcaption><strong>Move the numbers</strong>Slide income, spending or the return, and the year's total follows.</figcaption></figure>
+        <figure class="phone"><div class="frame"><picture><source srcset="assets/screens/03-your-money-dark.jpg" media="(prefers-color-scheme: dark)"><img src="assets/screens/03-your-money-light.jpg" alt="The Your money screen: accounts with their balances in their own currencies." loading="lazy" width="603" height="1311"></picture></div><figcaption><strong>Your money</strong>Every account in its own currency, filtered by side or currency.</figcaption></figure>
+        <figure class="phone"><div class="frame"><picture><source srcset="assets/screens/04-history-dark.jpg" media="(prefers-color-scheme: dark)"><img src="assets/screens/04-history-light.jpg" alt="The History screen: the change since last month, account by account." loading="lazy" width="603" height="1311"></picture></div><figcaption><strong>History</strong>What changed since last month, and which account did it.</figcaption></figure>
+        <figure class="phone"><div class="frame"><picture><source srcset="assets/screens/05-fire-dark.jpg" media="(prefers-color-scheme: dark)"><img src="assets/screens/05-fire-light.jpg" alt="The FIRE screen: the month your money could cover your spending with no salary." loading="lazy" width="603" height="1311"></picture></div><figcaption><strong>FIRE</strong>The month your money could pay for your spending.</figcaption></figure>
+      </div>
+      <p class="scroll-hint">Swipe or scroll sideways for more screens.</p>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>What it tells you.</h2>
+        <p>Readings, not advice. Every figure comes from something you typed, and the app shows you where.</p>
+      </div>
+      <div class="features">
+        <div><h3>Where you'll be in a year, or ten</h3><p>Pick the horizon and the line redraws. Hold a finger on it to read any month.</p><a href="try/">See it in the demo &rarr;</a></div>
+        <div><h3>What changed since last month, and which account did it</h3><p>The three biggest moves turn under your net worth. Tap one and History opens at that account.</p></div>
+        <div><h3>How long your money lasts if income stops</h3><p>Counting only money you could actually reach. A pension locked until sixty sits this one out.</p><a href="try/">See it in the demo &rarr;</a></div>
+        <div><h3>The month you reach your target</h3><p>Name an amount and see the month. Then see what it would take: more saved each month, or a better return.</p></div>
+        <div><h3>When your money could pay for your life (FIRE)</h3><p>The month your money could cover your spending with no salary coming in, at a withdrawal rate you choose.</p></div>
+        <div><h3>What one year is made of</h3><p>Money in, money out, growth, interest, and each planned bonus or bill by name. Then each account, now against a year from now.</p></div>
+        <div><h3>Typed one wrong? Take it back</h3><p>Swipe a balance away and every figure goes back to what it said without it. Put it back any time.</p></div>
+        <div><h3>What it doesn't do</h3><p>No transactions to track, no bank connections, no receipts, no budgets. Balances and monthly totals in, and that is all it needs.</p></div>
+      </div>
     </div>
   </section>
 
   <section id="money">
     <div class="wrap">
       <div class="sec-head">
-        <h2>How it handles money.</h2>
-        <p>Four rules the engine keeps, whatever you enter. They are why the line can be trusted.</p>
+        <h2>Numbers you can check.</h2>
+        <p>Net worth is what you own minus what you owe. Here is the demo's example, worked out, so you can see there is nothing hidden in it.</p>
+      </div>
+      <div class="sum" aria-label="Worked example">
+        <div class="eq">
+          <div class="term"><span class="k">Current account</span><span class="v fig">$48,000</span></div>
+          <span class="op" aria-hidden="true">+</span>
+          <div class="term"><span class="k">State pension</span><span class="v fig">$64,000</span></div>
+          <span class="op" aria-hidden="true">&minus;</span>
+          <div class="term owed"><span class="k">Car loan, owed</span><span class="v fig">$22,000</span></div>
+          <span class="op" aria-hidden="true">=</span>
+          <div class="term total"><span class="k">Net worth today</span><span class="v fig">$90,000</span></div>
+        </div>
+        <p class="then">Each month: <strong>$18,000 in &minus; $11,500 out = $6,500 saved</strong>, held as cash that earns nothing. The pension grows at the 6% you set, and the loan's $1,100 payment comes out of cash. <a href="try/">Change any of it &rarr;</a></p>
       </div>
       <div class="rules">
-        <div class="rule-card"><span class="tag">Currencies</span><h3>Balances keep their currency.</h3><p>Held in GBP, DKK or anything else on the list, and translated only when shown — so you read it in the currency you think in.</p></div>
-        <div class="rule-card"><span class="tag">History</span><h3>Updates keep the old balance.</h3><p>Every update is a new entry, never an edit. Your history stays intact, so you can see how old projections held up.</p></div>
-        <div class="rule-card"><span class="tag">Growth</span><h3>Savings earn nothing unless you say so.</h3><p>Cash accumulates as cash. Returns apply only to accounts you mark invested, and interest pays out as cash unless you say otherwise.</p></div>
-        <div class="rule-card"><span class="tag owed">Honesty</span><h3>A falling line is drawn falling.</h3><p>Spend more than you earn and the line goes down. Never clamped at zero, never smoothed, never softened.</p></div>
+        <div class="rule-card"><span class="tag">Growth</span><h3>Savings earn nothing unless you say so.</h3><p>Cash accumulates as cash. Returns apply only to accounts you mark as growing, and interest pays out as cash unless you keep it in the account.</p></div>
+        <div class="rule-card"><span class="tag">History</span><h3>Updates keep the old balance.</h3><p>Every update is a new entry, never an edit, so you can see how your projections held up.</p></div>
+        <div class="rule-card"><span class="tag">Exact</span><h3>Counted to the cent.</h3><p>Money is stored as whole cents, never as floating-point numbers, so nothing drifts a cent at a time.</p></div>
+        <div class="rule-card"><span class="tag owed">Honesty</span><h3>A falling line is drawn falling.</h3><p>Spend more than you earn and the line goes down. Never clamped at zero, never smoothed.</p></div>
       </div>
+    </div>
+  </section>
+
+  <section id="world">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Made for money in more than one country.</h2>
+        <p>A pension at home, a salary where you live, savings somewhere else. Most apps assume one currency. This one doesn't.</p>
+      </div>
+      <div class="world">
+        <div><h3>Every balance in its own currency</h3><p>Type it the way your bank shows it. It is translated only when shown, into the currency you think in.</p></div>
+        <div><h3>Rates by hand, or fetched daily</h3><p>Type your own rate, or switch on one daily request that sends nothing but a currency code.</p></div>
+        <div><h3>What if a currency moves</h3><p>See your net worth if the pound falls 10% or the dollar rises 5%. Nothing is saved; it is a reading.</p></div>
+      </div>
+      <div class="codes" aria-label="Some of the currencies available"><span>USD</span><span>EUR</span><span>GBP</span><span>AED</span><span>SGD</span><span>HKD</span><span>CAD</span><span>AUD</span><span>JPY</span><span>INR</span><span>IDR</span><span>CHF</span><span>DKK</span><span>and every other ISO currency</span></div>
     </div>
   </section>
 
@@ -419,35 +568,60 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
     </div>
   </section>
 
-  <section id="screens-section">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2>Every screen is one tap away.</h2>
-        <p>Projection, Target, Accounts, Planned, Assumptions, History, Settings — all on one hub. Nothing buried, nothing locked.</p>
+  <section id="launch">
+    <div class="wrap launch">
+      <div>
+        <h2>Coming to the App Store.</h2>
+        <p class="lead">WaffleWealth is built and with Apple for review. It will be free for iPhone. Leave an address and you'll get one email on the day it's out, then nothing.</p>
+        <ol class="track" aria-label="Launch progress">
+          <li class="done"><strong>Built and tested</strong><span>On iPhone, in light and dark, with over 450 checks on the arithmetic.</span></li>
+          <li class="now"><strong>With Apple for review</strong><span>Where it is now.</span></li>
+          <li><strong>On the App Store</strong><span>Free to download. One email goes out that day.</span></li>
+        </ol>
       </div>
-      <div class="screens" id="screens">
-        <figure class="phone"><div class="frame"><img src="assets/projection.png" alt="The Projection screen: net worth today, the horizon picker, and the line drawn month by month." loading="lazy" width="1206" height="2622"></div><figcaption><strong>Projection</strong>The number you open the app to see, and the line.</figcaption></figure>
-        <figure class="phone"><div class="frame"><img src="assets/behind.png" alt="The Breakdown screen: where the money sits, what moves it, and every month's figures." loading="lazy" width="1206" height="2622"></div><figcaption><strong>Breakdown</strong>Where the money sits, what moves it, and every month's figures.</figcaption></figure>
-        <figure class="phone"><div class="frame"><img src="assets/accounts.png" alt="The Accounts screen: balances in their own currencies, with what is owed listed plainly." loading="lazy" width="1206" height="2622"></div><figcaption><strong>Accounts</strong>Balances in their own currencies. What is owed, listed plainly.</figcaption></figure>
+      <div class="launch-card">
+        <div class="badge-soon" role="img" aria-label="Coming soon to the App Store">
+          <span class="glyph" aria-hidden="true"><img src="assets/icon.png" alt="" width="32" height="32"></span>
+          <span><small>Coming soon to the</small><b>App Store</b></span>
+        </div>
+        <dl>
+          <dt>Price</dt><dd>Free</dd>
+          <dt>Needs</dt><dd>iPhone with iOS 26 or later</dd>
+          <dt>Account</dt><dd>None. Nothing to sign up for.</dd>
+          <dt>Your data</dt><dd>Stays on your phone</dd>
+        </dl>
+        <form class="waitlist" id="waitlist" novalidate>
+          <label for="email" class="label">Get one email when it's out</label>
+          <div class="row">
+            <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="waitlist-note">
+            <button class="btn" type="submit" id="submit">Tell me when it's live</button>
+          </div>
+          <label class="hp" aria-hidden="true">Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+          <p class="note" id="waitlist-note">One email on launch day, then nothing. Your address is deleted after.</p>
+        </form>
+        <div id="store-cta-2" hidden>
+          <a class="btn store" id="store-link-2" href="#">Download on the App Store</a>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="closing">
-    <div class="wrap closing">
-      <div>
-        <h2>Free, and nothing to sign up for.</h2>
-        <p>Coming to the App Store for iPhone. Leave an address and you’ll hear from us once, on the day it’s out.</p>
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Questions.</h2>
+        <p>The ones people ask first.</p>
       </div>
-      <form class="waitlist" id="waitlist-2" novalidate>
-        <label for="email-2" class="label">Get one email when it's out</label>
-        <div class="row">
-          <input type="email" id="email-2" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
-          <button class="btn" type="submit" id="submit-2">Tell me when it's live</button>
-        </div>
-        <label class="hp" aria-hidden="true">Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
-        <p class="status" id="status-2" role="status" aria-live="polite"></p>
-      </form>
+      <div class="faq">
+        <details><summary>Do I have to update balances by hand?</summary><div class="a"><p>Yes, and only balances, not transactions. Once a month is enough for a projection: open Update balances, type each figure on one screen, and it takes a couple of minutes.</p></div></details>
+        <details><summary>Why doesn't it connect to my bank?</summary><div class="a"><p>Because then your bank access would live on someone's server. WaffleWealth has no server and no account, so there is nowhere for your data to go. It also works with any bank in any country, including the pensions and deposits that bank connections can't reach.</p></div></details>
+        <details><summary>Is this financial advice?</summary><div class="a"><p>No. It reports what your own numbers add up to. The income, spending and returns you type are assumptions, not predictions, and nothing in the app tells you to save, spend, borrow or invest.</p></div></details>
+        <details><summary>What happens to my data?</summary><div class="a"><p>It stays in a database on your iPhone, encrypted while the phone is locked. You can export all of it, including an encrypted backup. Delete the app and it is gone. The full policy is on the <a href="privacy">privacy page</a>.</p></div></details>
+        <details><summary>Does it work outside the US?</summary><div class="a"><p>Yes. Every account keeps its own currency, any ISO currency is available, and you choose the one you see your net worth in.</p></div></details>
+        <details><summary>Will it cost money?</summary><div class="a"><p>It is free to download, and everything you enter is free, with no limit on accounts or currencies. If a paid tier comes later, it will add extra readings and never hold back your own data.</p></div></details>
+        <details><summary>Can I try it before it's out?</summary><div class="a"><p>Yes. <a href="try/">The demo</a> runs the same arithmetic in your browser. Nothing you type leaves the page.</p></div></details>
+      </div>
     </div>
   </section>
 </main>
@@ -711,14 +885,12 @@ function wireForm(form, statusId) {
   });
 }
 wireForm(document.getElementById("waitlist"), "status");
-wireForm(document.getElementById("waitlist-2"), "status-2");
 
 /* launch day: one constant swaps every form for the store button */
 if (APP_STORE_URL) {
-  document.getElementById("store-link").href = APP_STORE_URL;
-  document.getElementById("store-cta").hidden = false;
+  for (const id of ["store-link", "store-link-2"]) document.getElementById(id).href = APP_STORE_URL;
+  for (const id of ["store-cta", "store-cta-2"]) document.getElementById(id).hidden = false;
   document.getElementById("waitlist").hidden = true;
-  document.getElementById("waitlist-2").hidden = true;
   document.getElementById("status-pill").textContent = "Now on the App Store";
 }
 
