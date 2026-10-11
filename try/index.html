@@ -150,6 +150,9 @@ select { padding-right: 8px; }
 /* **Accounts and Planned, one at a time, like the app.** Two chips over one card: the chosen
    one is lighter with an accent rim, the other sinks into the ground, which is the app's own
    rule. Planned was a card at the foot of a long column, where nobody reached it. */
+/* A hidden element stays hidden whatever display its class gives it: .card sets flex, which
+   beat the browser's own [hidden] rule and left both cards showing. */
+[hidden] { display: none !important; }
 .money-tabs { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .money-tabs .title { font-family: var(--display); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
 .money-tabs .pair { display: flex; gap: 10px; }
@@ -332,7 +335,8 @@ footer a { color: var(--ink-2); }
       <div class="money-tabs">
         <h2 class="title" id="h-money">Your money</h2>
         <div class="pair" role="tablist" aria-labelledby="h-money">
-        <button type="button" role="tab" id="tab-accounts" aria-controls="card-accounts" aria-selected="true">Accounts<span class="n" id="tab-accounts-n"></span></button>
+        <button type="button" role="tab" id="tab-all" aria-controls="card-accounts card-planned" aria-selected="true">All<span class="n" id="tab-all-n"></span></button>
+        <button type="button" role="tab" id="tab-accounts" aria-controls="card-accounts" aria-selected="false">Accounts<span class="n" id="tab-accounts-n"></span></button>
         <button type="button" role="tab" id="tab-planned" aria-controls="card-planned" aria-selected="false">Planned<span class="n" id="tab-planned-n"></span></button>
         </div>
       </div>
@@ -344,7 +348,7 @@ footer a { color: var(--ink-2); }
         <p class="foot">Each account grows one way: not at all, at the assumed return, or at its own rate. Interest or dividends are paid out as cash unless you leave them in the account.</p>
       </section>
 
-      <section class="card" id="card-planned" role="tabpanel" aria-labelledby="h-planned" hidden>
+      <section class="card" id="card-planned" role="tabpanel" aria-labelledby="h-planned">
         <div class="card-head"><h2 id="h-planned">Planned</h2><span class="label" id="planned-count"></span></div>
         <div id="planned"></div>
         <button type="button" class="add" id="add-planned">+ Add planned item</button>
@@ -814,18 +818,21 @@ document.querySelectorAll(".panel .seg button").forEach((b) => b.addEventListene
 
 /* ---------- Accounts / Planned chips ---------- */
 function showMoney(which) {
-  const planned = which === "planned";
-  $("tab-accounts").setAttribute("aria-selected", planned ? "false" : "true");
-  $("tab-planned").setAttribute("aria-selected", planned ? "true" : "false");
-  $("card-accounts").hidden = planned;
-  $("card-planned").hidden = !planned;
+  // All is the default and shows both cards; Accounts or Planned shows only its own.
+  for (const [id, key] of [["tab-all", "all"], ["tab-accounts", "accounts"], ["tab-planned", "planned"]]) {
+    $(id).setAttribute("aria-selected", which === key ? "true" : "false");
+  }
+  $("card-accounts").hidden = which === "planned";
+  $("card-planned").hidden = which === "accounts";
 }
+$("tab-all").addEventListener("click", () => showMoney("all"));
 $("tab-accounts").addEventListener("click", () => showMoney("accounts"));
 $("tab-planned").addEventListener("click", () => showMoney("planned"));
 // The counts on the chips follow the lists, so a reader can see Planned has something in it.
 function countTabs() {
   $("tab-accounts-n").textContent = state.accounts.length;
   $("tab-planned-n").textContent = state.planned.length;
+  $("tab-all-n").textContent = state.accounts.length + state.planned.length;
 }
 new MutationObserver(countTabs).observe($("accounts"), { childList: true });
 new MutationObserver(countTabs).observe($("planned"), { childList: true });
