@@ -641,6 +641,9 @@ const nameWords = (name) => (name ?? '').toLowerCase().split(/[^a-z]+/).filter((
  * Labels every line: between your accounts, interest, money in, or money out. A line is between
  * your accounts when it names the holder (any two of their names, in any order), names another
  * of the statement's accounts, carries the number of any account read, or repays a card.
+ *
+ * **Every statement added together belongs to one person**, so a statement that doesn't print a
+ * name (a Wise CSV, a plain table) is checked against the names the others print.
  */
 export function labelLines(statements) {
   const numbers = new Map();
@@ -648,13 +651,13 @@ export function labelLines(statements) {
     const digits = String(n).replace(/\D/g, '');
     if (digits.length >= 8) numbers.set(digits, a);
   }
+  const holders = [...new Set(statements.map((s) => s.holder).filter(Boolean))].map((h) => new Set(nameWords(h)));
   for (const s of statements) {
-    const holder = new Set(nameWords(s.holder));
     const otherNames = s.accounts.filter((a) => a.type !== 'current').map((a) => a.name.replace(/ ·· \d+$/, '').toLowerCase());
     for (const a of s.accounts) for (const l of a.lines) {
       const d = l.description.toLowerCase();
       const words = new Set(nameWords(d));
-      const namesHolder = [...holder].filter((w) => words.has(w)).length >= 2;
+      const namesHolder = holders.some((holder) => [...holder].filter((w) => words.has(w)).length >= 2);
       const namesAccount = otherNames.some((n) => n.length >= 5 && d.includes(n));
       const carries = (d.replace(/[\s-]/g, '').match(/\d{8,}/g) ?? []).some((n) => numbers.has(n) && numbers.get(n) !== a);
       const repays = /credit (card )?repayment|card repayment|repayment autopay/.test(d);
@@ -678,4 +681,142 @@ export function monthly(statements) {
     months.set(key, m);
   }
   return [...months.values()].sort((a, b) => a.month.localeCompare(b.month) || a.currency.localeCompare(b.currency));
+}
+
+// ---------------------------------------------------------------------------------------------
+// CSV files, and the zips they come in
+
+/** CSV text → rows of fields. Quotes, doubled quotes inside them, and line breaks in a quoted field. */
+export function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  const t = text.replace(/^\uFEFF/, '');
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (quoted) {
+      if (c === '"' && t[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && t[i + 1] === '\n') i++;
+      row.push(field); field = '';
+      if (row.some((f) => f !== '')) rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  row.push(field);
+  if (row.some((f) => f !== '')) rows.push(row);
+  return rows;
+}
+
+/**
+ * **INTL-Wise**: one CSV per currency balance, newest line first, each with the balance after
+ * it. The file name carries the balance's id, its currency and the dates covered. There is no
+ * opening or closing figure: the opening is worked back from the oldest line, the closing is the
+ * newest line's balance, and the check is that every running balance follows from the one
+ * before. A file with no lines has no balance in it at all, and says so.
+ */
+const INTLWise = {
+  id: 'INTL-Wise',
+  institution: 'Wise',
+  country: null,
+  recognises: (header) => header.includes('TransferWise ID') && header.includes('Running Balance'),
+  read(rows, fileName) {
+    const [header, ...body] = rows;
+    const col = (name) => header.indexOf(name);
+    const m = (fileName ?? '').match(/statement_(\d+)_([A-Z]{3})_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})/);
+    const currency = m?.[2] ?? body[0]?.[col('Currency')] ?? null;
+    const digits = minorDigits(currency);
+    const number = m?.[1] ?? null;
+    const lines = body.map((r) => {
+      const amount = parseAmount(r[col('Amount')], digits);
+      const exchangeTo = r[col('Exchange To')];
+      const exchangeAmount = parseAmount(r[col('Exchange To Amount')], minorDigits(exchangeTo));
+      return line({
+        date: parseDate(r[col('Date')]),
+        description: (r[col('Description')] ?? '').trim(),
+        amount, running: parseAmount(r[col('Running Balance')], digits),
+        ref: r[col('TransferWise ID')] || null,
+        foreign: exchangeTo && exchangeTo !== currency && exchangeAmount != null
+          ? { currency: exchangeTo, amount: amount < 0 ? -Math.abs(exchangeAmount) : Math.abs(exchangeAmount) } : null,
+      });
+    }).filter((l) => l.amount != null).reverse();
+    const acct = account({
+      ref: number ? `INTL-Wise:${number}` : null, number, numbers: [],
+      name: `Wise ${currency ?? ''}`.trim(), type: 'current', currency, lines,
+    });
+    if (lines.length) {
+      acct.opening = lines[0].running - lines[0].amount;
+      acct.closing = lines[lines.length - 1].running;
+    } else {
+      acct.notes.push('no lines, so no balance in the file');
+    }
+    const holderCell = body.map((r) => r[col('Card Holder Full Name')]).find((v) => v && v.trim());
+    return {
+      holder: holderCell?.trim() ?? null,
+      period: { from: m ? m[3] : lines[0]?.date ?? null, to: m ? m[4] : lines[lines.length - 1]?.date ?? null },
+      accounts: [acct],
+    };
+  },
+};
+
+export const CSV_READERS = [INTLWise];
+
+/** One CSV file → one statement, or a statement with no accounts when no reader knows it. */
+export function readCsvStatement(text, { fileName = null } = {}) {
+  const rows = parseCsv(text);
+  const reader = rows.length ? CSV_READERS.find((r) => r.recognises(rows[0])) : null;
+  if (!reader) return { reader: null, fileName, accounts: [], unknownCsv: true };
+  const read = reader.read(rows, fileName);
+  for (const a of read.accounts) {
+    a.check = check(a);
+    // No lines: nothing to check and no balance known. Not a failure; not a pass either.
+    if (!a.lines.length) a.check = { ok: false, checked: false, sum: 0, expected: null, messages: [] };
+  }
+  return {
+    reader: reader.id, institution: reader.institution, country: reader.country, general: false,
+    fileName, holder: read.holder, period: read.period, accounts: read.accounts,
+  };
+}
+
+/**
+ * The files in a zip, as { name, bytes }. Stored and deflated entries, read through the
+ * browser's own DecompressionStream (Node's too), so no library is needed. Folders and the
+ * Mac's __MACOSX copies are skipped.
+ */
+export async function unzip(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let end = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+    if (view.getUint32(i, true) === 0x06054b50) { end = i; break; }
+  }
+  if (end < 0) throw new Error('not a zip');
+  const count = view.getUint16(end + 10, true);
+  let at = view.getUint32(end + 16, true);
+  const files = [];
+  const decoder = new TextDecoder();
+  for (let n = 0; n < count; n++) {
+    if (view.getUint32(at, true) !== 0x02014b50) throw new Error('zip directory unreadable');
+    const method = view.getUint16(at + 10, true);
+    const size = view.getUint32(at + 20, true);
+    const nameLength = view.getUint16(at + 28, true);
+    const extraLength = view.getUint16(at + 30, true);
+    const commentLength = view.getUint16(at + 32, true);
+    const local = view.getUint32(at + 42, true);
+    const name = decoder.decode(bytes.subarray(at + 46, at + 46 + nameLength));
+    at += 46 + nameLength + extraLength + commentLength;
+    if (name.endsWith('/') || name.startsWith('__MACOSX/') || name.split('/').pop().startsWith('._')) continue;
+    const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+    const data = bytes.subarray(start, start + size);
+    if (method === 0) files.push({ name: name.split('/').pop(), bytes: data });
+    else if (method === 8) {
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      files.push({ name: name.split('/').pop(), bytes: new Uint8Array(await new Response(stream).arrayBuffer()) });
+    }
+  }
+  return files;
 }

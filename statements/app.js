@@ -2,7 +2,7 @@
 // Nothing is sent anywhere and nothing is kept: the page's own security policy forbids any
 // connection, and a reload or "Clear" forgets every statement.
 import * as pdfjs from './vendor/pdfjs/pdf.min.mjs';
-import { pagesFromPdf, readStatement, labelLines, monthly, minorDigits } from './readers.js';
+import { pagesFromPdf, readStatement, readCsvStatement, unzip, labelLines, monthly, minorDigits } from './readers.js';
 import { SAMPLES } from './samples.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
@@ -38,9 +38,18 @@ const LABEL = { in: 'Money in', out: 'Money out', own: 'Between your accounts', 
 // ---------------------------------------------------------------------------------------------
 // Reading files
 
+const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : /\.zip$/i.test(name) ? 'zip' : null);
+
+/** A CSV's text → a statement, or a note on why it couldn't be read. */
+function addCsv(name, bytes) {
+  const statement = readCsvStatement(new TextDecoder().decode(bytes), { fileName: name });
+  if (statement.unknownCsv) state.problems.push({ file: name, text: 'This CSV isn’t one this page can read yet. Wise statements in CSV are.' });
+  else state.statements.push(statement);
+}
+
 async function addFiles(files) {
-  const pdfs = [...files].filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a PDF. Statements are read from the PDF your bank gives you.' });
+  const pdfs = [...files].filter((f) => kindOf(f.name));
+  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, or a CSV or zip from Wise.' });
   if (!pdfs.length) return render();
   if (state.example) { state.statements = []; state.example = false; }
   $('reading').hidden = false;
@@ -49,6 +58,14 @@ async function addFiles(files) {
     if (state.seen.has(key)) { state.problems.push({ file: file.name, text: 'Already read above.' }); continue; }
     $('reading-name').textContent = file.name;
     try {
+      if (kindOf(file.name) === 'csv') { addCsv(file.name, new Uint8Array(await file.arrayBuffer())); state.seen.add(key); continue; }
+      if (kindOf(file.name) === 'zip') {
+        const inside = (await unzip(new Uint8Array(await file.arrayBuffer()))).filter((f) => kindOf(f.name) === 'csv');
+        if (!inside.length) state.problems.push({ file: file.name, text: 'There are no CSV files in this zip.' });
+        for (const f of inside) addCsv(f.name, f.bytes);
+        state.seen.add(key);
+        continue;
+      }
       const data = new Uint8Array(await file.arrayBuffer());
       const pdf = await pdfjs.getDocument({ data, isEvalSupported: false, disableFontFace: true, useSystemFonts: false, verbosity: 0 }).promise;
       const statement = readStatement(await pagesFromPdf(pdf), { fileName: file.name });
@@ -95,12 +112,17 @@ function render() {
 
   const accounts = state.statements.flatMap((s) => s.accounts);
   const adding = accounts.filter((a) => a.check.ok).length;
+  // Only accounts that could be checked count against it: one with no balance in its file
+  // (an empty Wise currency) hasn't failed.
+  const checked = accounts.filter((a) => a.check.checked).length;
+  const unchecked = accounts.length - checked;
   $('summary').hidden = !accounts.length;
   $('stat-statements').textContent = state.statements.length;
   $('stat-accounts').textContent = accounts.length;
   $('stat-lines').textContent = accounts.reduce((t, a) => t + a.lines.length, 0);
-  $('stat-adds').textContent = `${adding} of ${accounts.length}`;
-  $('stat-adds').closest('div').dataset.state = adding === accounts.length ? 'ok' : 'warn';
+  $('stat-adds').textContent = `${adding} of ${checked}`;
+  $('stat-adds').closest('div').dataset.state = adding === checked ? 'ok' : 'warn';
+  $('stat-unchecked').textContent = unchecked ? ` · ${unchecked} not checked` : '';
 
   const months = monthly(state.statements);
   $('months').innerHTML = months.length
@@ -143,6 +165,7 @@ function accountRow(a, s) {
     : a.check.checked ? '<span class="pill warn">Doesn’t add up</span>' : '<span class="pill plain">Not checked</span>';
   const why = !a.check.ok && a.check.checked
     ? `<p class="why">From ${money(a.opening, a.currency)}, the lines come to ${money(a.check.expected, a.currency)}; the statement says ${money(a.closing, a.currency)}.${a.check.messages.filter((m) => m.kind === 'line').length ? ` ${a.check.messages.filter((m) => m.kind === 'line').length} running balance${a.check.messages.filter((m) => m.kind === 'line').length === 1 ? '' : 's'} don’t follow on, marked below.` : ''}</p>`
+    : !a.check.checked && !a.lines.length && a.closing == null ? '<p class="why">No lines in this file, so it carries no balance for this account. Wise leaves a currency’s file empty when nothing happened in it.</p>'
     : !a.check.checked ? '<p class="why">The statement doesn’t print an opening and closing balance this page could find, so the lines aren’t checked.</p>' : '';
   const flagged = new Set(a.check.messages.filter((m) => m.kind === 'line').map((m) => m.index));
   const lines = a.lines.length

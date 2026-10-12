@@ -263,3 +263,96 @@ test('check: a card is owed, so money out raises what is owed', () => {
   const c = check({ owed: true, opening: 0, closing: 300, lines: [{ amount: -500 }, { amount: 200 }] });
   assert.ok(c.ok);
 });
+
+// ---------------------------------------------------------------------------------------------
+// INTL-Wise: CSV, one file per currency, and the zip Wise sends them in.
+
+import { readCsvStatement, unzip, parseCsv } from '../readers.js';
+import { deflateRawSync } from 'node:zlib';
+
+const WISE_HEADER = '"TransferWise ID",Date,"Date Time",Amount,Currency,Description,"Payment Reference","Running Balance","Exchange From","Exchange To","Exchange Rate","Payer Name","Payee Name","Payee Account Number",Merchant,"Card Last Four Digits","Card Holder Full Name",Attachment,Note,"Total fees","Exchange To Amount","Transaction Type","Transaction Details Type"';
+const wiseUsd = [
+  WISE_HEADER,
+  'TRANSFER-3,14-03-2026,"14-03-2026 10:00:00.000",-150.00,USD,"Sent money to Alex Example (fee: 1.00 USD)",,48.50,USD,SGD,1.3,,"Alex Example",,,,,,,1.00,195.00,DEBIT,TRANSFER',
+  'TRANSFER-3,14-03-2026,"14-03-2026 10:00:00.000",-1.00,USD,"Wise Charges for: TRANSFER-3",,198.50,,,,,,,,,,,,0,,DEBIT,TRANSFER',
+  'CARD-2,02-03-2026,"02-03-2026 09:00:00.000",-0.50,USD,"Card ""spend"", with a comma",,199.50,,,,,,,,,"Alex Quinn Example",,,0,,DEBIT,CARD',
+  'TRANSFER-1,01-03-2026,"01-03-2026 08:00:00.000",200.00,USD,"Received money from Made Up Ltd",,200.00,,,,"Made Up Ltd",,,,,,,,0,,CREDIT,DEPOSIT',
+].join('\n');
+
+test('INTL-Wise: newest-first lines put in order, the opening worked back, running balances checked', () => {
+  const s = readCsvStatement(wiseUsd, { fileName: 'statement_123456_USD_2026-03-01_2026-03-31.csv' });
+  assert.equal(s.reader, 'INTL-Wise');
+  assert.deepEqual(s.period, { from: '2026-03-01', to: '2026-03-31' });
+  assert.equal(s.holder, 'Alex Quinn Example');
+  const a = s.accounts[0];
+  assert.equal(a.name, 'Wise USD');
+  assert.equal(a.ref, 'INTL-Wise:123456');
+  assert.deepEqual(a.lines.map((l) => l.amount), [20000, -50, -100, -15000]);
+  assert.equal(a.lines[1].description, 'Card "spend", with a comma');
+  assert.deepEqual(a.lines[3].foreign, { currency: 'SGD', amount: -19500 });
+  assert.equal(a.opening, 0);
+  assert.equal(a.closing, 4850);
+  assert.ok(a.check.ok);
+  const tampered = readCsvStatement(wiseUsd.replace('-0.50,USD', '-0.40,USD'), { fileName: 'statement_1_USD_2026-03-01_2026-03-31.csv' });
+  assert.equal(tampered.accounts[0].check.ok, false);
+});
+
+test('INTL-Wise: a currency with no lines carries no balance, and nothing claims it was checked', () => {
+  const s = readCsvStatement(WISE_HEADER + '\n', { fileName: 'statement_9_GBP_2026-03-01_2026-03-31.csv' });
+  const a = s.accounts[0];
+  assert.equal(a.currency, 'GBP');
+  assert.equal(a.closing, null);
+  assert.equal(a.check.checked, false);
+  assert.equal(a.lines.length, 0);
+});
+
+test('a CSV no reader knows says so', () => {
+  assert.equal(readCsvStatement('Date,Amount\n01/01/2026,5').unknownCsv, true);
+  assert.deepEqual(parseCsv('a,"b ""c""",d\r\n1,2,3\n'), [['a', 'b "c"', 'd'], ['1', '2', '3']]);
+});
+
+/** A zip by hand: one deflated entry, one stored, and a __MACOSX copy to skip. */
+function zipOf(entries) {
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+  for (const { name, text, deflate } of entries) {
+    const raw = Buffer.from(text);
+    const data = deflate ? deflateRawSync(raw) : raw;
+    const nameBytes = Buffer.from(name);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(deflate ? 8 : 0, 8);
+    local.writeUInt32LE(data.length, 18); local.writeUInt32LE(raw.length, 22); local.writeUInt16LE(nameBytes.length, 26);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(deflate ? 8 : 0, 10);
+    central.writeUInt32LE(data.length, 20); central.writeUInt32LE(raw.length, 24); central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt32LE(offset, 42);
+    locals.push(local, nameBytes, data);
+    centrals.push(central, nameBytes);
+    offset += 30 + nameBytes.length + data.length;
+  }
+  const dir = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(offset, 16);
+  return new Uint8Array(Buffer.concat([...locals, dir, end]));
+}
+
+test('a Wise zip opens into its CSVs, deflated or stored, skipping the Mac’s copies', async () => {
+  const files = await unzip(zipOf([
+    { name: 'statement_123456_USD_2026-03-01_2026-03-31.csv', text: wiseUsd, deflate: true },
+    { name: 'statement_9_GBP_2026-03-01_2026-03-31.csv', text: WISE_HEADER + '\n', deflate: false },
+    { name: '__MACOSX/._statement_9_GBP.csv', text: 'junk', deflate: false },
+  ]));
+  assert.deepEqual(files.map((f) => f.name), ['statement_123456_USD_2026-03-01_2026-03-31.csv', 'statement_9_GBP_2026-03-01_2026-03-31.csv']);
+  assert.equal(new TextDecoder().decode(files[0].bytes), wiseUsd);
+});
+
+test('a statement without a name is checked against the names the others print', () => {
+  const wise = readCsvStatement(wiseUsd.replace('"Alex Quinn Example"', ''), { fileName: 'statement_1_USD_2026-03-01_2026-03-31.csv' });
+  assert.equal(wise.holder, null);
+  const alone = labelLines([structuredClone(wise)])[0].accounts[0].lines.map((l) => l.label);
+  assert.equal(alone[3], 'out');
+  const [labelled] = labelLines([wise, readStatement(uob())]);
+  assert.equal(labelled.accounts[0].lines[3].label, 'own', 'sent to Alex Example, whom UOB names');
+});
