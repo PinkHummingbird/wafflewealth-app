@@ -1,6 +1,6 @@
 # WaffleWealth — Privacy Policy
 
-_Last updated: 10 October 2026_
+_Last updated: 12 October 2026_
 
 **Contact: wafflewealth.app.support@gmail.com**
 
@@ -24,11 +24,13 @@ The projection itself is never stored anywhere. It is recomputed from your own f
 
 WaffleWealth uses one software library, GRDB, to read and write that local database. It runs on your device and sends nothing anywhere. There are no other third-party libraries of any kind.
 
+If your iPhone backs itself up to iCloud or to a computer, iOS includes the app's data in that backup, as it does for every app. That is your phone's own backup, handled by Apple and you. We never receive it and cannot read it.
+
 ## The one network request
 
 WaffleWealth can fetch daily reference exchange rates, so that accounts held in different currencies can be shown in one. This is the only thing the app ever sends, and:
 
-- **It is off when you install the app.** While it is off, WaffleWealth makes no network request at all. You turn it on yourself, in Assumptions, and you can turn it off again at any time.
+- **It is off when you install the app.** While it is off, WaffleWealth makes no network request at all. You turn it on yourself, under Income & spending, and you can turn it off again at any time.
 - **The request is `GET https://open.er-api.com/v6/latest/{your base currency}`** — for example `.../v6/latest/AED`. The three-letter code is the entire request. There is no account, no key, no body, and no header that names you.
 - **The host is `open.er-api.com`**, the open endpoint operated by ExchangeRate-API. What it receives is that currency code, and — as with any request to any website — the IP address your device is connecting from, which it necessarily sees in order to reply. Their handling of that request is governed by their own privacy policy.
 - **No balance, amount, account name or category is ever transmitted**, because none of them is ever handed to the request in the first place.
@@ -37,11 +39,18 @@ You can leave the switch off permanently and type exchange rates in by hand. The
 
 ## Export and backups
 
-WaffleWealth can export your data as a file: a readable one, or an encrypted backup.
+WaffleWealth can export your data as a file: a spreadsheet of your balances, a full file of everything you have entered, or an encrypted copy.
 
 You choose where the file goes — iCloud Drive, another app, wherever you send it. Once it leaves the app it is yours to look after, and it is governed by whatever you sent it to.
 
 An encrypted backup is sealed with a passphrase that only you hold. It is never stored in the app and never sent anywhere. **If you lose it, the backup cannot be opened — not by us, not by anyone.** That is the point of it, and it is not recoverable.
+
+## Face ID lock and the monthly reminder
+
+Both are off until you switch them on in Settings, and neither sends anything anywhere.
+
+- **The lock** asks iOS to confirm it is you, with Face ID or your passcode. iOS does the checking. The app only learns yes or no, and never sees your face or your passcode.
+- **The reminder** is a notification your iPhone schedules for itself, once a month. iOS asks your permission first. There is no server behind it and it contains no figures: it says "Time to update your balances".
 
 ## The waitlist on this website
 
@@ -55,6 +64,8 @@ The homepage of this website has a form for being told when the app is out. It i
 ## Visits to this website
 
 This website, and only this website, counts page visits with [GoatCounter](https://www.goatcounter.com), an open-source counter. It sets no cookies, does not track you across sites, and stores no personal data: it records which page was opened, the referring site, and broad details such as browser, screen size and country, worked out from the request and not kept with your IP address. We use the totals to see whether anyone is visiting. Their handling is described in [GoatCounter's privacy policy](https://www.goatcounter.com/help/privacy). Numbers you type into the demo never leave the page.
+
+The home page and the demo load their typefaces from Google Fonts. To send the fonts, Google's servers see what any web server sees: your IP address and browser details. No cookies are set for it. Google's handling is described in the [Google Fonts privacy FAQ](https://developers.google.com/fonts/faq/privacy).
 
 ## What we do not do
 
