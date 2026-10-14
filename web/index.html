@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WaffleWealth on the Web</title>
+<meta name="description" content="Upload statements and add transactions from a computer. They go into your own private iCloud and show up in WaffleWealth on your iPhone.">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14100A" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* The site's tokens, which are the app's own. */
+:root {
+  --ground: #FBF7F0; --raised: #FFFDF8; --sunken: #F2ECE1;
+  --ink: #2A1D0E; --ink-2: #6E5C43; --faint: #9C8B72;
+  --accent: #A96A11; --honey: #E9A33C; --on-accent: #FFFDF8;
+  --owed: #3E5C8C; --alert: #B3261E; --good: #3D6B35; --rule: #E7DECF;
+  --shadow: 0 1px 0 rgba(42, 29, 14, 0.04), 0 12px 32px -16px rgba(42, 29, 14, 0.25);
+  --display: "Familjen Grotesk", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+  --body: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-h1: clamp(1.9rem, 1.2rem + 2.6vw, 2.9rem);
+  --fs-small: 0.875rem; --fs-label: 0.72rem;
+  --r-sm: 4px; --r-md: 14px; --r-lg: 20px;
+  --gutter: clamp(16px, 4vw, 32px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #14100A; --raised: #201911; --sunken: #0C0906;
+    --ink: #F4ECDF; --ink-2: #B0A08A; --faint: #7C6E5C;
+    --accent: #E9A33C; --honey: #E9A33C; --on-accent: #14100A;
+    --owed: #9FB8DE; --alert: #F2837B; --good: #9CCB8E; --rule: #2E2519;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 16px 40px -18px rgba(0,0,0,0.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #14100A; --raised: #201911; --sunken: #0C0906;
+  --ink: #F4ECDF; --ink-2: #B0A08A; --faint: #7C6E5C;
+  --accent: #E9A33C; --honey: #E9A33C; --on-accent: #14100A;
+  --owed: #9FB8DE; --alert: #F2837B; --good: #9CCB8E; --rule: #2E2519;
+  --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 16px 40px -18px rgba(0,0,0,0.7);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; overflow-x: clip; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 1rem; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.15em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.015em; line-height: 1.1; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1120px; margin-inline: auto; padding-inline: var(--gutter); }
+.label { font-family: var(--mono); font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+.fig { font-variant-numeric: tabular-nums lining-nums; }
+
+/* ---- header ---- */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+.brand .mark { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; flex: none; }
+.brand small { font-family: var(--body); font-weight: 500; font-size: var(--fs-small); color: var(--ink-2); white-space: nowrap; }
+@media (max-width: 520px) { .brand small { display: none; } .nav { gap: 12px; } }
+.nav { display: flex; align-items: center; gap: 18px; font-size: var(--fs-small); }
+.nav a { color: var(--ink-2); text-decoration: none; }
+.nav a:hover { color: var(--ink); text-decoration: underline; }
+@media (max-width: 520px) { .nav .wide { display: none; } }
+
+/* ---- buttons ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--accent); color: var(--on-accent); font-family: var(--display); font-weight: 600; font-size: 1rem; cursor: pointer; text-decoration: none; }
+.btn:hover { filter: brightness(1.06); }
+.btn:disabled { opacity: 0.55; cursor: default; filter: none; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+.btn.ghost:hover { border-color: var(--accent); }
+.btn.small { min-height: 36px; padding: 0 14px; font-size: 0.92rem; }
+.linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 6px 0; font-weight: 600; font-size: var(--fs-small); }
+.linkbtn:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+.linkbtn.danger { color: var(--alert); }
+
+/* ---- welcome ---- */
+.welcome { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: start; padding-block: 24px 56px; }
+@media (max-width: 860px) { .welcome { grid-template-columns: 1fr; } }
+.welcome h1 { font-size: var(--fs-h1); letter-spacing: -0.025em; }
+.welcome h1 .honey { color: var(--accent); }
+.welcome .lede { color: var(--ink-2); font-size: 1.08rem; max-width: 36rem; margin-top: 14px; }
+.steps { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: step; max-width: 36rem; }
+.steps li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; counter-increment: step; }
+.steps li::before { content: counter(step); width: 30px; height: 30px; border-radius: 50%; background: var(--sunken); color: var(--accent); font-family: var(--display); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.steps b { font-weight: 600; }
+.steps span { color: var(--ink-2); display: block; font-size: var(--fs-small); }
+.signin { display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 20px; min-width: 0; }
+.signin .card { display: flex; flex-direction: column; gap: 14px; }
+.signin h2 { font-size: 1.35rem; }
+.signin p { color: var(--ink-2); font-size: var(--fs-small); }
+#apple-sign-in-button { min-height: 44px; }
+#apple-sign-in-button:empty::before { content: ""; display: block; }
+.soon { padding: 10px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--honey) 14%, var(--raised)); border: 1px solid color-mix(in srgb, var(--honey) 55%, var(--rule)); color: var(--ink-2); font-size: var(--fs-small); }
+.soon b { color: var(--ink); }
+.private { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding-block: 0 48px; }
+@media (max-width: 760px) { .private { grid-template-columns: 1fr; } }
+.private > div { border-top: 2px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.private h3 { font-size: 1rem; }
+.private p { font-size: var(--fs-small); color: var(--ink-2); }
+
+/* ---- workspace ---- */
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding-block: 8px 14px; }
+.who { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink-2); }
+.who::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+.who.example::before { background: var(--honey); }
+.bar .right { display: flex; align-items: center; gap: 12px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 18px; }
+.chip { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule); background: var(--sunken); color: var(--ink-2); cursor: pointer; font-size: 0.95rem; }
+.chip[aria-selected="true"] { background: var(--raised); color: var(--ink); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.chip .n { margin-left: 6px; display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 0.75rem; font-weight: 700; }
+.notice { margin-bottom: 16px; padding: 12px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--honey) 12%, var(--raised)); border: 1px solid color-mix(in srgb, var(--honey) 45%, var(--rule)); font-size: var(--fs-small); color: var(--ink-2); }
+.notice b { color: var(--ink); }
+.error { padding: 10px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--alert) 10%, var(--raised)); color: var(--ink); font-size: var(--fs-small); }
+.ok { padding: 10px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--good) 12%, var(--raised)); color: var(--ink); font-size: var(--fs-small); }
+.panel { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 20px; align-items: start; padding-bottom: 56px; }
+.panel.one { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 900px) { .panel { grid-template-columns: 1fr; } }
+.panel h2 { font-size: 1.25rem; }
+.stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* ---- drop ---- */
+.drop { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; min-height: 210px; padding: 24px 18px; border: 1.5px dashed color-mix(in srgb, var(--accent) 55%, var(--rule)); border-radius: var(--r-lg); background: var(--raised); box-shadow: var(--shadow); transition: background 120ms, border-color 120ms; cursor: pointer; }
+.drop.over { background: color-mix(in srgb, var(--honey) 14%, var(--raised)); border-color: var(--accent); border-style: solid; }
+.drop svg { width: 54px; height: 64px; color: var(--accent); }
+.drop strong { font-family: var(--display); font-size: 1.15rem; font-weight: 600; }
+.drop .sub { color: var(--ink-2); font-size: var(--fs-small); max-width: 26rem; }
+.drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop input[type="file"]:focus-visible + .btn { outline: 2px solid var(--accent); outline-offset: 3px; }
+.busy { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink-2); }
+.busy::before { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--rule); border-top-color: var(--accent); animation: spin 800ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy::before { animation: none; } }
+
+/* ---- lists ---- */
+.list { display: flex; flex-direction: column; }
+.list .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 8px; }
+.row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding-block: 12px; border-top: 1px solid var(--rule); }
+.row:first-of-type { border-top: 0; }
+.row .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--sunken); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+.row .main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row .t { font-weight: 600; overflow-wrap: anywhere; }
+.row .d { font-size: 0.8rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.row .end { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.amt { font-family: var(--display); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.amt.in { color: var(--good); }
+.pill { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; background: var(--sunken); color: var(--ink-2); }
+.pill.new { background: color-mix(in srgb, var(--honey) 22%, transparent); color: var(--accent); }
+.pill.added { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.pill.owed { background: color-mix(in srgb, var(--owed) 14%, transparent); color: var(--owed); }
+.acts { display: flex; gap: 12px; }
+.row.clickable { cursor: pointer; }
+.row.clickable:hover .t { color: var(--accent); }
+.row.editing { background: color-mix(in srgb, var(--honey) 10%, transparent); }
+.month { padding: 18px 0 6px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--rule); }
+.month:first-child { border-top: 0; padding-top: 0; }
+.month h3 { font-size: 1rem; }
+.month .tot { font-size: 0.8rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.empty { color: var(--ink-2); font-size: var(--fs-small); padding: 8px 0; }
+
+/* ---- forms ---- */
+form.f { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label, .field .lab { font-size: var(--fs-small); font-weight: 600; }
+.field .cap { font-size: 0.8rem; color: var(--ink-2); }
+.field .err { font-size: 0.8rem; color: var(--alert); }
+.field input, .field select, .field textarea { height: 44px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--ground); min-width: 0; width: 100%; }
+.field textarea { height: auto; min-height: 64px; padding: 10px 12px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.field [aria-invalid="true"] { border-color: var(--alert); }
+.two { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 420px) { .two { grid-template-columns: 1fr; } }
+.seg { display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; gap: 3px; border-radius: 12px; background: var(--sunken); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 8px 14px; border-radius: 9px; cursor: pointer; color: var(--ink-2); font-weight: 500; }
+.seg input:checked + label { background: var(--raised); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
+.formacts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.inline-form { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; padding: 4px 0 6px; }
+.inline-form .field { flex: 1 1 140px; }
+.totals { display: flex; flex-wrap: wrap; gap: 14px 20px; }
+.totals > div { border-top: 2px solid var(--rule); padding-top: 8px; flex: 1 1 9rem; min-width: 0; }
+.totals .v { font-family: var(--display); font-weight: 600; font-size: 1.3rem; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.totals .k { font-size: 0.8rem; color: var(--ink-2); }
+
+footer { border-top: 1px solid var(--rule); padding-block: 24px 40px; font-size: var(--fs-small); color: var(--ink-2); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+footer a { color: var(--ink-2); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="../" aria-label="WaffleWealth home">
+    <span class="mark" aria-hidden="true"><img src="../assets/icon.png" alt="" width="32" height="32"></span>
+    WaffleWealth <small>on the web</small>
+  </a>
+  <nav class="nav" aria-label="Page">
+    <a class="wide" href="../">The app</a>
+    <a href="../privacy">Privacy</a>
+    <div id="apple-sign-out-button" hidden></div>
+    <button type="button" class="linkbtn" id="leave-example" hidden>Leave the example</button>
+  </nav>
+</header>
+
+<main>
+  <!-- Signed out: what this is, and the one way in. -->
+  <section class="wrap welcome" id="welcome" aria-labelledby="h-welcome">
+    <div>
+      <p class="label">For WaffleWealth on iPhone</p>
+      <h1 id="h-welcome">Your statements, from your computer <span class="honey">to your phone.</span></h1>
+      <p class="lede">Upload the statements your banks send you, and type in money in and out, here on a big screen. They go into your own iCloud, and WaffleWealth on your iPhone picks them up the next time it opens.</p>
+      <ol class="steps">
+        <li><div><b>On your iPhone, switch the copy on.</b><span>In WaffleWealth, open Settings and turn on “Keep a copy in iCloud”.</span></div></li>
+        <li><div><b>Here, sign in with the same Apple ID.</b><span>Apple signs you in. We never see your password, and there's no account to make.</span></div></li>
+        <li><div><b>Drop a statement in.</b><span>On your phone it's under Activity, ready to read and add to your money.</span></div></li>
+      </ol>
+    </div>
+    <div class="signin">
+      <div class="card">
+        <h2>Sign in to your iCloud</h2>
+        <p>With the Apple ID your iPhone uses for iCloud.</p>
+        <div id="apple-sign-in-button"></div>
+        <p class="soon" id="not-ready" hidden><b>Signing in opens very soon.</b> The iPhone side is ready; the last switch on Apple's side is being turned. Meanwhile, look around with example numbers.</p>
+        <p class="error" id="start-error" role="alert" hidden></p>
+        <button type="button" class="btn ghost" id="try-example">Look around with example numbers</button>
+      </div>
+      <p class="cap" style="font-size:0.8rem;color:var(--ink-2)">Don't have the app yet? <a href="https://apps.apple.com/us/app/wafflewealth/id6811611595">Get WaffleWealth for iPhone</a>, free.</p>
+    </div>
+  </section>
+
+  <section class="wrap private" id="private" aria-label="Where your figures go">
+    <div><h3>Your iCloud, not ours</h3><p>Everything goes to the private part of your own iCloud, which only you can read. WaffleWealth has no server and no copy, and its developer can't see your iCloud.</p></div>
+    <div><h3>Read on your phone</h3><p>Statements are read by WaffleWealth on your iPhone, which checks every figure against the statement's own totals before anything is added.</p></div>
+    <div><h3>Nothing extra on this page</h3><p>No visit counter, no tracking. It loads Apple's own iCloud library and the site's fonts, and nothing else.</p></div>
+  </section>
+
+  <!-- Signed in, or the example: the three lists. -->
+  <section class="wrap" id="workspace" hidden aria-label="Your WaffleWealth">
+    <div class="bar">
+      <span class="who" id="who">Signed in to iCloud</span>
+      <div class="right">
+        <span class="busy" id="busy" hidden>Working…</span>
+        <span class="label" id="updated"></span>
+        <button type="button" class="linkbtn" id="refresh">Refresh</button>
+      </div>
+    </div>
+    <div class="chips" role="tablist" aria-label="Lists">
+      <button type="button" class="chip" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="true">Documents<span class="n" id="n-new" hidden></span></button>
+      <button type="button" class="chip" role="tab" id="tab-transactions" aria-controls="panel-transactions" aria-selected="false">Transactions</button>
+      <button type="button" class="chip" role="tab" id="tab-accounts" aria-controls="panel-accounts" aria-selected="false">Accounts</button>
+    </div>
+    <p class="notice" id="nothing-yet" hidden><b>Nothing from your iPhone yet.</b> In WaffleWealth, open Settings and switch on “Keep a copy in iCloud”: your accounts appear here a minute later. You can upload documents already.</p>
+    <p class="error" id="work-error" role="alert" hidden></p>
+
+    <!-- Documents -->
+    <div class="panel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
+      <div class="stack">
+        <label class="drop" id="drop" for="file">
+          <svg viewBox="0 0 54 64" fill="none" aria-hidden="true">
+            <path d="M6 2h30l16 16v40a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4Z" style="fill: var(--sunken)" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M36 2v12a4 4 0 0 0 4 4h12" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M27 48V28m0 0-8 8m8-8 8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <strong>Drop statements here</strong>
+          <span class="sub">PDFs from your banks, a Wise CSV or zip, or any file you want with your figures. Up to 25 MB each.</span>
+          <input type="file" id="file" multiple>
+          <span class="btn small">Choose files</span>
+          <span class="busy" id="uploading" hidden></span>
+        </label>
+        <p class="ok" id="upload-ok" role="status" hidden></p>
+        <ul class="error" id="upload-problems" hidden style="margin:0;padding-left:30px"></ul>
+      </div>
+      <div class="card list" aria-labelledby="h-docs">
+        <div class="head"><h2 id="h-docs">Documents</h2><span class="label" id="docs-count"></span></div>
+        <div id="docs"></div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="panel" id="panel-transactions" role="tabpanel" aria-labelledby="tab-transactions" hidden>
+      <div class="card">
+        <form class="f" id="txn-form" novalidate>
+          <h2 id="txn-title">Add a transaction</h2>
+          <div class="seg" role="radiogroup" aria-label="Money in or out">
+            <input type="radio" name="dir" id="dir-out" value="out" checked><label for="dir-out">Money out</label>
+            <input type="radio" name="dir" id="dir-in" value="in"><label for="dir-in">Money in</label>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label for="txn-amount">Amount</label>
+              <input id="txn-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-describedby="txn-amount-err">
+              <span class="err" id="txn-amount-err"></span>
+            </div>
+            <div class="field">
+              <label for="txn-currency">Currency</label>
+              <select id="txn-currency"></select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label for="txn-day">Date</label>
+              <input type="date" id="txn-day" aria-describedby="txn-day-err">
+              <span class="err" id="txn-day-err"></span>
+            </div>
+            <div class="field">
+              <label for="txn-account">Account</label>
+              <select id="txn-account" aria-describedby="txn-account-err"></select>
+              <span class="err" id="txn-account-err"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="txn-category">What it was</label>
+            <select id="txn-category"></select>
+          </div>
+          <div class="field">
+            <label for="txn-note">Note</label>
+            <input id="txn-note" maxlength="200" autocomplete="off" placeholder="Optional" aria-describedby="txn-note-err">
+            <span class="err" id="txn-note-err"></span>
+          </div>
+          <p class="cap" style="font-size:0.8rem;color:var(--ink-2)">A record of what happened. It doesn't change an account's balance: update that under Accounts.</p>
+          <div class="formacts">
+            <button type="submit" class="btn" id="txn-save">Save to iCloud</button>
+            <button type="button" class="linkbtn" id="txn-cancel" hidden>Cancel</button>
+            <button type="button" class="linkbtn danger" id="txn-delete" hidden>Delete</button>
+          </div>
+          <p class="ok" id="txn-ok" role="status" hidden></p>
+          <p class="error" id="txn-error" role="alert" hidden></p>
+        </form>
+      </div>
+      <div class="card list" aria-labelledby="h-txns">
+        <div class="head"><h2 id="h-txns">Transactions</h2><span class="label" id="txns-count"></span></div>
+        <div id="txns"></div>
+      </div>
+    </div>
+
+    <!-- Accounts -->
+    <div class="panel one" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts" hidden>
+      <div class="card list" aria-labelledby="h-accts">
+        <div class="head"><h2 id="h-accts">Accounts</h2><span class="label">Latest balance</span></div>
+        <div class="totals" id="totals"></div>
+        <div id="accts" style="margin-top:12px"></div>
+        <p class="empty">Accounts are added and changed in the app. Here you can record a new balance, which is added to the account's history like any other.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WaffleWealth reports figures and does not advise. Nothing here is a recommendation to save, spend, borrow or invest.</span>
+    <span><a href="../">The app</a> · <a href="../privacy">Privacy</a> · <a href="../support">Support</a></span>
+  </div>
+</footer>
+
+<script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
+<script src="money.js"></script>
+<script src="cloud.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

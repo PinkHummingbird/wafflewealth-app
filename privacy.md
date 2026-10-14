@@ -1,19 +1,20 @@
 # WaffleWealth — Privacy Policy
 
-_Last updated: 12 October 2026_
+_Last updated: 15 October 2026_
 
 **Contact: wafflewealth.app.support@gmail.com**
 
-WaffleWealth projects your net worth from figures you type in yourself. Those figures are the most private thing an app can hold, and they stay on your iPhone. **We do not collect, transmit, sell, or share them.**
+WaffleWealth projects your net worth from figures you type in yourself. Those figures are the most private thing an app can hold, and they stay on your iPhone unless you choose to keep a copy in your own iCloud. **We do not collect, sell, or share them, and we cannot see them.**
 
 ## Summary
 
 - **No account. No sign-up.** You use WaffleWealth without ever creating one.
-- **No servers of ours.** There is no backend. Nothing syncs anywhere.
+- **No servers of ours.** There is no backend, and we hold no copy of anything you enter.
+- **iCloud is your choice, and it is off until you turn it on** (version 1.1 and later). Switched on, a copy goes to the private part of your own iCloud, which only you can read. See [The copy in your iCloud](#the-copy-in-your-icloud).
 - **No tracking, no ads, no analytics, no third-party SDKs in the app.**
 - **Exactly one network request exists, it is off until you switch it on, and it carries a three-letter currency code.** Never a balance, an amount, an account name, or a category.
-- **App Privacy label: Data Not Collected.**
-- **This website has a waitlist form.** It is the one place we hold an email address, only until the launch email is sent, and it concerns the website only. See [The waitlist on this website](#the-waitlist-on-this-website).
+- **App Privacy label: Data Not Collected.** Data in your own private iCloud is not collected by us: we have no way to read it.
+- **This website had a waitlist form** before launch. Addresses given there are deleted once the launch email is sent. See [The waitlist on this website](#the-waitlist-on-this-website).
 - **This website counts page visits** with GoatCounter, which sets no cookies and stores no personal data. The app counts nothing. See [Visits to this website](#visits-to-this-website).
 
 ## Where your data lives
@@ -25,6 +26,22 @@ The projection itself is never stored anywhere. It is recomputed from your own f
 WaffleWealth uses one software library, GRDB, to read and write that local database. It runs on your device and sends nothing anywhere. There are no other third-party libraries of any kind.
 
 If your iPhone backs itself up to iCloud or to a computer, iOS includes the app's data in that backup, as it does for every app. That is your phone's own backup, handled by Apple and you. We never receive it and cannot read it.
+
+## The copy in your iCloud
+
+From version 1.1, WaffleWealth can keep a copy of your accounts, balances, transactions and documents in your own iCloud, so that you can upload statements and add transactions from a computer at [the web page](web/) and find them on your iPhone.
+
+- **It is off when you install or update the app.** You turn it on yourself, in Settings › iCloud, and you can turn it off at any time.
+- **Where it goes:** the private database of your own iCloud account, through Apple's CloudKit, in WaffleWealth's container. Only someone signed in with your Apple ID can read it. We, the developer, have no access to your private iCloud data.
+- **What goes:** your accounts (names, currencies, categories and settings), the balances recorded for them, balances you took back, transactions, and documents with their files. Your income and spending, planned items, assumptions, target and history marks stay on your iPhone.
+- **How it is protected:** Apple encrypts iCloud data in transit and at rest. If you use Advanced Data Protection, it is end-to-end encrypted, and the web page can reach it only if you turn on "Access iCloud Data on the Web" in your Apple ID settings. Apple's handling of iCloud data is described in [Apple's privacy policy](https://www.apple.com/legal/privacy/).
+- **The web page** at `/web/` runs in your browser. You sign in with your Apple ID through Apple; we never see your password. The page loads Apple's CloudKit library and talks to Apple's iCloud servers and nothing else. It has no visit counter. Statements you upload there are read by WaffleWealth on your iPhone, not on any server.
+- **Turning it off** stops the copying and leaves the copy in iCloud as it is. **"Remove the copy from iCloud"** in Settings deletes everything WaffleWealth keeps there, including uploaded documents. Neither changes anything on your iPhone.
+- **Notifications from iCloud** are silent: they tell the app something changed so it can fetch it, and carry no figures.
+
+## Statements and documents
+
+You can add bank statements (PDF, CSV or zip) and other files to WaffleWealth, from the Files app or, with iCloud on, from the web page. A statement is read on your iPhone, by the app itself; pages that are only pictures are read by iOS's own on-device text recognition. Nothing about a statement is sent anywhere to be read. Documents are kept in the app with complete file protection, and in your iCloud only if the copy there is on.
 
 ## The one network request
 
@@ -54,7 +71,7 @@ Both are off until you switch them on in Settings, and neither sends anything an
 
 ## The waitlist on this website
 
-The homepage of this website has a form for being told when the app is out. It is the one place we hold anything about you, and it concerns the website only: the app itself works exactly as described above.
+Before launch, the homepage of this website had a form for being told when the app was out. It is the one place we hold anything about you, and it concerns the website only: the app itself works exactly as described above.
 
 - **What is sent:** the email address you type. The form is handled by Formspree, Inc. on our behalf, so their servers also see what any web server sees when a browser sends a request: your IP address and browser details. Their handling of that is governed by [Formspree's privacy policy](https://formspree.io/legal/privacy-policy).
 - **What it is used for:** one email telling you the app is available. Nothing else. No newsletter, no marketing, and it is not passed to anyone.
@@ -72,7 +89,7 @@ The home page and the demo load their typefaces from Google Fonts. To send the f
 - The app collects no analytics or usage data.
 - We do not use advertising or third-party tracking.
 - We do not sell or share your data with anyone.
-- We do not require or offer an account, and we do not sync to the cloud.
+- We do not require or offer an account. iCloud, if you turn it on, is your own Apple account, not ours.
 - We do not connect to your bank, and we never ask for a banking credential.
 - We do not include any third-party software development kits.
 
@@ -80,7 +97,7 @@ The home page and the demo load their typefaces from Google Fonts. To send the f
 
 - The exchange-rate switch is off by default and is yours to turn on or off at any time.
 - You can export everything you have entered, at any time.
-- **Deleting the app deletes everything.** Your database lives inside the app, so removing it removes your data from the device.
+- **Deleting the app deletes everything on the device.** Your database lives inside the app, so removing it removes your data from the iPhone. If the iCloud copy is on, remove it first in Settings, or later in your iPhone's Settings › your name › iCloud › Manage Storage.
 
 ## Children
 
