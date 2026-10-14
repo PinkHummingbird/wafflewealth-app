@@ -306,7 +306,7 @@ section { padding-block: clamp(40px, 7vw, 88px); border-top: 1px solid var(--rul
 .track li.now::before { background: var(--raised); box-shadow: 0 0 0 3px var(--honey); }
 .track strong { font-weight: 600; }
 .track span { color: var(--ink-2); font-size: var(--fs-small); }
-.badge-soon { align-self: flex-start; display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px 10px 12px; border-radius: 14px; background: var(--ink); color: var(--ground); }
+.badge-soon { text-decoration: none; align-self: flex-start; display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px 10px 12px; border-radius: 14px; background: var(--ink); color: var(--ground); }
 .badge-soon .glyph { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; flex: none; }
 .badge-soon .glyph img { width: 100%; height: 100%; }
 .badge-soon small { display: block; font-size: 0.72rem; letter-spacing: 0.02em; opacity: 0.8; }
@@ -383,7 +383,7 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
     <a href="#privacy">Privacy</a>
     <a href="#faq">FAQ</a>
     <a href="try/">Try it</a>
-    <a class="pill" id="status-pill" href="#launch">Coming to the App Store</a>
+    <a class="pill" id="status-pill" href="https://apps.apple.com/us/app/wafflewealth/id6811611595">Get it on the App Store</a>
   </nav>
 </header>
 
@@ -396,7 +396,7 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
       <p class="problem">I built it because my own net worth sheet grew formulas, growth rates and a tab per currency until I stopped trusting it.</p>
       <div class="ctas">
         <a class="btn link" href="try/">Try the demo with your numbers</a>
-        <a class="btn ghost" href="#launch">Get it on launch day</a>
+        <a class="btn ghost" href="https://apps.apple.com/us/app/wafflewealth/id6811611595">Download on the App Store</a>
       </div>
       <ul class="facts" aria-label="At a glance">
         <li>Free</li>
@@ -571,19 +571,19 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
   <section id="launch">
     <div class="wrap launch">
       <div>
-        <h2>Coming to the App Store.</h2>
-        <p class="lead">WaffleWealth is built and with Apple for review. It will be free for iPhone. Leave an address and you'll get one email on the day it's out, then nothing.</p>
+        <h2>On the App Store now.</h2>
+        <p class="lead">WaffleWealth is out, and free for iPhone. Download it, tap "Look around with example numbers", and you'll see the whole thing in a minute.</p>
         <ol class="track" aria-label="Launch progress">
           <li class="done"><strong>Built and tested</strong><span>On iPhone, in light and dark, with over 450 checks on the arithmetic.</span></li>
-          <li class="now"><strong>With Apple for review</strong><span>Where it is now.</span></li>
-          <li><strong>On the App Store</strong><span>Free to download. One email goes out that day.</span></li>
+          <li class="done"><strong>Reviewed by Apple</strong><span>Approved for the App Store.</span></li>
+          <li class="now"><strong>On the App Store</strong><span>Free to download. Where it is now.</span></li>
         </ol>
       </div>
       <div class="launch-card">
-        <div class="badge-soon" role="img" aria-label="Coming soon to the App Store">
+        <a class="badge-soon" href="https://apps.apple.com/us/app/wafflewealth/id6811611595" aria-label="Download WaffleWealth on the App Store">
           <span class="glyph" aria-hidden="true"><img src="assets/icon.png" alt="" width="32" height="32"></span>
-          <span><small>Coming soon to the</small><b>App Store</b></span>
-        </div>
+          <span><small>Download on the</small><b>App Store</b></span>
+        </a>
         <dl>
           <dt>Price</dt><dd>Free</dd>
           <dt>Needs</dt><dd>iPhone with iOS 26 or later</dd>
@@ -646,7 +646,7 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
       download button everywhere on the page.
    ============================================================ */
 const WAITLIST_ENDPOINT = "https://formspree.io/f/mvkgvver";
-const APP_STORE_URL = "";
+const APP_STORE_URL = "https://apps.apple.com/us/app/wafflewealth/id6811611595";
 
 /* ---------- The example position, the same one the app loads on first launch ---------- */
 const today = new Date();
@@ -889,9 +889,9 @@ wireForm(document.getElementById("waitlist"), "status");
 /* launch day: one constant swaps every form for the store button */
 if (APP_STORE_URL) {
   for (const id of ["store-link", "store-link-2"]) document.getElementById(id).href = APP_STORE_URL;
-  for (const id of ["store-cta", "store-cta-2"]) document.getElementById(id).hidden = false;
+  document.getElementById("store-cta-2").hidden = false;
   document.getElementById("waitlist").hidden = true;
-  document.getElementById("status-pill").textContent = "Now on the App Store";
+  document.getElementById("status-pill").textContent = "Get it on the App Store";
 }
 
 /* support address: copy, with a selection fallback */
