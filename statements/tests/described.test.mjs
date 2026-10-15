@@ -424,3 +424,19 @@ test('US-Chase-Card: owed, across a year end, not the checking description', () 
   assert.equal(a.closing, 38840);
   assert.ok(a.check.ok);
 });
+
+test('plain table: headings away from their figures, columns found from the figures', () => {
+  const s = readStatement([page([
+    [[40, 'Example Mutual Bank']],
+    [[40, 'Date'], [110, 'Details'], [260, 'Paid out'], [330, 'Paid in'], [400, 'Balance']],
+    [[40, '01/05/2026'], [110, 'Balance brought forward'], [508, '2,140.00']],
+    [[40, '02/05/2026'], [110, 'Rent'], [348, '1,250.00'], [516, '890.00']],
+    [[40, '06/05/2026'], [110, 'Grocer'], [360, '64.20'], [516, '825.80']],
+    [[40, '28/05/2026'], [110, 'Pay'], [418, '1,000.00'], [508, '1,825.80']],
+  ])]);
+  const a = s.accounts[0];
+  assert.deepEqual(a.lines.map((l) => l.amount), [-125000, -6420, 100000]);
+  assert.deepEqual(a.lines.map((l) => l.running), [89000, 82580, 182580]);
+  assert.equal(a.opening, 214000);
+  assert.ok(a.check.ok);
+});

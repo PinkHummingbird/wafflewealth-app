@@ -580,6 +580,61 @@ const CLOSING_WORDS = /closing balance|ending balance|balance c\/f|carried forwa
 const TOTALS = '^(sub)?totals?\\b|page totals?';
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const MONEY = ['amount', 'out', 'in', 'balance'];
+const signature = (columns) => MONEY.filter((k) => columns[k]).join(',');
+
+/**
+ * **Where each money column really is, from its figures.** Amounts line up on their right edge,
+ * and a heading may sit well away from it: centred over the column, at its left, or, read from a
+ * picture, a little off where the figures are. So the right edges of every figure under a header
+ * are grouped (a gap of more than 20 points starts a new group); when there are at least as many
+ * groups as money columns, the biggest, left to right, are those columns, left to right. Only
+ * where the headings fail (most figures more than 45 points from every money heading) is this
+ * used, so a stray number in a margin can't move a column. Mirrors GeneralTable.learnedEdges.
+ */
+export function learnedEdges(rows, headerAt) {
+  const gathered = new Map();
+  let current = null;
+  let skipUntil = -1;
+  rows.forEach((row, index) => {
+    const head = headerAt(index);
+    if (head) {
+      const money = MONEY.filter((k) => head.found[k]).sort((a, b) => head.found[a].x - head.found[b].x);
+      current = {
+        key: signature(head.found), columns: money, cells: money.map((k) => head.found[k]),
+        from: (head.found.description ?? head.found.date).x2,
+      };
+      skipUntil = Math.max(...head.near.map((r) => rows.indexOf(r)));
+      return;
+    }
+    if (index <= skipUntil || !current) return;
+    const figures = row.cells.filter((x) => isAmount(x.s) && x.x >= current.from);
+    const middle = (c) => (c.x + c.x2) / 2;
+    const unreached = figures.filter((f) => !current.cells.some((h) => Math.abs(middle(h) - middle(f)) <= 45)).length;
+    const entry = gathered.get(current.key) ?? { columns: current.columns, edges: [], unreached: 0 };
+    entry.edges.push(...figures.map((f) => f.x2));
+    entry.unreached += unreached;
+    gathered.set(current.key, entry);
+  });
+  const learned = new Map();
+  for (const [key, entry] of gathered) {
+    if (!entry.columns.length || entry.unreached * 2 <= entry.edges.length) continue;
+    const groups = [];
+    for (const edge of [...entry.edges].sort((a, b) => a - b)) {
+      const last = groups[groups.length - 1];
+      if (last && edge - last[last.length - 1] <= 20) last.push(edge); else groups.push([edge]);
+    }
+    if (groups.length < entry.columns.length) continue;
+    const biggest = groups.map((g, i) => ({ g, i }))
+      .sort((a, b) => b.g.length - a.g.length || a.i - b.i)
+      .slice(0, entry.columns.length)
+      .sort((a, b) => a.i - b.i);
+    const medians = biggest.map(({ g }) => [...g].sort((a, b) => a - b)[Math.floor(g.length / 2)]);
+    learned.set(key, Object.fromEntries(entry.columns.map((k, i) => [k, medians[i]])));
+  }
+  return learned;
+}
+
 /**
  * Day first or month first, from the dates themselves: a first figure over 12 can only be a day,
  * a second over 12 only a day too; failing both, US dollars are taken as month first and any
@@ -656,16 +711,23 @@ const GeneralTable = {
     let sign = null;
     let lastDate = null;
     let pending = null;
-    rows.forEach((row, index) => {
-      const c = row.cells;
-      // A header can stand on two or three rows ("Amount" over "(Incl. VAT)" beside "Date"):
-      // its words are gathered from the rows within a line's height of this one.
+    // A header can stand on two or three rows ("Amount" over "(Incl. VAT)" beside "Date"):
+    // its words are gathered from the rows within a line's height of this one.
+    const headerAt = (index) => {
+      const row = rows[index];
       const near = rows.filter((r, j) => Math.abs(j - index) <= 3 && Math.abs(r.y - row.y) <= 14 && r.page === row.page);
       const found = {};
       for (const cell of near.flatMap((r) => r.cells)) {
         for (const [key, re] of Object.entries(header)) if (!found[key] && re.test(cell.s)) found[key] = cell;
       }
-      if (found.date && found.description && (found.amount || found.out || found.in)) {
+      return found.date && found.description && (found.amount || found.out || found.in) ? { found, near } : null;
+    };
+    const edges = learnedEdges(rows, headerAt);
+    rows.forEach((row, index) => {
+      const c = row.cells;
+      const head = headerAt(index);
+      if (head) {
+        const { found, near } = head;
         columns = found;
         if (firstHeader == null) firstHeader = Math.min(...near.map((r) => rows.indexOf(r)));
         headerUntil = Math.max(...near.map((r) => rows.indexOf(r)));
@@ -699,15 +761,20 @@ const GeneralTable = {
       const figures = c.filter((x) => isAmount(x.s) && x.x >= figuresFrom);
       // Each figure goes to the column it sits nearest, and only when it sits near one: print
       // in a margin, or a number in a merchant's name, is left alone. Two in one column: the
-      // nearer wins.
-      const distance = (cell, col) => Math.abs((col.x + col.x2) / 2 - (cell.x + cell.x2) / 2);
+      // nearer wins. Where the figures themselves showed where each money column's right edge
+      // is (learnedEdges), that is where a column is; otherwise its heading is.
+      const learned = edges.get(signature(columns));
+      const distance = (cell, key, col) => (learned?.[key] != null
+        ? Math.abs(learned[key] - cell.x2)
+        : Math.abs((col.x + col.x2) / 2 - (cell.x + cell.x2) / 2));
+      const reach = learned ? 30 : 45;
       const taken = {};
       for (const f of figures) {
         const [key, col] = Object.entries(columns)
-          .filter(([k]) => ['amount', 'out', 'in', 'balance'].includes(k))
-          .sort(([, a], [, b]) => distance(f, a) - distance(f, b))[0] ?? [];
-        if (!key || distance(f, col) > 45) continue;
-        if (!taken[key] || distance(f, col) < distance(taken[key], col)) taken[key] = f;
+          .filter(([k]) => MONEY.includes(k))
+          .sort(([ka, a], [kb, b]) => distance(f, ka, a) - distance(f, kb, b))[0] ?? [];
+        if (!key || distance(f, key, col) > reach) continue;
+        if (!taken[key] || distance(f, key, col) < distance(taken[key], key, col)) taken[key] = f;
       }
       let amount = null;
       let running = null;
