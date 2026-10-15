@@ -117,6 +117,8 @@
   function show(tab, { sub = null, page = null, arg = null, push = true } = {}) {
     if (PARENT[tab]) { sub = tab; tab = PARENT[tab]; }
     if (!TOP.includes(tab)) tab = "projection";
+    // As in the app, Activity opens on Documents while one is waiting to be looked at.
+    if (tab === "activity" && !sub && !page && push && state.store && state.store.documents().some((d) => d.f.status === "NEW")) sub = "documents";
     state.tab = tab;
     if (sub && SUBS[tab] && SUBS[tab].includes(sub)) state.sub[tab] = sub;
     state.page = page && PAGES[page] ? { name: page, arg } : null;
@@ -220,7 +222,7 @@
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
         <div class="main"><span class="t">${esc(d.f.file_name)}</span>
           <span class="d">${esc(when)} · ${esc(M.bytes(Number(d.f.byte_count) || 0))} · ${esc(from)}${d.f.note ? " · " + esc(d.f.note) : ""}</span>
-          <span class="acts">${read}${download}<button type="button" class="linkbtn danger" data-remove-doc="${esc(d.name)}">Remove</button></span></div>
+          <span class="acts">${read}${download}${d.f.status === "NEW" ? `<button type="button" class="linkbtn" data-keep-doc="${esc(d.name)}">Keep it as it is</button>` : ""}<button type="button" class="linkbtn" data-note-doc="${esc(d.name)}">${d.f.note ? "Edit note" : "Add a note"}</button><button type="button" class="linkbtn danger" data-remove-doc="${esc(d.name)}">Remove</button></span></div>
         <div class="end"><span class="pill ${cls}">${esc(label)}</span></div>
       </div>`;
     }).join("");
@@ -618,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=20"), import("./statement-save.mjs?v=20")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=21"), import("./statement-save.mjs?v=21")]);
     return { ...read, ...save };
   }
 
@@ -773,7 +775,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=20");
+    return import("./projection.mjs?v=21");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1235,7 +1237,24 @@
     for (const type of ["dragleave", "drop"]) drop.addEventListener(type, () => drop.classList.remove("over"));
     drop.addEventListener("drop", (e) => { e.preventDefault(); upload([...(e.dataTransfer ? e.dataTransfer.files : [])]); });
 
-    $("docs").addEventListener("click", (e) => {
+    $("docs").addEventListener("click", async (e) => {
+      const keep = e.target.closest("[data-keep-doc]"), note = e.target.closest("[data-note-doc]");
+      if (keep || note) {
+        const doc = state.store.rows.get((keep || note).getAttribute(keep ? "data-keep-doc" : "data-note-doc"));
+        let change;
+        if (keep) change = { status: "KEPT", status_note: null, status_at: M.stamp() };
+        else {
+          const text = window.prompt("A note on this document, for your own reading.", doc.f.note || "");
+          if (text == null) return;
+          change = { note: text.trim().slice(0, 500) || null };
+        }
+        try {
+          const [saved] = await state.store.backend.save([{ name: doc.name, type: "Document", tag: doc.tag, f: { ...doc.f, ...change } }]);
+          state.store.rows.set(saved.name, { ...saved, file: saved.file || doc.file });
+          render();
+        } catch (error) { showError(C.explain(error)); }
+        return;
+      }
       const button = e.target.closest("[data-remove-doc]");
       if (button) removeDocument(button.getAttribute("data-remove-doc"));
       const download = e.target.closest("[data-download-doc]");
@@ -1360,9 +1379,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=20"),
-        globalThis.WWReadings || import("./readings.mjs?v=20"),
-        globalThis.WWHistory || import("./history.mjs?v=20"),
+        globalThis.WWProjection || import("./projection.mjs?v=21"),
+        globalThis.WWReadings || import("./readings.mjs?v=21"),
+        globalThis.WWHistory || import("./history.mjs?v=21"),
       ]);
       return { P, R, H };
     },

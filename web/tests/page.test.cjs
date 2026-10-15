@@ -252,6 +252,13 @@ let ENGINES={};
   ok(grp && grp.name==='Retirement' && grp.accountIds.join()==='ex-pension','groups: saved');
   d.getElementById('back').click(); await sleep(100);
   ok(d.querySelector(`[data-series="group:${grp.id}"][aria-pressed="true"]`),'groups: its line switched on in the chart');
+  // documents: kept as they are, and a note
+  d.getElementById('tab-documents').click(); await sleep(50);
+  const newDoc=store.documents().find(x=>x.f.status==='NEW'); const fresh=()=>store.documents().filter(x=>x.f.status==='NEW').length; const f0=fresh();
+  d.querySelector(`[data-keep-doc="${newDoc.name}"]`).click(); await sleep(100);
+  ok(store.rows.get(newDoc.name).f.status==='KEPT' && fresh()===f0-1 && d.getElementById('n-new').textContent===String(f0-1)||d.getElementById('n-new').hidden,'documents: kept as it is, no longer new');
+  w.prompt=()=> 'For the tax return'; d.querySelector(`[data-note-doc="${newDoc.name}"]`).click(); await sleep(100);
+  ok(store.rows.get(newDoc.name).f.note==='For the tax return' && /For the tax return/.test(d.getElementById('docs').textContent),'documents: a note');
   // settings
   const sb=()=>d.getElementById('settings-body').textContent;
   d.getElementById('tab-settings').click(); await sleep(150);
