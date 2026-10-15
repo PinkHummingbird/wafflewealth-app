@@ -556,7 +556,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=8"), import("./statement-save.mjs?v=8")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=10"), import("./statement-save.mjs?v=10")]);
     return { ...read, ...save };
   }
 

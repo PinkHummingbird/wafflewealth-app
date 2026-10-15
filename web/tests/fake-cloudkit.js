@@ -17,6 +17,10 @@
         else ck.records.set(r.recordName, copy);
         return copy; })};
     },
+    newRecordsBatch: (opts)=>{ const items=[]; const add=(op)=>(r)=>{ items.push({op,r}); return b; };
+      const b={ create:add('create'), update:add('update'), replace:add('replace'),
+        commit: async()=>{ ck.ops=(ck.ops||[]).concat(items.map(i=>i.r.recordType+':'+i.op)); return db.saveRecords(items.map(i=>i.r), opts); } };
+      return b; },
     fetchRecords: async (list)=>({hasErrors:false, records:list.map(r=>ck.records.get(r.recordName)).filter(Boolean).map(r=>JSON.parse(JSON.stringify(r)))}),
     deleteRecords: async (list)=>{ list.forEach(r=>ck.records.delete(r.recordName)); return {hasErrors:false, records:list}; },
   };

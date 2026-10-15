@@ -177,6 +177,11 @@ form.f { display: flex; flex-direction: column; gap: 14px; }
 .field .cap { font-size: 0.8rem; color: var(--ink-2); }
 .field .err { font-size: 0.8rem; color: var(--alert); }
 .field input, .field select, .field textarea { height: 44px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--ground); min-width: 0; width: 100%; }
+/* Our own arrow on a dropdown, set in from the edge like the other icons; the browser's own
+   sits against the border. Drawn with the theme's ink, so it follows light and dark. */
+.field select { -webkit-appearance: none; appearance: none; padding-right: 40px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: calc(100% - 21px) 52%, calc(100% - 16px) 52%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
 .field textarea { height: auto; min-height: 64px; padding: 10px 12px; resize: vertical; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 .field [aria-invalid="true"] { border-color: var(--alert); }
@@ -450,8 +455,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=9"></script>
-<script src="cloud.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="money.js?v=10"></script>
+<script src="cloud.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

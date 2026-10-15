@@ -179,9 +179,23 @@
       return { changed, deleted, token: syncToken, zoneMissing: false };
     }
 
-    /** With `atomic`, iCloud keeps all of them or none (one zone, one request). */
+    /** With `atomic`, iCloud keeps all of them or none (one zone, one request).
+
+        **A change to a record replaces it whole**, so a field emptied here is emptied in iCloud:
+        an "update" only writes the fields it is given, and would leave the old value of one now
+        empty (a planned item put back would stay put away). A document is the exception: its
+        file is an attachment this page never holds, so it is updated, never replaced. */
     async save(records, { atomic = false } = {}) {
-      const attempt = () => this.db.saveRecords(records.map(toCloud), atomic ? { zoneID: ZONE, atomic: true } : { zoneID: ZONE });
+      const attempt = () => {
+        const batch = this.db.newRecordsBatch(atomic ? { zoneID: ZONE, atomic: true } : { zoneID: ZONE });
+        for (const record of records) {
+          const cloud = toCloud(record);
+          if (!record.tag) batch.create(cloud);
+          else if (record.type === "Document") batch.update(cloud);
+          else batch.replace(cloud);
+        }
+        return batch.commit();
+      };
       let response;
       try {
         response = await attempt();

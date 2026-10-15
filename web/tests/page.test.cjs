@@ -276,6 +276,12 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
   // a planned item
   setVal(d,'pi-name','Bonus'); d.getElementById('pi-in').checked=true; setVal(d,'pi-amount','10,000'); setVal(d,'pi-first','2026-12-15'); submit(d,'pi-form'); await sleep(150);
   const pi=[...w.__ck.records.values()].find(r=>r.recordType==='PlannedItem');
+  d.querySelector(`[data-planned-away="${pi.recordName}"]`).click(); await sleep(150);
+  ok(w.__ck.records.get(pi.recordName).fields.archived_at && w.__ck.records.get(pi.recordName).fields.archived_at.value,'icloud: put away');
+  w.__ck.ops=[];
+  d.querySelector(`[data-planned-restore="${pi.recordName}"]`).click(); await sleep(150);
+  const putBack=w.__ck.records.get(pi.recordName);
+  ok(!putBack.fields.archived_at && /archived_at/.test(putBack.fields.nulls.value) && w.__ck.ops.includes('PlannedItem:replace'),'icloud: put back replaces the record, so the date is gone in iCloud ('+w.__ck.ops.join(',')+')');
   ok(pi && pi.fields.direction.value==='IN' && pi.fields.amount_minor.value===1000000 && pi.fields.display_order.type==='INT64','icloud: planned item fields');
   ok(pi && pi.fields.nulls.value==='archived_at,category,currency_code,ends_on','icloud: planned item nulls ('+(pi&&pi.fields.nulls.value)+')');
   // an account renamed
