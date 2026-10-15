@@ -147,8 +147,10 @@
       const [label, cls] = STATUS[d.f.status] || [d.f.status, ""];
       const when = d.f.added_at ? new Date(d.f.added_at).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" }) : "";
       const from = d.f.added_from === "WEB" ? "Uploaded here" : "Added on iPhone";
+      // A phone's file is an attachment with a link; one sent from here is in pieces, joined on click.
       const download = d.file && d.file.downloadURL
-        ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>` : "";
+        ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>`
+        : Number(d.f.parts) > 0 ? `<button type="button" class="linkbtn" data-download-doc="${esc(d.name)}">Download</button>` : "";
       return `<div class="row">
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
         <div class="main"><span class="t">${esc(d.f.file_name)}</span>
@@ -425,7 +427,9 @@
       $("uploading").hidden = false;
       $("uploading").textContent = `Uploading ${file.name}…`;
       try {
-        await store.uploadDocument(file);
+        await store.uploadDocument(file, (done, of) => {
+          if (of > 1) $("uploading").textContent = `Uploading ${file.name}… ${Math.round((done / of) * 100)}%`;
+        });
         ok.push(file.name);
         renderDocuments();
       } catch (error) {
@@ -450,6 +454,25 @@
     try {
       await state.store.deleteRecord(d);
       renderDocuments();
+    } catch (error) {
+      showError(C.explain(error));
+    }
+  }
+
+  async function downloadDocument(name) {
+    const d = state.store.rows.get(name);
+    if (!d) return;
+    try {
+      const blob = await state.store.documentFile(d);
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = d.f.file_name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       showError(C.explain(error));
     }
@@ -508,6 +531,8 @@
     $("docs").addEventListener("click", (e) => {
       const button = e.target.closest("[data-remove-doc]");
       if (button) removeDocument(button.getAttribute("data-remove-doc"));
+      const download = e.target.closest("[data-download-doc]");
+      if (download) downloadDocument(download.getAttribute("data-download-doc"));
     });
 
     $("txn-form").addEventListener("submit", submitTransaction);

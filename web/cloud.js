@@ -14,8 +14,16 @@
   const ZONE = { zoneName: "WaffleWealth" };
   const INTEGER = new Set([
     "amount_minor", "value_minor", "byte_count", "is_invested", "display_order",
-    "income_amount_minor", "income_reinvested", "available_from_age",
+    "income_amount_minor", "income_reinvested", "available_from_age", "parts", "part",
   ]);
+  /* Fields held as raw bytes: a piece of a document's file (see `uploadDocument`). */
+  const BYTES = new Set(["data"]);
+  /* Record types the app keeps as rows, which carry the "nulls" field. A document's pieces are
+     not rows anywhere: the iPhone joins them back into the file. */
+  const PIECE = "DocumentPart";
+  /* One piece of a file: half a megabyte, which is about 700 KB once written as text, well
+     inside iCloud's one-megabyte limit for a record. */
+  const PIECE_BYTES = 512 * 1024;
   const NULLABLE = {
     Transaction: ["account_id", "category", "note"],
     Document: ["status_note", "status_at", "note"],
@@ -30,9 +38,11 @@
         if ((NULLABLE[record.type] || []).includes(key)) nulls.push(key);
         continue;
       }
-      fields[key] = INTEGER.has(key) ? { value: Math.trunc(value), type: "INT64" } : { value: String(value), type: "STRING" };
+      fields[key] = INTEGER.has(key) ? { value: Math.trunc(value), type: "INT64" }
+        : BYTES.has(key) ? { value: String(value), type: "BYTES" }
+        : { value: String(value), type: "STRING" };
     }
-    fields.nulls = { value: nulls.sort().join(","), type: "STRING" };
+    if (record.type !== PIECE) fields.nulls = { value: nulls.sort().join(","), type: "STRING" };
     if (record.upload) fields.file = { value: record.upload };
     const out = { recordType: record.type, recordName: record.name, fields };
     if (record.tag) out.recordChangeTag = record.tag;
@@ -179,8 +189,15 @@
 
     async remove(records) {
       const response = await this.db.deleteRecords(
-        records.map((r) => ({ recordName: r.name, recordChangeTag: r.tag })), { zoneID: ZONE });
+        records.map((r) => (r.tag ? { recordName: r.name, recordChangeTag: r.tag } : { recordName: r.name })), { zoneID: ZONE });
       if (response.hasErrors) throw response.errors[0];
+    }
+
+    /** Named records in full, the pieces of a file included. */
+    async fetchRecords(names) {
+      const response = await this.db.fetchRecords(names.map((recordName) => ({ recordName, zoneID: ZONE })), { zoneID: ZONE });
+      if (response.hasErrors) throw response.errors[0];
+      return response.records.map(fromCloud);
     }
   }
 
@@ -215,6 +232,9 @@
       });
     }
     async remove(records) { for (const r of records) this.rows.delete(r.name); }
+    async fetchRecords(names) {
+      return names.map((n) => this.rows.get(n)).filter(Boolean).map((r) => structuredCloneSafe(r));
+    }
   }
 
   function structuredCloneSafe(record) {
@@ -290,7 +310,11 @@
     }
 
     take(result) {
-      for (const record of result.changed) this.rows.set(record.name, record);
+      for (const record of result.changed) {
+        // A piece is kept without its bytes: they're fetched again only to download the file.
+        if (record.type === PIECE) record.f = { document_id: record.f.document_id, part: record.f.part };
+        this.rows.set(record.name, record);
+      }
       for (const name of result.deleted) this.rows.delete(name);
       this.token = result.token;
       this.zoneMissing = result.zoneMissing;
@@ -405,8 +429,16 @@
     }
 
     async deleteRecord(record) {
+      // A document goes with its pieces, the document first so no phone sees it half there.
       await this.backend.remove([record]);
       this.rows.delete(record.name);
+      if (record.type === "Document") {
+        const pieces = Store.pieceNames(record).map((name) => this.rows.get(name) || { name });
+        if (pieces.length) {
+          try { await this.backend.remove(pieces); } catch (e) { /* left over in iCloud; harmless */ }
+          for (const piece of pieces) this.rows.delete(piece.name);
+        }
+      }
     }
 
     checkBalance(accountId, amount, day) {
@@ -437,20 +469,84 @@
       return null;
     }
 
+    static pieceNames(document) {
+      const count = Number(document.f.parts) || 0;
+      return Array.from({ length: count }, (_, n) => `documentpart-${document.name}-${n}`);
+    }
+
     /** Uploads a file as a document. The iPhone reads it the next time WaffleWealth opens.
-        The bytes go as a plain blob with no type: a typed one ("application/pdf") makes the
-        browser ask Apple's storage server for permission first, and it doesn't answer that, so
-        the upload never leaves. The name travels in the record. */
-    async uploadDocument(file) {
-      const record = {
-        name: M.uuid(), type: "Document", upload: new Blob([file]),
-        f: { file_name: file.name, byte_count: file.size, added_at: M.stamp(), added_from: "WEB", status: "NEW", status_note: null, status_at: null, note: null },
-      };
-      const [saved] = await this.backend.save([record]);
-      this.rows.set(saved.name, saved);
-      return saved;
+
+        **In pieces, inside ordinary records.** Apple's file server for iCloud (where an
+        attachment would go) only lets Apple's own websites send to it, so a file from here goes
+        as half-megabyte pieces in records of their own, through the same door every other
+        record uses, and the iPhone joins them back together. The pieces go first and the
+        document last, so a phone never sees a document whose pieces aren't all there; if the
+        upload stops half way, the pieces already sent are taken back. `progress(done, of)`
+        is told after each piece. */
+    async uploadDocument(file, progress) {
+      const name = M.uuid();
+      const bytes = await readBytes(file);
+      const count = Math.max(1, Math.ceil(bytes.length / PIECE_BYTES));
+      const sent = [];
+      try {
+        for (let n = 0; n < count; n++) {
+          const piece = {
+            name: `documentpart-${name}-${n}`, type: PIECE,
+            f: { document_id: name, part: n, data: toBase64(bytes.subarray(n * PIECE_BYTES, (n + 1) * PIECE_BYTES)) },
+          };
+          const [saved] = await this.backend.save([piece]);
+          sent.push(saved);
+          if (progress) progress(n + 1, count);
+        }
+        const record = {
+          name, type: "Document",
+          f: { file_name: file.name, byte_count: file.size, added_at: M.stamp(), added_from: "WEB", status: "NEW", status_note: null, status_at: null, note: null, parts: count },
+        };
+        const [saved] = await this.backend.save([record]);
+        this.rows.set(saved.name, saved);
+        for (const piece of sent) this.rows.set(piece.name, { ...piece, f: { document_id: name, part: piece.f.part } });
+        return saved;
+      } catch (error) {
+        if (sent.length) { try { await this.backend.remove(sent); } catch (e) { /* left over; harmless */ } }
+        throw error;
+      }
+    }
+
+    /** The file of a document, as a Blob: from its pieces, or from the attachment a phone sent. */
+    async documentFile(document) {
+      if (document.file && document.file.downloadURL) return null; // a plain link does it
+      const names = Store.pieceNames(document);
+      if (!names.length) throw { reason: "This file isn't in iCloud yet. Open WaffleWealth on your iPhone and try again." };
+      const pieces = await this.backend.fetchRecords(names);
+      pieces.sort((a, b) => a.f.part - b.f.part);
+      if (pieces.length !== names.length) throw { reason: "Part of this file is missing from iCloud." };
+      return new Blob(pieces.map((p) => fromBase64(p.f.data)));
     }
   }
 
-  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE };
+  /** A file's bytes. FileReader where Blob#arrayBuffer is missing (older Safari). */
+  function readBytes(file) {
+    if (typeof file.arrayBuffer === "function") return file.arrayBuffer().then((b) => new Uint8Array(b));
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function toBase64(bytes) {
+    let text = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(text);
+  }
+
+  function fromBase64(text) {
+    const binary = atob(String(text));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES };
 })();

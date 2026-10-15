@@ -97,8 +97,28 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   ok(w.__ck.zone,'icloud: zone created on first save');
   ok(doc && doc.fields.byte_count.type==='INT64' && doc.fields.status.value==='NEW' && doc.fields.added_from.value==='WEB','icloud: document fields typed');
   ok(doc && doc.fields.nulls.value==='note,status_at,status_note','icloud: nulls named');
-  ok(doc && doc.fields.file && doc.fields.file.value instanceof w.Blob && doc.fields.file.value.size===file.size,'icloud: file sent as asset');
-  ok(doc && doc.fields.file.value.type==='' && doc.fields.file_name.value==='wise.csv','icloud: bytes untyped, name in the record');
+  ok(doc && !doc.fields.file && doc.fields.parts.value===1 && doc.fields.parts.type==='INT64','icloud: no attachment, one piece');
+  const p0=w.__ck.records.get(`documentpart-${doc.recordName}-0`);
+  ok(p0 && p0.fields.data.type==='BYTES' && !p0.fields.nulls && p0.fields.document_id.value===doc.recordName && p0.fields.part.value===0,'icloud: the piece is a record of its own');
+  ok(p0 && Buffer.from(p0.fields.data.value,'base64').toString()==='a,b\n1,2','icloud: the piece holds the file');
+  // a bigger file: pieces in order, joined back exactly
+  const big=new Uint8Array(w.WWCloud.PIECE_BYTES*2+1234); for(let i=0;i<big.length;i++) big[i]=(i*7+3)%256;
+  Object.defineProperty(input,'files',{value:[new w.File([big],'big.pdf',{type:'application/pdf'})],configurable:true}); input.dispatchEvent(new w.Event('change')); await sleep(400);
+  const bigDoc=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='big.pdf');
+  ok(bigDoc && bigDoc.fields.parts.value===3,'icloud: a bigger file goes in 3 pieces');
+  const joined=await w.WWApp.state.store.documentFile(w.WWApp.state.store.rows.get(bigDoc.recordName));
+  const back=await new Promise(res=>{const fr=new w.FileReader(); fr.onload=()=>res(new Uint8Array(fr.result)); fr.readAsArrayBuffer(joined);});
+  ok(back.length===big.length && back.every((v,i)=>v===big[i]),'icloud: the pieces join back byte for byte');
+  ok(!('data' in w.WWApp.state.store.rows.get(`documentpart-${bigDoc.recordName}-1`).f),'icloud: pieces kept here without their bytes');
+  // stopping half way takes the pieces back, and no document appears
+  w.__ck.failAfter=1;
+  Object.defineProperty(input,'files',{value:[new w.File([big],'stops.pdf')],configurable:true}); input.dispatchEvent(new w.Event('change')); await sleep(400);
+  ok(![...w.__ck.records.values()].some(r=>r.recordType==='Document'&&r.fields.file_name.value==='stops.pdf'),'icloud: a stopped upload leaves no document');
+  ok([...w.__ck.records.values()].filter(r=>r.recordType==='DocumentPart').length===4,'icloud: and none of its pieces');
+  // removing a document takes its pieces
+  w.confirm=()=>true;
+  d.querySelector(`[data-remove-doc="${bigDoc.recordName}"]`).click(); await sleep(150);
+  ok(![...w.__ck.records.keys()].some(k=>k.startsWith(`documentpart-${bigDoc.recordName}`)),'icloud: removing a document removes its pieces');
   // the phone syncs accounts in
   w.__ck.put({recordType:'Account',recordName:'a1',fields:{name:{value:'Everyday'},kind:{value:'ASSET'},currency_code:{value:'AED'},display_order:{value:0},created_at:{value:'2026-10-01T00:00:00.000Z'},nulls:{value:'archived_at,category'}}});
   w.__ck.put({recordType:'Balance',recordName:'b1',fields:{account_id:{value:'a1'},value_minor:{value:1234567},as_of_date:{value:'2026-10-01'},source:{value:'MANUAL'},created_at:{value:'2026-10-01T00:00:00.000Z'},nulls:{value:''}}});
