@@ -3,6 +3,8 @@
 // file rebuilds the rows a person sees, and a reader for the bank turns them into accounts,
 // balances and lines. Amounts are whole numbers of the currency's smallest unit, never floats.
 
+import { PROFILES } from './profiles.js';
+
 // ---------------------------------------------------------------------------------------------
 // Rows
 
@@ -123,10 +125,18 @@ export function parseDate(text, { year, before, dayFirst = true } = {}) {
   const s = String(text).trim();
   let m;
   if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) return iso(+m[1], +m[2], +m[3]);
-  if ((m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/))) {
+  if ((m = s.match(/^(\d{1,2})(?:[/.-]| )(\d{1,2})(?:[/.-]| )(\d{2,4})$/))) {
     const [a, b] = dayFirst ? [+m[1], +m[2]] : [+m[2], +m[1]];
     const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
     return b >= 1 && b <= 12 && a >= 1 && a <= 31 ? iso(y, b, a) : null;
+  }
+  // "12/28" with the year left to the statement, as US banks print their lines.
+  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})$/)) && year) {
+    const [a, b] = dayFirst ? [+m[1], +m[2]] : [+m[2], +m[1]];
+    if (b < 1 || b > 12 || a < 1 || a > 31) return null;
+    let date = iso(year, b, a);
+    if (before && date > before) date = iso(year - 1, b, a);
+    return date;
   }
   if ((m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?[\s-]([A-Za-z]{3})[A-Za-z]*,?[\s-]?(\d{2,4})?$/))) {
     const month = MONTHS[m[2].toLowerCase()];
@@ -173,10 +183,13 @@ export function check(acct) {
   if (expected != null && acct.closing != null && expected !== acct.closing) {
     messages.push({ kind: 'total', expected, got: acct.closing });
   }
+  // A line the statement printed no balance for (HSBC UK prints one a day) carries the
+  // worked-out balance on, so the next printed one is still checked.
   let previous = acct.opening;
   acct.lines.forEach((line, index) => {
-    if (line.running == null || previous == null) { previous = line.running ?? null; return; }
+    if (previous == null) { previous = line.running ?? null; return; }
     const after = acct.owed ? previous - line.amount : previous + line.amount;
+    if (line.running == null) { previous = after; return; }
     if (after !== line.running) messages.push({ kind: 'line', index, expected: after, got: line.running });
     previous = line.running;
   });
@@ -562,33 +575,87 @@ export function accountNumber(top) {
   return (found.find((f) => f.labelled) ?? found[0])?.number ?? null;
 }
 
+const OPENING_WORDS = /opening balance|beginning balance|starting balance|balance b\/f|brought forward|previous balance|balance previous statement/i;
+const CLOSING_WORDS = /closing balance|ending balance|balance c\/f|carried forward|grand total|new balance/i;
+const TOTALS = '^(sub)?totals?\\b|page totals?';
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Day first or month first, from the dates themselves: a first figure over 12 can only be a day,
+ * a second over 12 only a day too; failing both, US dollars are taken as month first and any
+ * other currency as day first.
+ */
+export function inferDayFirst(rows, currency) {
+  let dayFirst = false;
+  let monthFirst = false;
+  for (const cell of rows.flatMap((r) => r.cells)) {
+    const m = cell.s.match(/^(\d{1,2})[/.-](\d{1,2})(?:[/.-]\d{2,4})?$/);
+    if (!m) continue;
+    if (+m[1] > 12) dayFirst = true;
+    if (+m[2] > 12) monthFirst = true;
+  }
+  if (dayFirst !== monthFirst) return dayFirst;
+  return currency !== 'USD';
+}
+
+/**
+ * **Any table of lines: a described bank, or any other.** Finds the table's header row, then
+ * reads every row under it by the header's columns. With a profile (profiles.js, the same JSON
+ * the app reads) it reads that bank as described; without one it is the plain-table reader, and
+ * everything it reads is marked for checking line by line. Either way it copes with dates printed
+ * day or month first, a date printed once a day, a description running on below with its amount
+ * on the last of its rows, a running balance printed for some lines only, and headings that give
+ * every line under them its sign. Mirrors GeneralTable.swift.
+ */
 const GeneralTable = {
   id: 'General',
   institution: null,
   country: null,
   recognises: () => true,
-  read(pages) {
+  read(pages, profile = null) {
     const rows = allRows(pages);
     const all = text(rows);
-    const full = all.match(/\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}(?:st|nd|rd|th)? [A-Za-z]{3,9} \d{4}|[A-Za-z]{3,9} \d{1,2}, \d{4})\b/g) ?? [];
-    const dates = full.map((d) => parseDate(d)).filter(Boolean).sort();
-    const to = dates[dates.length - 1] ?? null;
-    const year = to ? +to.slice(0, 4) : null;
     const codes = (all.match(new RegExp(ISO.source, 'g')) ?? []);
     const counts = codes.reduce((m, c) => m.set(c, (m.get(c) ?? 0) + 1), new Map());
-    const currency = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    const currency = profile?.currency ?? [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0] ?? null;
     const digits = minorDigits(currency);
+    const dayFirst = profile?.dateOrder ? profile.dateOrder === 'DMY' : inferDayFirst(rows, currency);
+
+    let from = null;
+    let to = null;
+    if (profile?.period) {
+      const g = all.match(new RegExp(profile.period, 'i'))?.groups;
+      if (g?.to) to = parseDate(g.to, { dayFirst });
+      if (g?.from) from = parseDate(g.from, { year: to ? +to.slice(0, 4) : null, before: to, dayFirst });
+    }
+    const full = all.match(/\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}(?:st|nd|rd|th)? [A-Za-z]{3,9} \d{4}|[A-Za-z]{3,9} \d{1,2}, \d{4})\b/g) ?? [];
+    const dates = full.map((d) => parseDate(d, { dayFirst })).filter(Boolean).sort();
+    to = to ?? dates[dates.length - 1] ?? null;
+    const year = to ? +to.slice(0, 4) : null;
     // A card statement prints what you spend as a plain figure: that is money out, and what
     // the statement calls the balance is what you owe.
-    const owed = /minimum payment|credit limit|card limit/i.test(all);
+    const owed = profile?.accountType ? profile.accountType === 'card' : /minimum payment|credit limit|card limit/i.test(all);
+
+    const own = profile?.columns ?? {};
+    const header = Object.fromEntries(Object.entries(HEADER).map(([k, re]) => [k, own[k] ? new RegExp(own[k], 'i') : re]));
+    const phrases = (list) => (list?.length ? new RegExp(list.join('|'), 'i') : null);
+    const openingRe = phrases(profile?.opening);
+    const closingRe = phrases(profile?.closing);
+    const skipRe = new RegExp(profile?.skip?.length ? `${profile.skip.join('|')}|${TOTALS}` : TOTALS, 'i');
+    const endRe = phrases(profile?.end);
+    const sections = profile?.sections ?? null;
 
     let columns = null;
     let lastRow = null;
     let opening = null;
     let closingStated = null;
+    let closingLocked = false;
     const lines = [];
     let headerUntil = -1;
     let firstHeader = null;
+    let sign = null;
+    let lastDate = null;
+    let pending = null;
     rows.forEach((row, index) => {
       const c = row.cells;
       // A header can stand on two or three rows ("Amount" over "(Incl. VAT)" beside "Date"):
@@ -596,37 +663,39 @@ const GeneralTable = {
       const near = rows.filter((r, j) => Math.abs(j - index) <= 3 && Math.abs(r.y - row.y) <= 14 && r.page === row.page);
       const found = {};
       for (const cell of near.flatMap((r) => r.cells)) {
-        for (const [key, re] of Object.entries(HEADER)) if (!found[key] && re.test(cell.s)) found[key] = cell;
+        for (const [key, re] of Object.entries(header)) if (!found[key] && re.test(cell.s)) found[key] = cell;
       }
       if (found.date && found.description && (found.amount || found.out || found.in)) {
         columns = found;
         if (firstHeader == null) firstHeader = Math.min(...near.map((r) => rows.indexOf(r)));
         headerUntil = Math.max(...near.map((r) => rows.indexOf(r)));
+        pending = null;
         return;
       }
       if (index <= headerUntil) return;
-      if (/opening balance|balance b\/f|brought forward|previous balance|balance previous statement/i.test(row.text)) {
-        const v = parseAmount(c[c.length - 1].s, digits);
-        if (v != null && opening == null) opening = v;
+      const section = sections?.find((sec) => new RegExp(`^${escapeRe(sec.heading)}(?: \\(continued\\))?$`, 'i').test(row.text));
+      if (section) { sign = section.sign; return; }
+      const lastFigure = () => parseAmount(c[c.length - 1].s, digits);
+      if (openingRe?.test(row.text)) { if (opening == null) opening = lastFigure(); return; }
+      if (closingRe?.test(row.text)) {
+        const v = lastFigure();
+        if (!closingLocked && v != null) { closingStated = v; closingLocked = true; }
         return;
       }
-      if (/closing balance|balance c\/f|carried forward|grand total|new balance/i.test(row.text)) {
-        const v = parseAmount(c[c.length - 1].s, digits);
-        if (v != null) closingStated = v;
+      if (OPENING_WORDS.test(row.text)) { if (opening == null) opening = lastFigure(); return; }
+      if (CLOSING_WORDS.test(row.text)) {
+        const v = lastFigure();
+        if (!closingLocked && v != null) closingStated = v;
         return;
       }
+      if (endRe?.test(row.text)) { columns = null; return; }
+      if (skipRe.test(row.text)) return;
       if (!columns) return;
-      const date = parseDate(c[0].s, { year, before: to });
-      const figures = c.filter((x) => isAmount(x.s) && x.x >= (columns.description?.x2 ?? columns.date.x2));
-      if (!date || !figures.length) {
-        // Words just under a line, in the description's column, carry its description on.
-        const lastLine = lines[lines.length - 1];
-        const under = lastRow && lastRow.page === row.page && lastRow.y - row.y < 30
-          && Math.abs(c[0].x - (columns.description?.x ?? c[0].x)) < 20;
-        if (lastLine && under && !figures.length) { lastLine.description += ' · ' + cellsText(c); lastRow = row; }
-        return;
-      }
-      const madeOn = c[1] ? parseDate(c[1].s, { year, before: to }) : null;
+      const descriptionX = (columns.description ?? columns.date).x;
+      const figuresFrom = (columns.description ?? columns.date).x2;
+      const dateCell = c[0] && c[0].x < descriptionX - 4 && parseDate(c[0].s, { year, before: to, dayFirst }) ? c[0] : null;
+      const date = dateCell ? parseDate(dateCell.s, { year, before: to, dayFirst }) : null;
+      const figures = c.filter((x) => isAmount(x.s) && x.x >= figuresFrom);
       // Each figure goes to the column it sits nearest, and only when it sits near one: print
       // in a margin, or a number in a merchant's name, is left alone. Two in one column: the
       // nearer wins.
@@ -643,43 +712,106 @@ const GeneralTable = {
       let running = null;
       for (const [key, f] of Object.entries(taken)) {
         const v = parseAmount(f.s, digits);
+        if (v == null) continue;
         if (key === 'balance') running = v;
-        else if (key === 'out') amount = -Math.abs(v);
-        else if (key === 'in') amount = Math.abs(v);
+        else if (key === 'out') { if (v !== 0) amount = -Math.abs(v); }
+        else if (key === 'in') { if (v !== 0) amount = Math.abs(v); }
         else if (key === 'amount') amount = owed ? -v : /DR$/i.test(f.s) ? -Math.abs(v) : v;
       }
-      if (amount == null) return;
+      if (sign != null && amount != null) amount = sign * Math.abs(amount);
+      const rightEdge = Math.max(...Object.values(columns).map((k) => k.x2)) + 10;
+      const used = [...Object.values(taken), ...(dateCell ? [dateCell] : [])];
+      const wordCells = c.filter((x) => !used.includes(x) && x.x2 <= rightEdge);
+      let madeOn = null;
+      if (date && wordCells[0] && wordCells[0].x < descriptionX - 4) {
+        const made = parseDate(wordCells[0].s, { year, before: to, dayFirst });
+        if (made) { madeOn = made; wordCells.shift(); }
+      }
+      const words = cellsText(wordCells);
+
+      if (amount == null) {
+        if (date && words) {
+          // A dated row with no amount: the amount comes on a row below.
+          pending = { date, madeOn, words: [words], page: row.page };
+          lastDate = date;
+          return;
+        }
+        if (date) lastDate = date;
+        if (words && wordCells[0] && wordCells[0].x >= descriptionX - 20) {
+          if (pending && pending.page === row.page) {
+            pending.words.push(words);
+          } else if (lines.length && lastRow && lastRow.page === row.page && lastRow.y - row.y < 30) {
+            // Words just under a line, in the description's column, carry its description on.
+            lines[lines.length - 1].description += ' · ' + words;
+            lastRow = row;
+          }
+        } else if (running != null && !pending && lines.length && lines[lines.length - 1].running == null) {
+          // A balance printed on its own row, for the line above.
+          lines[lines.length - 1].running = running;
+        }
+        return;
+      }
+      // A line: dated here, dated on a row above it, or the day's date left blank.
+      let description = words;
+      let lineDate = date;
+      if (!date && pending) {
+        lineDate = pending.date;
+        madeOn = pending.madeOn;
+        description = [...pending.words, ...(words ? [words] : [])].join(' · ');
+      } else if (!date) {
+        lineDate = lastDate;
+      }
+      pending = null;
+      if (!lineDate) return;
+      lastDate = lineDate;
       const before = lines.length ? lines[lines.length - 1].running : opening;
-      if (!owed && running != null && before != null && before + amount !== running && before - amount === running) amount = -amount;
-      lines.push(line({
-        date, madeOn,
-        description: cellsText(c.filter((x) => !Object.values(taken).includes(x) && x.x2 <= Math.max(...Object.values(columns).map((k) => k.x2)) + 10).slice(madeOn ? 2 : 1)),
-        amount, running,
-      }));
+      if (!owed && sign == null && running != null && before != null && before + amount !== running && before - amount === running) amount = -amount;
+      lines.push(line({ date: lineDate, madeOn, description, amount, running }));
       lastRow = row;
     });
-    const closing = closingStated ?? (lines.length ? lines[lines.length - 1].running : null);
+    const lastRunning = [...lines].reverse().find((l) => l.running != null)?.running ?? null;
+    const closing = closingStated ?? lastRunning;
     if (opening == null && lines[0]?.running != null) opening = lines[0].running - (owed ? -lines[0].amount : lines[0].amount);
-    // Named from what sits above the table: the bank and the number's last four (owner's ruling,
-    // 15 October 2026), so next month's statement from the same account finds it again.
+    if (!lines.length) return { holder: null, period: { from: from ?? dates[0] ?? null, to }, accounts: [] };
     const top = rows.slice(0, firstHeader ?? 15);
-    const bank = bankName(top);
-    const number = accountNumber(top);
-    const named = bank ? (owed ? `${bank} card` : bank) : (owed ? 'Card' : 'Account');
-    const acct = account({
-      ref: bank && number ? `General:${bank.toLowerCase()}:${last4(number)}` : null,
-      number, numbers: number ? [number] : [],
-      name: number ? `${named} ·· ${last4(number)}` : named,
-      type: owed ? 'card' : 'current', owed, currency, opening, closing, lines,
-      notes: ['read as a plain table: check each line'],
-    });
-    const from = [dates[0], lines[0]?.date].filter(Boolean).sort()[0] ?? null;
-    return { holder: null, period: { from, to }, accounts: lines.length ? [acct] : [], institution: bank };
+    let acct;
+    if (profile) {
+      const number = profile.account ? all.match(new RegExp(profile.account, 'i'))?.groups?.number ?? null : null;
+      const product = profile.product ? all.match(new RegExp(profile.product, 'i'))?.groups?.product?.trim() ?? null : null;
+      let name = (profile.name ?? '{institution} ·· {last4}')
+        .replace('{product}', product ?? profile.institution)
+        .replace('{institution}', profile.institution);
+      name = number ? name.replace('{last4}', last4(number)) : name.replace(' ·· {last4}', '').replace('{last4}', '');
+      const digitsOnly = number ? number.replace(/\D/g, '') : null;
+      acct = account({
+        ref: digitsOnly ? `${profile.id}:${digitsOnly}` : null, number, numbers: digitsOnly ? [digitsOnly] : [],
+        name, type: profile.accountType === 'savings' ? 'savings' : profile.accountType === 'card' ? 'card' : 'current',
+        owed, currency, opening, closing, lines,
+      });
+    } else {
+      // Named from what sits above the table: the bank and the number's last four (owner's ruling,
+      // 15 October 2026), so next month's statement from the same account finds it again.
+      const bank = bankName(top);
+      const number = accountNumber(top);
+      const named = bank ? (owed ? `${bank} card` : bank) : (owed ? 'Card' : 'Account');
+      acct = account({
+        ref: bank && number ? `General:${bank.toLowerCase()}:${last4(number)}` : null,
+        number, numbers: number ? [number] : [],
+        name: number ? `${named} ·· ${last4(number)}` : named,
+        type: owed ? 'card' : 'current', owed, currency, opening, closing, lines,
+        notes: ['read as a plain table: check each line'],
+      });
+    }
+    const start = [from, dates[0], lines[0]?.date].filter(Boolean).sort()[0] ?? null;
+    return { holder: null, period: { from: from ?? start, to }, accounts: [acct], institution: profile ? null : bankName(top) };
   },
 };
 
 export const READERS = [UAEWio, UAEEmiratesIslamic, SGCitibank, SGUOB];
-export { GeneralTable };
+export { GeneralTable, PROFILES };
+
+/** The readers made for one bank each, and the banks described, for saying which read best. */
+export const BANK_READERS = [...READERS.map((r) => r.id), ...PROFILES.map((p) => p.id)].sort();
 
 // ---------------------------------------------------------------------------------------------
 // Reading a statement, and seeing it beside the others
@@ -688,11 +820,14 @@ export { GeneralTable };
 export function readStatement(pages, { fileName = null } = {}) {
   const hasText = pages.some((rows) => rows.length > 0);
   if (!hasText) return { reader: null, picture: true, fileName, accounts: [] };
-  const reader = READERS.find((r) => r.recognises(pages)) ?? GeneralTable;
-  const read = reader.read(pages);
+  const reader = READERS.find((r) => r.recognises(pages));
+  // A bank described rather than coded: the table engine, told how this bank prints.
+  const profile = reader ? null : PROFILES.find((p) => p.recognise.length && p.recognise.every((re) => new RegExp(re, 'i').test(text(allRows(pages)))));
+  const read = reader ? reader.read(pages) : GeneralTable.read(pages, profile);
   for (const a of read.accounts) a.check = check(a);
+  const by = reader ?? (profile ? { id: profile.id, institution: profile.institution, country: profile.country } : GeneralTable);
   return {
-    reader: reader.id, institution: read.institution ?? reader.institution, country: reader.country, general: reader === GeneralTable,
+    reader: by.id, institution: read.institution ?? by.institution, country: by.country, general: !reader && !profile,
     fileName, holder: read.holder, period: read.period, accounts: read.accounts,
   };
 }
