@@ -228,6 +228,10 @@
       name, type: "Transaction", tag: "x", file: null,
       f: { account_id: accountId, occurred_on: day(offset), amount_minor: minor, currency_code: code, category, note, source: offset % 2 ? "APP" : "WEB", created_at: at(offset), updated_at: at(offset) },
     });
+    const line = (name, accountId, position, minor, offset, kind, description) => ({
+      name, type: "StatementLine", tag: "x", file: null,
+      f: { statement_id: "ex-s1", account_id: accountId, position, posted_on: day(offset), made_on: null, description, amount_minor: minor, running_minor: null, ref: null, line_kind: kind, foreign_currency: null, foreign_minor: null },
+    });
     const doc = (name, file, size, offset, status) => ({
       name, type: "Document", tag: "x", file: null,
       f: { file_name: file, byte_count: size, added_at: at(offset), added_from: "WEB", status, status_note: null, status_at: status === "NEW" ? null : at(offset - 1), note: null },
@@ -245,6 +249,9 @@
       txn("ex-t3", "ex-car", -110_000, "USD", 6, "P_LOAN", null),
       txn("ex-t4", null, -4_250, "USD", 8, "P_SUBSCRIPTION", "Streaming"),
       txn("ex-t5", "ex-savings", 50_000, "GBP", 35, "P_DIVIDEND", "Interest"),
+      line("ex-l1", "ex-current", 0, -6_420, 5, "out", "Corner Grocer"),
+      line("ex-l2", "ex-current", 1, -50_000, 5, "own", "To Savings (UK)"),
+      line("ex-l3", "ex-current", 2, 112, 1, "interest", "Interest earned"),
       doc("ex-d1", "Current account, September.pdf", 184_320, 2, "NEW"),
       doc("ex-d2", "Savings statement Q3.pdf", 96_256, 12, "ADDED"),
     ];
@@ -307,6 +314,31 @@
     transactions() {
       return this.of("Transaction")
         .sort((a, b) => String(b.f.occurred_on).localeCompare(String(a.f.occurred_on)) || String(b.f.created_at).localeCompare(String(a.f.created_at)));
+    }
+
+    /** Lines read from statements, each with its account's currency. Lines with no date are
+        listed under their account in the app, never here. */
+    statementLines() {
+      return this.of("StatementLine")
+        .filter((l) => l.f.posted_on)
+        .map((l) => {
+          const account = this.rows.get(l.f.account_id);
+          return { ...l, currency: account && account.type === "Account" ? account.f.currency_code : null, accountName: account ? account.f.name : null };
+        })
+        .filter((l) => l.currency);
+    }
+
+    /** Typed transactions and statement lines in one list, the app's order: newest day first;
+        on one day, typed ones first (newest typed first), then the statement's own order. */
+    activity() {
+      const manual = this.transactions().map((t) => ({ kind: "manual", day: t.f.occurred_on, record: t }));
+      const auto = this.statementLines().map((l) => ({ kind: "auto", day: l.f.posted_on, record: l }));
+      return manual.concat(auto).sort((a, b) => {
+        if (a.day !== b.day) return String(b.day).localeCompare(String(a.day));
+        if (a.kind !== b.kind) return a.kind === "manual" ? -1 : 1;
+        if (a.kind === "manual") return String(b.record.f.created_at).localeCompare(String(a.record.f.created_at));
+        return String(a.record.f.statement_id).localeCompare(String(b.record.f.statement_id)) || (a.record.f.position - b.record.f.position);
+      });
     }
 
     documents() {

@@ -28,7 +28,9 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   ok(d.getElementById('welcome').hidden,'example: welcome hidden');
   ok(d.querySelectorAll('#docs .row').length===2,'example: 2 documents');
   ok(d.getElementById('n-new').textContent==='1','example: 1 new badge');
-  ok(d.querySelectorAll('#txns .row').length===5,'example: 5 transactions');
+  ok(d.querySelectorAll('#txns .row').length===8,'example: 5 typed + 3 statement lines');
+  ok(d.querySelectorAll('#txns .pill.auto').length===3 && !d.getElementById('txns-legend').hidden,'example: statement lines tagged Auto, legend shown');
+  ok(d.querySelectorAll('#txns [data-edit]').length===5,'example: only typed ones can be edited');
   ok(/Current account/.test(d.getElementById('accts').textContent),'example: accounts listed');
   ok(/USD 48,000.00/.test(d.getElementById('accts').textContent),'example: latest balance shown 48,000');
   // tabs
@@ -44,7 +46,7 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   // valid
   setVal(d,'txn-account','ex-savings'); ok(d.getElementById('txn-currency').value==='GBP','account picks its currency');
   setVal(d,'txn-amount','1,250.5'); setVal(d,'txn-note','Groceries'); setVal(d,'txn-category','P_HOME'); submit(d,'txn-form'); await sleep(100);
-  ok(d.querySelectorAll('#txns .row').length===6,'saved: 6 transactions');
+  ok(d.querySelectorAll('#txns [data-edit]').length===6,'saved: 6 typed transactions');
   ok(/−GBP 1,250.50/.test(d.getElementById('txns').textContent),'saved: shown as −GBP 1,250.50');
   ok(!d.getElementById('txn-ok').hidden,'saved: confirmation shown');
   const saved=[...w.WWApp.state.store.rows.values()].find(r=>r.f.note==='Groceries');
@@ -120,6 +122,15 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   w.__ck.failNext='CONFLICT';
   d.querySelector(`[data-edit="${t.recordName}"]`).click(); setVal(d,'txn-note','Fuel 2'); submit(d,'txn-form'); await sleep(200);
   ok(/changed somewhere else/.test(d.getElementById('txn-error').textContent),'icloud: conflict explained');
+  // a statement line from the phone: listed as Auto, own moves left out of the totals
+  w.__ck.put({recordType:'StatementLine',recordName:'l1',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:0},posted_on:{value:'2026-10-10'},description:{value:'Made up grocer'},amount_minor:{value:-2000},line_kind:{value:'out'},nulls:{value:''}}});
+  w.__ck.put({recordType:'StatementLine',recordName:'l2',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:1},posted_on:{value:'2026-10-10'},description:{value:'To my savings'},amount_minor:{value:-500000},line_kind:{value:'own'},nulls:{value:''}}});
+  w.__ck.put({recordType:'StatementLine',recordName:'l3',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:2},description:{value:'Undated'},amount_minor:{value:-1},nulls:{value:'posted_on'}}});
+  d.getElementById('refresh').click(); await sleep(150);
+  const rows=[...d.querySelectorAll('#txns .row')].map(r=>r.textContent.replace(/\s+/g,' '));
+  ok(rows.length===3 && /Fuel/.test(rows[0]) && /Made up grocer/.test(rows[1]) && /To my savings/.test(rows[2]),'icloud: typed first, then statement order, undated line left out ('+rows.length+')');
+  ok(/Out AED\u00A0320.00/.test(d.getElementById('txns').textContent),'icloud: month total leaves out a move between own accounts');
+  ok(!d.querySelector('[data-edit="l1"]'),'icloud: a statement line is read-only');
   // balance from the web
   d.getElementById('tab-accounts').click(); d.querySelector('[data-balance="a1"]').click(); setVal(d,'bal-amount','13000'); setVal(d,'bal-day','2026-10-11');
   d.querySelector('[data-balance-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(150);

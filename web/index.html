@@ -157,6 +157,8 @@ p { margin: 0; }
 .pill { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; background: var(--sunken); color: var(--ink-2); }
 .pill.new { background: color-mix(in srgb, var(--honey) 22%, transparent); color: var(--accent); }
 .pill.added { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.pill.auto { background: color-mix(in srgb, var(--owed) 14%, transparent); color: var(--owed); }
+.legend { font-size: 0.8rem; color: var(--ink-2); padding-bottom: 6px; }
 .pill.owed { background: color-mix(in srgb, var(--owed) 14%, transparent); color: var(--owed); }
 .acts { display: flex; gap: 12px; }
 .row.clickable { cursor: pointer; }
@@ -340,6 +342,7 @@ footer a { color: var(--ink-2); }
       </div>
       <div class="card list" aria-labelledby="h-txns">
         <div class="head"><h2 id="h-txns">Transactions</h2><span class="label" id="txns-count"></span></div>
+        <p class="legend" id="txns-legend" hidden><span class="pill auto">Auto</span> read from statements you added. <span class="pill">Manual</span> typed by you, here or on your iPhone.</p>
         <div id="txns"></div>
       </div>
     </div>

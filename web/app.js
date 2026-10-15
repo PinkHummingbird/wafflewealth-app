@@ -168,45 +168,69 @@
     return "DOC";
   }
 
+  const KIND = { own: "Between your accounts", interest: "Interest" };
+
   function renderTransactions() {
     const store = state.store;
-    const all = store.transactions();
+    const all = store.activity();
     $("txns-count").textContent = all.length ? `${all.length} in all` : "";
+    $("txns-legend").hidden = !all.some((e) => e.kind === "auto");
     if (!all.length) {
-      $("txns").innerHTML = `<p class="empty">No transactions yet. Add one with the form; it appears on your iPhone under Activity.</p>`;
+      $("txns").innerHTML = `<p class="empty">No transactions yet. Add one with the form; it appears on your iPhone under Activity. Statements you add show their lines here too.</p>`;
       return;
     }
     const months = new Map();
-    for (const t of all) {
-      const key = String(t.f.occurred_on).slice(0, 7);
+    for (const entry of all) {
+      const key = String(entry.day).slice(0, 7);
       if (!months.has(key)) months.set(key, []);
-      months.get(key).push(t);
+      months.get(key).push(entry);
     }
     let html = "";
     for (const [ym, list] of months) {
+      // In and out per currency. A move between your own accounts is listed and not counted;
+      // interest is money in; everything else counts by its sign.
       const totals = new Map();
-      for (const t of list) {
-        const code = t.f.currency_code;
-        const entry = totals.get(code) || { in: 0, out: 0 };
-        if (t.f.amount_minor > 0) entry.in += t.f.amount_minor; else entry.out -= t.f.amount_minor;
-        totals.set(code, entry);
+      for (const entry of list) {
+        const r = entry.record;
+        if (entry.kind === "auto" && r.f.line_kind === "own") continue;
+        const code = entry.kind === "auto" ? r.currency : r.f.currency_code;
+        const minor = Number(r.f.amount_minor);
+        const sum = totals.get(code) || { in: 0, out: 0 };
+        if (minor > 0) sum.in += minor; else sum.out -= minor;
+        totals.set(code, sum);
       }
-      const tot = [...totals].map(([code, v]) => `In ${M.format(v.in, code)} · Out ${M.format(v.out, code)}`).join("<br>");
+      const tot = [...totals].map(([code, v]) => [v.in ? `In ${M.format(v.in, code)}` : "", v.out ? `Out ${M.format(v.out, code)}` : ""].filter(Boolean).join(" · ")).filter(Boolean).join("<br>");
       html += `<div class="month"><h3>${esc(M.monthLabel(ym))}</h3><span class="tot">${tot}</span></div>`;
-      html += list.map((t) => {
-        const incoming = t.f.amount_minor > 0;
-        const category = M.categoryName(t.f.category);
-        const title = t.f.note || category || (incoming ? "Money in" : "Money out");
-        const account = t.f.account_id && store.account(t.f.account_id);
-        const detail = [M.dayLabel(t.f.occurred_on), t.f.note && category, account && account.f.name, t.f.source === "WEB" ? "Added here" : "From iPhone"].filter(Boolean).join(" · ");
-        return `<div class="row clickable${state.editing && state.editing.name === t.name ? " editing" : ""}" data-edit="${esc(t.name)}" tabindex="0" role="button" aria-label="Edit ${esc(title)}">
-          <span class="ic" aria-hidden="true">${incoming ? "↙" : "↗"}</span>
-          <div class="main"><span class="t">${esc(title)}</span><span class="d">${esc(detail)}</span></div>
-          <div class="end"><span class="amt${incoming ? " in" : ""}">${esc(M.formatSigned(t.f.amount_minor, t.f.currency_code))}</span></div>
-        </div>`;
-      }).join("");
+      html += list.map((entry) => entry.kind === "manual" ? manualRow(entry.record) : autoRow(entry.record)).join("");
     }
     $("txns").innerHTML = html;
+  }
+
+  function manualRow(t) {
+    const store = state.store;
+    const incoming = t.f.amount_minor > 0;
+    const category = M.categoryName(t.f.category);
+    const title = t.f.note || category || (incoming ? "Money in" : "Money out");
+    const account = t.f.account_id && store.account(t.f.account_id);
+    const detail = [M.dayLabel(t.f.occurred_on), t.f.note && category, account && account.f.name, t.f.source === "WEB" ? "Added here" : "From iPhone"].filter(Boolean).join(" · ");
+    return `<div class="row clickable${state.editing && state.editing.name === t.name ? " editing" : ""}" data-edit="${esc(t.name)}" tabindex="0" role="button" aria-label="Edit ${esc(title)}">
+      <span class="ic" aria-hidden="true">${incoming ? "↙" : "↗"}</span>
+      <div class="main"><span class="t">${esc(title)}</span><span class="d">${esc(detail)}</span></div>
+      <div class="end"><span class="amt${incoming ? " in" : ""}">${esc(M.formatSigned(t.f.amount_minor, t.f.currency_code))}</span><span class="pill">Manual</span></div>
+    </div>`;
+  }
+
+  /* A line read from a statement: what the bank printed, read-only. */
+  function autoRow(l) {
+    const minor = Number(l.f.amount_minor);
+    const own = l.f.line_kind === "own";
+    const incoming = minor > 0 && !own;
+    const detail = [M.dayLabel(l.f.posted_on), l.accountName, KIND[l.f.line_kind]].filter(Boolean).join(" · ");
+    return `<div class="row">
+      <span class="ic" aria-hidden="true">${own ? "⇄" : minor > 0 ? "↙" : "↗"}</span>
+      <div class="main"><span class="t">${esc(l.f.description)}</span><span class="d">${esc(detail)}</span></div>
+      <div class="end"><span class="amt${incoming ? " in" : ""}">${esc(M.formatSigned(minor, l.currency))}</span><span class="pill auto">Auto</span></div>
+    </div>`;
   }
 
   function renderAccounts() {
