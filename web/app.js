@@ -14,7 +14,7 @@
      sign-in. Until it is filled in, the page offers the example only. */
   const CONFIG = {
     container: "iCloud.com.wafflewealth.app",
-    apiToken: "",
+    apiToken: "a8bee4eeb30d69c311199f153391978ce2e4f4ae15d907e6fdd0fb8e96ef697b",
     environment: "production",
   };
 
