@@ -198,6 +198,50 @@ export function check(acct) {
   return { ok: checked && messages.length === 0, checked, sum, expected, messages };
 }
 
+// Put right in the review: the same as the app's StatementAccount.correct and leaveOut.
+
+/** The indexes of the lines whose running balance doesn't follow from the one before. */
+export const linesOff = (acct) => new Set(acct.check.messages.filter((m) => m.kind === 'line').map((m) => m.index));
+
+/** Lines the user corrected or left out. */
+export const correctedCount = (acct) => acct.lines.filter((l) => l.corrected).length + (acct.linesLeftOut ?? 0);
+
+/**
+ * A balance worked out from the lines is worked out again from the lines as they are now, then
+ * everything is checked again.
+ */
+function recheck(acct) {
+  const sum = acct.lines.reduce((t, l) => t + l.amount, 0);
+  if (acct.closingWorkedOut && acct.opening != null) acct.closing = acct.owed ? acct.opening - sum : acct.opening + sum;
+  if (acct.openingWorkedOut && acct.closing != null) acct.opening = acct.owed ? acct.closing + sum : acct.closing - sum;
+  acct.check = check(acct);
+}
+
+/**
+ * **A line put right by the user**: the amount from the owner's side, and the balance after it as
+ * the statement prints it (null where it prints none). Its label follows the new sign unless it
+ * was a move between accounts or interest. Changes `acct` in place and checks it again.
+ */
+export function correctLine(acct, index, amount, running) {
+  const l = acct.lines[index];
+  if (!l) return acct;
+  l.amount = amount;
+  l.running = running ?? null;
+  l.corrected = true;
+  if (l.label === 'in' || l.label === 'out') l.label = amount >= 0 ? 'in' : 'out';
+  recheck(acct);
+  return acct;
+}
+
+/** **A line left out by the user**: a total or heading read as a line. Changes `acct` in place. */
+export function leaveOutLine(acct, index) {
+  if (!acct.lines[index]) return acct;
+  acct.lines.splice(index, 1);
+  acct.linesLeftOut = (acct.linesLeftOut ?? 0) + 1;
+  recheck(acct);
+  return acct;
+}
+
 function line(fields) {
   return { date: null, madeOn: null, description: '', amount: 0, running: null, ref: null, foreign: null, label: null, ...fields };
 }
