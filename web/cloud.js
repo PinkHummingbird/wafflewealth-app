@@ -753,6 +753,144 @@
       return saved;
     }
 
+    // ---- one record at a time ----
+
+    /** Saves one record, as new or over the one iCloud has, and keeps the copy here. */
+    async put(type, name, f, existing) {
+      const [saved] = await this.backend.save([{ name, type, tag: existing ? existing.tag : undefined, f }]);
+      this.rows.set(saved.name, saved);
+      return saved;
+    }
+
+    async drop(record) {
+      await this.backend.remove([record]);
+      this.rows.delete(record.name);
+    }
+
+    // ---- the settings the screens change one at a time ----
+
+    /** Changes some of the settings and, when a figure the projection reads moved, writes the
+        next line of history, as the app does. */
+    async patchAssumptions(changes) {
+      const existing = this.assumptions();
+      if (!existing) throw { reason: "Your iPhone hasn't sent its settings yet. Open WaffleWealth with iCloud on, then try again." };
+      const now = M.stamp();
+      const f = { ...existing.f, ...changes, updated_at: now };
+      const saved = await this.put("Assumptions", existing.name, f, existing);
+      const latest = this.history()[this.history().length - 1];
+      if (!latest || ENGINE_FIELDS.some((k) => String(latest.f[k]) !== String(f[k]))) {
+        const line = { written_order: Date.now(), valid_from: now };
+        for (const k of ENGINE_FIELDS) line[k] = f[k];
+        await this.put("AssumptionVersion", M.uuid().replace(/-/g, ""), line);
+      }
+      return saved;
+    }
+
+    // ---- the target ----
+
+    target() { return this.rows.get("target-1") || null; }
+
+    /** An amount above zero sets it; nothing clears it, as on the phone. */
+    async setTarget({ amountMinor, basis, byMonth }) {
+      const existing = this.target();
+      if (amountMinor == null || Number(amountMinor) <= 0) {
+        if (existing) await this.drop(existing);
+        return null;
+      }
+      const now = M.stamp();
+      return this.put("Target", "target-1", {
+        amount_minor: Number(amountMinor), basis: basis || (existing && existing.f.basis) || "NET_WORTH",
+        by_month: byMonth === undefined ? (existing ? existing.f.by_month || null : null) : byMonth,
+        created_at: existing ? existing.f.created_at : now, updated_at: now,
+      }, existing);
+    }
+
+    // ---- exchange rates ----
+
+    rates() {
+      return this.of("FXRate").map((r) => ({ code: r.name.replace(/^rate-/, ""), rate: String(r.f.rate), source: r.f.source || "MANUAL", record: r }))
+        .sort((a, b) => a.code.localeCompare(b.code));
+    }
+
+    rateHistory() {
+      return this.of("FXRateVersion").sort((a, b) =>
+        String(a.f.valid_from).localeCompare(String(b.f.valid_from)) || (Number(a.f.written_order) || 0) - (Number(b.f.written_order) || 0));
+    }
+
+    /** One unit of `code` is `rate` of the base. Typed here, so it is held as typed (Manual). */
+    async setRate(code, rate, source = "MANUAL") {
+      const name = `rate-${code}`;
+      const existing = this.rows.get(name) || null;
+      const now = M.stamp();
+      const saved = await this.put("FXRate", name, { rate: String(rate), source, updated_at: now }, existing);
+      const last = this.rateHistory().filter((v) => v.f.quote_code === code).pop();
+      if (!last || String(last.f.rate) !== String(rate) || last.f.source !== source) {
+        await this.put("FXRateVersion", M.uuid().replace(/-/g, ""), { quote_code: code, rate: String(rate), source, valid_from: now, written_order: Date.now() });
+      }
+      return saved;
+    }
+
+    // ---- groups of accounts ----
+
+    groups() {
+      return this.of("AccountGroup").sort((a, b) => (Number(a.f.display_order) || 0) - (Number(b.f.display_order) || 0)
+        || String(a.f.created_at).localeCompare(String(b.f.created_at)) || a.name.localeCompare(b.name))
+        .map((g) => ({ id: g.name, name: g.f.name, accountIds: String(g.f.members || "").split(",").filter(Boolean), record: g }));
+    }
+
+    checkGroup(draft) {
+      const problems = {};
+      const name = (draft.name || "").trim();
+      if (name.length < 1 || name.length > 40) problems.name = "Give the group a name of up to 40 characters.";
+      if (!draft.accountIds.length) problems.accounts = "Choose at least one account for the group.";
+      return problems;
+    }
+
+    async saveGroup(draft, existing) {
+      const ids = [...new Set(draft.accountIds)];
+      const order = this.of("AccountGroup").reduce((m, g) => Math.max(m, Number(g.f.display_order) || 0), -1) + 1;
+      return this.put("AccountGroup", existing ? existing.name : M.uuid(), {
+        name: draft.name.trim(), members: ids.join(","),
+        display_order: existing ? existing.f.display_order : order, created_at: existing ? existing.f.created_at : M.stamp(),
+      }, existing);
+    }
+
+    // ---- marks ----
+
+    markers(archived = false) {
+      return this.of("Marker").filter((m) => Boolean(m.f.archived_at) === archived)
+        .sort((a, b) => String(b.f.taken_on).localeCompare(String(a.f.taken_on)) || String(b.f.created_at).localeCompare(String(a.f.created_at)));
+    }
+
+    async addMarker(label, takenOn) {
+      return this.put("Marker", M.uuid().replace(/-/g, ""), { label: label.trim(), taken_on: takenOn, created_at: M.stamp(), archived_at: null });
+    }
+
+    async setMarkerArchived(marker, archived) {
+      return this.put("Marker", marker.name, { ...marker.f, archived_at: archived ? M.stamp() : null }, marker);
+    }
+
+    // ---- taking back a balance typed by mistake ----
+
+    withdrawn(accountId) {
+      const ids = new Set(this.of("BalanceWithdrawal").map((w) => w.name.replace(/^withdrawal-/, "")));
+      return this.of("Balance").filter((b) => b.f.account_id === accountId && ids.has(b.name))
+        .sort((a, b) => String(b.f.as_of_date).localeCompare(String(a.f.as_of_date)) || String(b.f.created_at).localeCompare(String(a.f.created_at)));
+    }
+
+    /** Appends a withdrawal; the balance itself is never touched. The last standing entry stays. */
+    async withdrawBalance(balance) {
+      if (this.balances(balance.f.account_id).length <= 1) {
+        throw { reason: "This is the account's only balance, so it stays. Record the right figure with Update balance." };
+      }
+      return this.put("BalanceWithdrawal", `withdrawal-${balance.name}`, { withdrawn_at: M.stamp() });
+    }
+
+    async putBackBalance(balance) {
+      const w = this.rows.get(`withdrawal-${balance.name}`);
+      if (w) await this.drop(w);
+    }
+
     // ---- statements read here ----
 
     /** A document's file as bytes: joined from its pieces, or fetched from the attachment a phone sent. */

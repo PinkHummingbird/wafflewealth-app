@@ -21,8 +21,14 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-  const TABS = ["projection", "documents", "transactions", "accounts", "plan"];
-  const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null, review: null, open: new Set() };
+  // The app's five tabs, two with lists of their own, and pages opened from them.
+  const TOP = ["projection", "money", "activity", "history", "settings"];
+  const SUBS = { money: ["accounts", "planned"], activity: ["transactions", "documents"] };
+  const PARENT = { accounts: "money", planned: "money", transactions: "activity", documents: "activity" };
+  const TAB_NAMES = { projection: "Projection", money: "Your money", activity: "Activity", history: "History", settings: "Settings" };
+  /** Pages, by name: { title(arg), render(arg, box) }. Income & spending has a box of its own. */
+  const PAGES = {};
+  const state = { store: null, tab: "projection", sub: { money: "accounts", activity: "transactions" }, page: null, editing: null, balanceFor: null, accountFor: null, plannedEditing: null, review: null, open: new Set() };
 
   /* ---------- starting ---------- */
 
@@ -106,13 +112,62 @@
 
   /* ---------- tabs ---------- */
 
-  function choose(tab) {
+  /** Shows a tab (or one of its lists), or a page opened from it. Each is an address, so the
+      browser's back button steps back through them. */
+  function show(tab, { sub = null, page = null, arg = null, push = true } = {}) {
+    if (PARENT[tab]) { sub = tab; tab = PARENT[tab]; }
+    if (!TOP.includes(tab)) tab = "projection";
     state.tab = tab;
-    if (tab === "projection" && state.projection) requestAnimationFrame(() => drawProjection(state.projection));
-    for (const name of TABS) {
-      $(`tab-${name}`).setAttribute("aria-selected", String(name === tab));
-      $(`panel-${name}`).hidden = name !== tab;
+    if (sub && SUBS[tab] && SUBS[tab].includes(sub)) state.sub[tab] = sub;
+    state.page = page && PAGES[page] ? { name: page, arg } : null;
+    const onPage = Boolean(state.page);
+    for (const t of TOP) {
+      $(`tab-${t}`).setAttribute("aria-selected", String(t === tab));
+      $(`panel-${t}`).hidden = onPage || t !== tab;
     }
+    for (const [group, list] of Object.entries(SUBS)) {
+      for (const n of list) {
+        $(`tab-${n}`).setAttribute("aria-selected", String(state.sub[group] === n));
+        $(`panel-${n}`).hidden = state.sub[group] !== n;
+      }
+    }
+    $("crumb").hidden = !onPage;
+    $("page-assumptions").hidden = !(onPage && state.page.name === "assumptions");
+    $("page-view").hidden = !onPage || state.page.name === "assumptions";
+    if (onPage) {
+      $("back-label").textContent = TAB_NAMES[tab];
+      renderPage();
+    } else {
+      renderTab();
+    }
+    const hash = "#" + [tab, onPage ? state.page.name : SUBS[tab] ? state.sub[tab] : null, onPage ? arg : null].filter((x) => x != null && x !== "").join("/");
+    if (push && location.hash !== hash) { try { history.pushState(null, "", hash); } catch (e) { /* a page without history */ } }
+    if (push && onPage) document.documentElement.scrollTop = 0;
+  }
+
+  function openPage(page, arg = null) { show(state.tab, { page, arg }); }
+
+  function fromAddress() {
+    const parts = decodeURIComponent(location.hash.replace(/^#/, "")).split("/").filter(Boolean);
+    const tab = parts[0] || "projection";
+    if (SUBS[tab] && SUBS[tab].includes(parts[1])) return show(tab, { sub: parts[1], push: false });
+    if (parts[1] && PAGES[parts[1]]) return show(tab, { page: parts[1], arg: parts.slice(2).join("/") || null, push: false });
+    return show(PARENT[tab] ? tab : tab, { push: false });
+  }
+
+  /** What only shows on one tab is drawn when that tab is shown. */
+  function renderTab() {
+    if (!state.store) return;
+    if (state.tab === "projection") requestAnimationFrame(() => renderProjection());
+    if (state.tab === "history" && PAGES.__history) PAGES.__history();
+    if (state.tab === "settings" && PAGES.__settings) PAGES.__settings();
+  }
+
+  function renderPage() {
+    const page = state.page && PAGES[state.page.name];
+    if (!page || !state.store) return;
+    $("page-title").textContent = page.title(state.page.arg);
+    page.render(state.page.arg, state.page.name === "assumptions" ? $("assumptions-more") : $("page-body"));
   }
 
   /* ---------- rendering ---------- */
@@ -128,6 +183,8 @@
     renderPlan();
     renderProjection();
     fillAccountSelect();
+    if (state.page) renderPage();
+    else if (state.tab === "history" || state.tab === "settings") renderTab();
   }
 
   const STATUS = {
@@ -140,8 +197,10 @@
   function renderDocuments() {
     const docs = state.store.documents();
     const fresh = docs.filter((d) => d.f.status === "NEW").length;
-    $("n-new").hidden = fresh === 0;
-    $("n-new").textContent = String(fresh);
+    for (const id of ["n-new", "n-new-sub"]) {
+      $(id).hidden = fresh === 0;
+      $(id).textContent = String(fresh);
+    }
     $("docs-count").textContent = docs.length ? `${docs.length} kept` : "";
     if (!docs.length) {
       $("docs").innerHTML = `<p class="empty">Nothing here yet. Statements you upload appear here, and on your iPhone under Activity.</p>`;
@@ -558,7 +617,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=15"), import("./statement-save.mjs?v=15")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=16"), import("./statement-save.mjs?v=16")]);
     return { ...read, ...save };
   }
 
@@ -713,7 +772,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=15");
+    return import("./projection.mjs?v=16");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -726,8 +785,9 @@
       const latest = store.latest(acc.name);
       codes.add(acc.f.currency_code);
       return {
+        id: acc.name, name: acc.f.name, category: acc.f.category || null,
         kind: acc.f.kind, currency: acc.f.currency_code, invested: Number(acc.f.is_invested) === 1,
-        latestMinor: latest ? Number(latest.f.value_minor) : null,
+        latestMinor: latest ? BigInt(latest.f.value_minor) : null, latestDate: latest ? latest.f.as_of_date : null,
         income: acc.f.income_basis ? {
           basis: acc.f.income_basis, ratePct: acc.f.income_rate_pct || "0", amountMinor: Number(acc.f.income_amount_minor || 0),
           frequency: acc.f.income_frequency || "ANNUAL", reinvested: Number(acc.f.income_reinvested) === 1,
@@ -738,7 +798,8 @@
     });
     const planned = store.planned(false).map((p) => {
       if (p.f.currency_code) codes.add(p.f.currency_code);
-      return { direction: p.f.direction, amountMinor: Number(p.f.amount_minor), currency: p.f.currency_code || null,
+      return { id: p.name, name: p.f.name, category: p.f.category || null,
+        direction: p.f.direction, amountMinor: BigInt(p.f.amount_minor), currency: p.f.currency_code || null,
         firstDate: p.f.first_date, frequency: p.f.frequency, endsOn: p.f.ends_on || null, growthPct: p.f.growth_pct || "0" };
     });
     const rates = {};
@@ -746,21 +807,25 @@
       const code = r.name.replace(/^rate-/, "");
       if (code !== base) { rates[code] = String(r.f.rate); codes.add(code); }
     }
+    for (const acc of store.of("Account")) codes.add(acc.f.currency_code);
     const scales = {};
     for (const code of codes) scales[code] = M.scale(code);
     return {
       base, scales, rates, accounts, planned,
       assumptions: {
-        incomeMinor: Number(a.f.monthly_income_minor), spendingMinor: Number(a.f.monthly_spending_minor),
+        incomeMinor: BigInt(a.f.monthly_income_minor), spendingMinor: BigInt(a.f.monthly_spending_minor),
         raisePct: a.f.annual_raise_pct, raiseMonth: Number(a.f.raise_effective_month), spendingGrowthPct: a.f.annual_spending_growth_pct,
         returnPct: a.f.annual_return_pct, horizonMonths: Number(a.f.horizon_months),
         birthYear: a.f.birth_year == null ? null : Number(a.f.birth_year), birthMonth: a.f.birth_month == null ? null : Number(a.f.birth_month),
+        withdrawalPct: a.f.annual_withdrawal_pct || "4", incomeDay: a.f.income_day == null ? null : Number(a.f.income_day),
+        fireInterestPct: a.f.fire_interest_pct ?? null, fireGrowthPct: a.f.fire_growth_pct ?? null,
       },
     };
   }
 
   let projectionRun = 0;
   async function renderProjection() {
+    if (globalThis.WW && WW.screens && WW.screens.projection) return WW.screens.projection.render();
     const store = state.store;
     const body = $("proj-body");
     if (!store) return;
@@ -1127,16 +1192,17 @@
     $("try-example").addEventListener("click", () => open(new C.MemoryBackend()));
     $("leave-example").addEventListener("click", showWelcome);
     $("refresh").addEventListener("click", () => reload(true));
-    for (const name of TABS) {
-      $(`tab-${name}`).addEventListener("click", () => choose(name));
+    for (const name of [...TOP, ...Object.keys(PARENT)]) {
+      $(`tab-${name}`).addEventListener("click", () => show(name));
     }
+    $("back").addEventListener("click", () => show(state.tab));
+    window.addEventListener("popstate", fromAddress);
     // Arrow keys move between the tabs, as a tab list should.
-    document.querySelector(".chips").addEventListener("keydown", (e) => {
-      const order = TABS;
-      const i = order.indexOf(state.tab);
+    document.querySelector(".chips.tabs").addEventListener("keydown", (e) => {
+      const i = TOP.indexOf(state.tab);
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-        const next = order[(i + (e.key === "ArrowRight" ? 1 : order.length - 1)) % order.length];
-        choose(next);
+        const next = TOP[(i + (e.key === "ArrowRight" ? 1 : TOP.length - 1)) % TOP.length];
+        show(next);
         $(`tab-${next}`).focus();
       }
     });
@@ -1248,7 +1314,7 @@
     let resizing = null;
     window.addEventListener("resize", () => {
       clearTimeout(resizing);
-      resizing = setTimeout(() => { if (state.tab === "projection" && state.projection) drawProjection(state.projection); }, 150);
+      resizing = setTimeout(() => { if (state.tab === "projection" && !state.page) renderProjection(); }, 150);
     });
 
     // Coming back to the tab is when a phone's change is most likely waiting.
@@ -1257,24 +1323,46 @@
     });
   }
 
-  wire();
-  choose("documents");
-  resetForm();
-  if (new URLSearchParams(location.search).has("example")) {
-    open(new C.MemoryBackend());
-  } else if (globalThis.CloudKit) {
-    startICloud();
-  } else {
-    window.addEventListener("cloudkitloaded", startICloud, { once: true });
-    // A blocked or failed script never fires the event: say so rather than wait forever.
-    const script = $("cloudkit-js");
-    if (script) script.addEventListener("error", () => {
-      if (!CONFIG.apiToken) { $("not-ready").hidden = false; return; }
-      $("start-error").hidden = false;
-      $("start-error").textContent = "Apple's iCloud library didn't load. Check the connection, or whether something in the browser blocks it.";
-    });
-    if (!CONFIG.apiToken) { $("not-ready").hidden = false; $("apple-sign-in-button").hidden = true; }
+  PAGES.assumptions = { title: () => "Income & spending", render: () => {} };
+
+  /** What the screens in their own files share with this one. */
+  globalThis.WW = {
+    state, PAGES, $, esc, M, C, show, openPage, render, reload,
+    projectionContext: (store) => projectionContext(store),
+    engines: async () => {
+      const [P, R, H] = await Promise.all([
+        globalThis.WWProjection || import("./projection.mjs?v=16"),
+        globalThis.WWReadings || import("./readings.mjs?v=16"),
+        globalThis.WWHistory || import("./history.mjs?v=16"),
+      ]);
+      return { P, R, H };
+    },
+  };
+
+  /** Started once every script on the page has run, so the screens in their own files are in
+      place before the first figure is drawn. */
+  function start() {
+    wire();
+    fromAddress();
+    resetForm();
+    if (new URLSearchParams(location.search).has("example")) {
+      open(new C.MemoryBackend());
+    } else if (globalThis.CloudKit) {
+      startICloud();
+    } else {
+      window.addEventListener("cloudkitloaded", startICloud, { once: true });
+      // A blocked or failed script never fires the event: say so rather than wait forever.
+      const script = $("cloudkit-js");
+      if (script) script.addEventListener("error", () => {
+        if (!CONFIG.apiToken) { $("not-ready").hidden = false; return; }
+        $("start-error").hidden = false;
+        $("start-error").textContent = "Apple's iCloud library didn't load. Check the connection, or whether something in the browser blocks it.";
+      });
+      if (!CONFIG.apiToken) { $("not-ready").hidden = false; $("apple-sign-in-button").hidden = true; }
+    }
   }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
 
   globalThis.WWApp = { state, open, render, reload, CONFIG, startICloud };
 })();

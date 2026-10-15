@@ -118,6 +118,12 @@ p { margin: 0; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 18px; }
 .chip { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule); background: var(--sunken); color: var(--ink-2); cursor: pointer; font-size: 0.95rem; }
 .chip[aria-selected="true"] { background: var(--raised); color: var(--ink); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.chips.tabs { border-bottom: 1px solid var(--rule); margin-bottom: 18px; }
+.chips.sub { padding-bottom: 14px; }
+.chips.sub .chip { min-height: 34px; font-size: 0.9rem; padding: 0 14px; }
+.crumb { display: flex; align-items: baseline; gap: 14px; padding-bottom: 14px; flex-wrap: wrap; }
+.crumb h2 { font-size: 1.35rem; margin: 0; }
+.crumb .linkbtn { font-size: 0.95rem; }
 .chip .n { margin-left: 6px; display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 0.75rem; font-weight: 700; }
 .notice { margin-bottom: 16px; padding: 12px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--honey) 12%, var(--raised)); border: 1px solid color-mix(in srgb, var(--honey) 45%, var(--rule)); font-size: var(--fs-small); color: var(--ink-2); }
 .notice b { color: var(--ink); }
@@ -254,6 +260,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
 footer a { color: var(--ink-2); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
+<link rel="stylesheet" href="screens.css?v=16">
 </head>
 <body>
 <header class="wrap top">
@@ -311,25 +318,30 @@ footer a { color: var(--ink-2); }
         <button type="button" class="linkbtn" id="refresh">Refresh</button>
       </div>
     </div>
-    <div class="chips" role="tablist" aria-label="Lists">
-      <button type="button" class="chip" role="tab" id="tab-projection" aria-controls="panel-projection" aria-selected="false">Projection</button>
-      <button type="button" class="chip" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="true">Documents<span class="n" id="n-new" hidden></span></button>
-      <button type="button" class="chip" role="tab" id="tab-transactions" aria-controls="panel-transactions" aria-selected="false">Transactions</button>
-      <button type="button" class="chip" role="tab" id="tab-accounts" aria-controls="panel-accounts" aria-selected="false">Accounts</button>
-      <button type="button" class="chip" role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="false">Plan</button>
+    <div class="chips tabs" role="tablist" aria-label="WaffleWealth">
+      <button type="button" class="chip" role="tab" id="tab-projection" aria-controls="panel-projection" aria-selected="true">Projection</button>
+      <button type="button" class="chip" role="tab" id="tab-money" aria-controls="panel-money" aria-selected="false">Your money</button>
+      <button type="button" class="chip" role="tab" id="tab-activity" aria-controls="panel-activity" aria-selected="false">Activity<span class="n" id="n-new" hidden></span></button>
+      <button type="button" class="chip" role="tab" id="tab-history" aria-controls="panel-history" aria-selected="false">History</button>
+      <button type="button" class="chip" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false">Settings</button>
     </div>
+    <nav class="crumb" id="crumb" hidden><button type="button" class="linkbtn" id="back">‹ <span id="back-label">Back</span></button><h2 id="page-title"></h2></nav>
     <p class="notice" id="nothing-yet" hidden><b>Nothing from your iPhone yet.</b> In WaffleWealth, open Settings and switch on “Keep a copy in iCloud”: your accounts appear here a minute later. You can upload documents already.</p>
     <p class="error" id="work-error" role="alert" hidden></p>
 
     <!-- Projection: worked out here, as the app works it out -->
     <div class="panel one" id="panel-projection" role="tabpanel" aria-labelledby="tab-projection" hidden>
-      <div class="card">
-        <div id="proj-body"></div>
-      </div>
+      <div id="proj-body"></div>
     </div>
 
+    <!-- Activity: transactions and documents -->
+    <div class="panel-group" id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" hidden>
+    <div class="chips sub" role="tablist" aria-label="Activity">
+      <button type="button" class="chip" role="tab" id="tab-transactions" aria-controls="panel-transactions" aria-selected="true">Transactions</button>
+      <button type="button" class="chip" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false">Documents<span class="n" id="n-new-sub" hidden></span></button>
+    </div>
     <!-- Documents -->
-    <div class="panel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
+    <div class="panel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents" hidden>
       <div class="stack">
         <label class="drop" id="drop" for="file">
           <svg viewBox="0 0 54 64" fill="none" aria-hidden="true">
@@ -354,7 +366,7 @@ footer a { color: var(--ink-2); }
     </div>
 
     <!-- Transactions -->
-    <div class="panel" id="panel-transactions" role="tabpanel" aria-labelledby="tab-transactions" hidden>
+    <div class="panel" id="panel-transactions" role="tabpanel" aria-labelledby="tab-transactions">
       <div class="card">
         <form class="f" id="txn-form" novalidate>
           <h2 id="txn-title">Add a transaction</h2>
@@ -415,7 +427,15 @@ footer a { color: var(--ink-2); }
     </div>
 
     <!-- Accounts -->
-    <div class="panel one" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts" hidden>
+    </div>
+
+    <!-- Your money: accounts and planned -->
+    <div class="panel-group" id="panel-money" role="tabpanel" aria-labelledby="tab-money" hidden>
+    <div class="chips sub" role="tablist" aria-label="Your money">
+      <button type="button" class="chip" role="tab" id="tab-accounts" aria-controls="panel-accounts" aria-selected="true">Accounts</button>
+      <button type="button" class="chip" role="tab" id="tab-planned" aria-controls="panel-planned" aria-selected="false">Planned</button>
+    </div>
+    <div class="panel one" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts">
       <div class="card list" aria-labelledby="h-accts">
         <div class="head"><h2 id="h-accts">Accounts</h2><span class="label">Latest balance</span></div>
         <div class="totals" id="totals"></div>
@@ -425,31 +445,8 @@ footer a { color: var(--ink-2); }
       </div>
     </div>
 
-    <!-- Plan: income and spending, and planned items -->
-    <div class="panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+    <div class="panel" id="panel-planned" role="tabpanel" aria-labelledby="tab-planned" hidden>
       <div class="stack">
-        <div class="card">
-          <form class="f" id="plan-form" novalidate>
-            <h2>Income &amp; spending</h2>
-            <p class="cap" id="plan-base" style="font-size:0.85rem;color:var(--ink-2);margin:0"></p>
-            <div class="two">
-              <div class="field"><label for="as-income">Income a month</label><input id="as-income" inputmode="decimal" autocomplete="off"><span class="err" id="as-income-err"></span></div>
-              <div class="field"><label for="as-spending">Spending a month</label><input id="as-spending" inputmode="decimal" autocomplete="off"><span class="err" id="as-spending-err"></span></div>
-            </div>
-            <div class="two">
-              <div class="field"><label for="as-raise">Yearly pay rise (%)</label><input id="as-raise" inputmode="decimal" autocomplete="off"><span class="err" id="as-raise-err"></span></div>
-              <div class="field"><label for="as-raise-month">Rise lands in</label><select id="as-raise-month"></select><span class="err" id="as-raiseMonth-err"></span></div>
-            </div>
-            <div class="two">
-              <div class="field"><label for="as-growth">Yearly spending growth (%)</label><input id="as-growth" inputmode="decimal" autocomplete="off"><span class="err" id="as-growth-err"></span></div>
-              <div class="field"><label for="as-ret">Assumed yearly growth of investments (%)</label><input id="as-ret" inputmode="decimal" autocomplete="off"><span class="err" id="as-ret-err"></span></div>
-            </div>
-            <div class="formacts"><button type="submit" class="btn" id="plan-save">Save to iCloud</button></div>
-            <p class="ok" id="plan-ok" role="status" hidden></p>
-            <p class="error" id="plan-error" role="alert" hidden></p>
-          </form>
-          <p class="empty" id="plan-waiting" hidden>Your income and spending appear here once WaffleWealth on your iPhone has sent them: open the app with “Keep a copy in iCloud” on.</p>
-        </div>
         <div class="card">
           <form class="f" id="pi-form" novalidate>
             <h2 id="pi-title">Add a planned item</h2>
@@ -486,6 +483,47 @@ footer a { color: var(--ink-2); }
         <div id="planned-away"></div>
       </div>
     </div>
+    </div>
+
+    <!-- History -->
+    <div class="panel one" id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+      <div id="history-body"><p class="empty">Loading…</p></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="panel one" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <div id="settings-body"></div>
+    </div>
+
+    <!-- Pages opened from the tabs -->
+    <div class="panel one page" id="page-assumptions" hidden>
+      <div class="stack">
+        <div class="card">
+          <form class="f" id="plan-form" novalidate>
+            <h2>Income &amp; spending</h2>
+            <p class="cap" id="plan-base" style="font-size:0.85rem;color:var(--ink-2);margin:0"></p>
+            <div class="two">
+              <div class="field"><label for="as-income">Income a month</label><input id="as-income" inputmode="decimal" autocomplete="off"><span class="err" id="as-income-err"></span></div>
+              <div class="field"><label for="as-spending">Spending a month</label><input id="as-spending" inputmode="decimal" autocomplete="off"><span class="err" id="as-spending-err"></span></div>
+            </div>
+            <div class="two">
+              <div class="field"><label for="as-raise">Yearly pay rise (%)</label><input id="as-raise" inputmode="decimal" autocomplete="off"><span class="err" id="as-raise-err"></span></div>
+              <div class="field"><label for="as-raise-month">Rise lands in</label><select id="as-raise-month"></select><span class="err" id="as-raiseMonth-err"></span></div>
+            </div>
+            <div class="two">
+              <div class="field"><label for="as-growth">Yearly spending growth (%)</label><input id="as-growth" inputmode="decimal" autocomplete="off"><span class="err" id="as-growth-err"></span></div>
+              <div class="field"><label for="as-ret">Assumed yearly growth of investments (%)</label><input id="as-ret" inputmode="decimal" autocomplete="off"><span class="err" id="as-ret-err"></span></div>
+            </div>
+            <div class="formacts"><button type="submit" class="btn" id="plan-save">Save to iCloud</button></div>
+            <p class="ok" id="plan-ok" role="status" hidden></p>
+            <p class="error" id="plan-error" role="alert" hidden></p>
+          </form>
+          <p class="empty" id="plan-waiting" hidden>Your income and spending appear here once WaffleWealth on your iPhone has sent them: open the app with “Keep a copy in iCloud” on.</p>
+        </div>
+        <div id="assumptions-more"></div>
+      </div>
+    </div>
+    <div class="panel one page" id="page-view" hidden><div id="page-body"></div></div>
   </section>
 </main>
 
@@ -497,8 +535,10 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=15"></script>
-<script src="cloud.js?v=15"></script>
-<script src="app.js?v=15"></script>
+<script src="money.js?v=16"></script>
+<script src="cloud.js?v=16"></script>
+<script src="app.js?v=16"></script>
+<script src="ui.js?v=16"></script>
+<script src="screen-projection.js?v=16"></script>
 </body>
 </html>

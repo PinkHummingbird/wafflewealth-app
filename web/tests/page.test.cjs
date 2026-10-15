@@ -10,10 +10,11 @@ function page({token, fake}){
   let app=read('app.js'); if(token) app=app.replace('apiToken: ""',`apiToken: "${token}"`);
   html=html.replace(/<script src="money\.js(\?v=\d+)?"><\/script>/,`<script>${read('money.js')}</script>`)
            .replace(/<script src="cloud\.js(\?v=\d+)?"><\/script>/,`<script>${read('cloud.js')}</script>`)
-           .replace(/<script src="app\.js(\?v=\d+)?"><\/script>/,`<script>${app}</script>`);
+           .replace(/<script src="app\.js(\?v=\d+)?"><\/script>/,`<script>${app}</script>`)
+           .replace(/<script src="([a-z-]+\.js)(\?v=\d+)?"><\/script>/g,(_,f)=>`<script>${read(f)}</script>`);
   const vc=new VirtualConsole();const errs=[];vc.on('jsdomError',e=>errs.push(String(e.stack||e)));vc.on('error',e=>errs.push(String(e)));
   const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://pinkhummingbird.github.io/wafflewealth-app/web/'+(token?'':'?example'),virtualConsole:vc,
-    beforeParse(w){w.URL.createObjectURL=()=> 'blob:x'; w.confirm=()=>true; w.Intl=Intl; w.structuredClone=structuredClone;}});
+    beforeParse(w){Object.assign(w,ENGINES); w.URL.createObjectURL=()=> 'blob:x'; w.confirm=()=>true; w.Intl=Intl; w.structuredClone=structuredClone;}});
   return {dom,errs,w:dom.window,d:dom.window.document};
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -22,7 +23,10 @@ function setVal(d,id,v){const el=d.getElementById(id); el.value=v; el.dispatchEv
 function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event('submit',{bubbles:true,cancelable:true}));}
 
 const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector('#txns [data-movement][aria-expanded="false"]'); if(!closed) break; closed.click(); await new Promise(r=>setTimeout(r,5)); } };
+let ENGINES={};
 (async()=>{
+ const mod=(f)=>import(require('url').pathToFileURL(path.join(W,f)).href);
+ ENGINES={WWProjection:await mod('projection.mjs'),WWReadings:await mod('readings.mjs'),WWHistory:await mod('history.mjs')};
  // ---------- example ----------
  {const {d,w,errs}=page({}); await sleep(300);
   ok(!d.getElementById('workspace').hidden,'example: workspace shows');
@@ -90,7 +94,7 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
   const empty=new w.File([],'empty.pdf'); Object.defineProperty(input,'files',{value:[empty],configurable:true}); input.dispatchEvent(new w.Event('change')); await sleep(50);
   ok(/empty/.test(d.getElementById('upload-problems').textContent),'upload: empty refused');
   // plan: income and spending
-  d.getElementById('tab-plan').click(); await sleep(20);
+  w.WW.show('projection',{page:'assumptions'}); await sleep(20);
   ok(d.getElementById('as-income').value==='18,000.00' || d.getElementById('as-income').value==='18000.00','plan: income shown ('+d.getElementById('as-income').value+')');
   const store=w.WWApp.state.store; const versions=()=>store.history().length;
   const before=versions();
@@ -133,11 +137,32 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
   w.WWProjection = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','projection.mjs')).href);
   w.WWApp.render(); await sleep(50);
   d.getElementById('tab-projection').click(); await sleep(50);
-  const hero=d.querySelector('.proj-hero');
-  ok(hero && /Net worth now/.test(hero.textContent) && /USD/.test(hero.textContent),'projection: the headline, in the base currency');
-  ok(d.querySelectorAll('.proj-table tbody tr').length===25,'projection: now and 24 months ('+d.querySelectorAll('.proj-table tbody tr').length+')');
+  const hero=d.querySelector('.hero2'); const pb=()=>d.getElementById('proj-body').textContent;
+  ok(hero && /Net worth/.test(hero.textContent) && /USD/.test(hero.textContent) && /in 2 years/.test(hero.textContent),'projection: the headline, where it heads in 2 years');
   ok(d.querySelector('#proj-chart svg path.line'),'projection: the line is drawn');
-  ok(/Available/.test(d.getElementById('proj-body').textContent),'projection: the pension locked until 60 shows what is within reach');
+  ok(/Can be reached/.test(pb()) && d.querySelectorAll('#proj-chart svg path.avail').length===1,'projection: the pension locked until 60 shows what is within reach');
+  ok(d.querySelectorAll('.tiles .tile').length===3 && /Set an amount/.test(d.querySelector('[data-page="target"]').textContent),'projection: Target, FIRE and Breakdown tiles; no target yet');
+  ok(/If income stopped/.test(pb()) && /Monthly savings/.test(pb()) && /Money in/.test(pb()),'projection: the summary');
+  ok(d.querySelectorAll('[data-slider]').length===3,'projection: three sliders');
+  // a line switched on and off, kept in this browser
+  d.querySelector('[data-series="locked"]').click(); await sleep(60);
+  ok(d.querySelectorAll('#proj-chart svg path.avail').length===2,'projection: a third line switched on');
+  d.querySelector('[data-series="locked"]').click(); await sleep(60);
+  // hide amounts
+  d.querySelector('[data-act="hide"]').click(); await sleep(60);
+  ok(/•••••/.test(d.querySelector('.hero2').textContent) && !/\d,\d{3}\.\d\d/.test(d.querySelector('.hero2').textContent),'projection: amounts hidden');
+  d.querySelector('[data-act="hide"]').click(); await sleep(60);
+  ok(!/•••••/.test(d.querySelector('.hero2').textContent),'projection: amounts shown again');
+  // the horizon: 1 year saved to the settings
+  d.querySelector('[data-horizon="12"]').click(); await sleep(80);
+  ok(Number(store.assumptions().f.horizon_months)===12 && /in 1 year/.test(d.querySelector('.hero2').textContent),'projection: horizon 1 year, saved');
+  // a slider: dragged, then let go, saved
+  const sl=d.getElementById('sl-spending'); sl.value=String(Number(sl.value)+100000); sl.dispatchEvent(new w.Event('input',{bubbles:true})); await sleep(30);
+  ok(/\(/.test(d.getElementById('live-moved').textContent),'projection: dragging shows how far the end moved');
+  sl.dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(100);
+  ok(Number(store.assumptions().f.monthly_spending_minor)===1250000 && d.querySelector('[data-act="undo"]'),'projection: let go, saved, with Undo');
+  d.querySelector('[data-act="undo"]').click(); await sleep(100);
+  ok(Number(store.assumptions().f.monthly_spending_minor)===1150000,'projection: Undo puts it back');
   ok(errs.length===0,'example: no script errors '+errs.join(' | '));
  }
  // ---------- fake iCloud ----------
@@ -276,7 +301,7 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
   w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});
   d.getElementById('refresh').click(); await sleep(150);
-  d.getElementById('tab-plan').click(); await sleep(20);
+  w.WW.show('projection',{page:'assumptions'}); await sleep(20);
   const asTag=w.__ck.records.get('assumptions-1').recordChangeTag;
   setVal(d,'as-spending','23,000'); submit(d,'plan-form'); await sleep(150);
   const as=w.__ck.records.get('assumptions-1');
