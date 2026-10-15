@@ -256,10 +256,10 @@ footer a { color: var(--ink-2); }
   <section class="opening">
     <div class="intro">
       <h1>Read a bank statement, <span class="honey">here on your device.</span></h1>
-      <p>Add the PDF your bank sends you, or a Wise CSV. This page finds each account in it, the balance on the statement’s last day and every line, then checks that the lines add up to the statement’s own totals.</p>
+      <p>Add the PDF your bank sends you, the OFX or QFX file it lets you download, or a Wise CSV. This page finds each account in it, the balance on the statement’s last day and every line, then checks that the lines add up to the statement’s own totals.</p>
       <p><strong>The PDF is read in this browser tab and goes nowhere.</strong> The page is not allowed to connect to anything, and nothing is saved: a reload or Clear forgets it.</p>
       <div class="banks" aria-label="Statements with a reader of their own">
-        <span>UAE-Wio</span><span>UAE-Emirates-Islamic</span><span>SG-Citibank</span><span>SG-UOB</span><span>UK-HSBC</span><span>US-Chase</span><span>US-Chase-Card</span><span>US-BofA</span><span>US-WellsFargo</span><span>US-TD</span><span>US-BMO-Card</span><span>IN-KVB</span><span>ET-CBE</span><span>INTL-Wise (CSV)</span><span>Any bank: plain table</span>
+        <span>UAE-Wio</span><span>UAE-Emirates-Islamic</span><span>SG-Citibank</span><span>SG-UOB</span><span>UK-HSBC</span><span>US-Chase</span><span>US-Chase-Card</span><span>US-BofA</span><span>US-WellsFargo</span><span>US-TD</span><span>US-BMO-Card</span><span>IN-KVB</span><span>ET-CBE</span><span>INTL-Wise (CSV)</span><span>Any bank: OFX or QFX</span><span>Any bank: plain table</span>
       </div>
     </div>
 
@@ -271,8 +271,8 @@ footer a { color: var(--ink-2); }
           <path d="M11 30h22M11 38h30M11 46h18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
         <strong>Drop statements here</strong>
-        <span class="sub">PDFs from any of your banks, or a Wise CSV or zip</span>
-        <input type="file" id="file" accept="application/pdf,.pdf,text/csv,.csv,application/zip,.zip" multiple>
+        <span class="sub">PDFs from any of your banks, an OFX or QFX download, or a Wise CSV or zip</span>
+        <input type="file" id="file" accept="application/pdf,.pdf,text/csv,.csv,application/zip,.zip,.ofx,.qfx,.qbo,application/x-ofx" multiple>
         <span class="choose">Choose files</span>
         <span class="reading" id="reading" hidden>Reading <span id="reading-name"></span></span>
       </label>

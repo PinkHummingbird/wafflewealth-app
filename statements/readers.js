@@ -193,7 +193,8 @@ export function check(acct) {
     if (after !== line.running) messages.push({ kind: 'line', index, expected: after, got: line.running });
     previous = line.running;
   });
-  const checked = expected != null && acct.closing != null;
+  // An opening worked back from the closing balance (an OFX download) leads to it by construction.
+  const checked = expected != null && acct.closing != null && !acct.openingWorkedOut;
   return { ok: checked && messages.length === 0, checked, sum, expected, messages };
 }
 
@@ -1054,6 +1055,121 @@ export function readCsvStatement(text, { fileName = null } = {}) {
   return {
     reader: reader.id, institution: reader.institution, country: reader.country, general: false,
     fileName, holder: read.holder, period: read.period, accounts: read.accounts,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// OFX, QFX and QBO: a bank's own download
+
+export const OFX_EXTENSIONS = ['ofx', 'qfx', 'qbo'];
+export const isOfxName = (name) => OFX_EXTENSIONS.includes((name.split('.').pop() ?? '').toLowerCase());
+export const looksLikeOfx = (text) => text.slice(0, 2000).includes('OFXHEADER') || /<OFX>/i.test(text);
+
+/** The file's bytes as text: UTF-8, or Windows Latin-1 when the header says so. */
+export function ofxText(bytes) {
+  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 400));
+  return new TextDecoder(head.includes('CHARSET:1252') ? 'windows-1252' : 'utf-8').decode(bytes);
+}
+
+const ofxUnescape = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+  .replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+
+/** What follows `<TAG>` up to the next tag or line end: an SGML value has no closing tag. */
+function ofxValue(tag, text) {
+  const m = new RegExp(`<${tag}>([^<\\r\\n]*)`, 'i').exec(text ?? '');
+  const v = m?.[1].trim();
+  return v ? ofxUnescape(v) : null;
+}
+
+/** Everything between `<TAG>` and `</TAG>`, for each in turn. Aggregates are closed in both versions. */
+function ofxBlocks(tag, text) {
+  const found = [];
+  const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'gi');
+  for (const m of (text ?? '').matchAll(re)) found.push(m[1]);
+  return found;
+}
+
+/** `YYYYMMDD`, any time and zone after it ignored. */
+const ofxDate = (s) => (/^\d{8}/.test(s ?? '') ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : null);
+
+/** A sign, digits, and a point or (some banks) a comma before the decimals. */
+const ofxAmount = (s, digits) => (s == null ? null : parseAmount(s.includes('.') ? s : s.replace(',', '.'), digits));
+
+/** The bank's name when `ORG` is one: some banks put a code there ("B1"), which isn't. */
+const ofxInstitution = (org) => (org && org.length >= 3 && /\p{L}/u.test(org) && !/\d/.test(org) ? org : null);
+
+function ofxAccount(statement, list, card, organisation) {
+  const currency = ofxValue('CURDEF', statement)?.toUpperCase() ?? null;
+  const digits = minorDigits(currency);
+  const from = ofxBlocks(card ? 'CCACCTFROM' : 'BANKACCTFROM', statement)[0] ?? '';
+  const number = ofxValue('ACCTID', from);
+  const kind = ofxValue('ACCTTYPE', from)?.toUpperCase();
+  const type = card ? 'card' : kind === 'SAVINGS' || kind === 'MONEYMRKT' ? 'savings' : kind === 'CD' ? 'deposit' : 'current';
+  let lines = ofxBlocks('STMTTRN', list).map((t) => {
+    const amount = ofxAmount(ofxValue('TRNAMT', t), digits);
+    if (amount == null) return null;
+    const name = ofxValue('NAME', t) ?? ofxValue('NAME', ofxBlocks('PAYEE', t)[0]);
+    const memo = ofxValue('MEMO', t);
+    const cheque = ofxValue('CHECKNUM', t);
+    return line({
+      date: ofxDate(ofxValue('DTPOSTED', t) ?? ofxValue('DTUSER', t)),
+      madeOn: ofxDate(ofxValue('DTUSER', t)),
+      description: [name, memo === name ? null : memo, cheque ? `Cheque ${cheque}` : null].filter(Boolean).join(' · '),
+      amount, ref: ofxValue('FITID', t),
+    });
+  }).filter(Boolean);
+  // Oldest first, as a statement prints them; many banks send newest first.
+  if (lines.length > 1 && lines[0].date && lines[lines.length - 1].date && lines[0].date > lines[lines.length - 1].date) lines = lines.reverse();
+  const digitsOnly = (number ?? '').replace(/\D/g, '');
+  const bank = organisation ?? (card ? 'Card' : 'Account');
+  const acct = account({
+    ref: number ? `OFX:${number.toUpperCase()}` : null, number, numbers: digitsOnly.length >= 8 ? [digitsOnly] : [],
+    name: digitsOnly ? `${bank} ·· ${digitsOnly.slice(-4)}` : bank, type, owed: card, currency, lines,
+  });
+  const balance = ofxAmount(ofxValue('BALAMT', ofxBlocks('LEDGERBAL', statement)[0]), digits);
+  if (balance != null) {
+    const closing = card ? -balance : balance;
+    const sum = lines.reduce((t, l) => t + l.amount, 0);
+    acct.closing = closing;
+    acct.opening = card ? closing + sum : closing - sum;
+    acct.openingWorkedOut = true;
+  }
+  return acct;
+}
+
+/**
+ * **OFX, QFX and QBO**: the "download transactions" file most banks offer beside the PDF. Each
+ * statement aggregate is one account, each `STMTTRN` a line. The file carries the balance at its
+ * end but none at its start, so the opening is worked back from the lines and the account shows
+ * as the bank's own figures rather than as adding up. A card's balance owed is printed negative.
+ * A statement with no accounts when the file holds no bank or card statement.
+ */
+export function readOfxStatement(text, { fileName = null } = {}) {
+  if (!looksLikeOfx(text)) return { reader: null, fileName, accounts: [], unknownOfx: true };
+  const at = text.search(/<OFX>/i);
+  const body = at >= 0 ? text.slice(at) : text;
+  const organisation = ofxInstitution(ofxValue('ORG', ofxBlocks('FI', body)[0]));
+  const accounts = [];
+  let from = null;
+  let to = null;
+  for (const [aggregate, card] of [['STMTRS', false], ['CCSTMTRS', true]]) {
+    for (const statement of ofxBlocks(aggregate, body)) {
+      const list = ofxBlocks('BANKTRANLIST', statement)[0] ?? '';
+      const start = ofxDate(ofxValue('DTSTART', list));
+      const end = ofxDate(ofxValue('DTEND', list));
+      if (start && (!from || start < from)) from = start;
+      if (end && (!to || end > to)) to = end;
+      accounts.push(ofxAccount(statement, list, card, organisation));
+    }
+  }
+  if (!accounts.length) return { reader: null, fileName, accounts: [], unknownOfx: true };
+  const dates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
+  for (const a of accounts) {
+    a.check = !a.lines.length && a.closing == null ? { ok: false, checked: false, sum: 0, expected: null, messages: [] } : check(a);
+  }
+  return {
+    reader: 'OFX', institution: organisation, country: null, general: false, fileName, holder: null,
+    period: { from: from ?? dates[0] ?? null, to: to ?? dates[dates.length - 1] ?? null }, accounts,
   };
 }
 

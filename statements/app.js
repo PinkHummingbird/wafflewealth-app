@@ -2,7 +2,7 @@
 // Nothing is sent anywhere and nothing is kept: the page's own security policy forbids any
 // connection, and a reload or "Clear" forgets every statement.
 import * as pdfjs from './vendor/pdfjs/pdf.min.mjs';
-import { pagesFromPdf, readStatement, readCsvStatement, unzip, labelLines, monthly, minorDigits } from './readers.js';
+import { pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, ofxText, isOfxName, looksLikeOfx, unzip, labelLines, monthly, minorDigits } from './readers.js';
 import { SAMPLES } from './samples.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
@@ -38,7 +38,7 @@ const LABEL = { in: 'Money in', out: 'Money out', own: 'Between your accounts', 
 // ---------------------------------------------------------------------------------------------
 // Reading files
 
-const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : /\.zip$/i.test(name) ? 'zip' : null);
+const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx' : /\.zip$/i.test(name) ? 'zip' : null);
 
 /** A CSV's text → a statement, or a note on why it couldn't be read. */
 function addCsv(name, bytes) {
@@ -47,9 +47,16 @@ function addCsv(name, bytes) {
   else state.statements.push(statement);
 }
 
+/** A bank's OFX or QFX download → a statement, or a note on why it couldn't be read. */
+function addOfx(name, bytes) {
+  const statement = readOfxStatement(ofxText(bytes), { fileName: name });
+  if (statement.unknownOfx) state.problems.push({ file: name, text: 'No bank or card statement was found in this download.' });
+  else state.statements.push(statement);
+}
+
 async function addFiles(files) {
   const pdfs = [...files].filter((f) => kindOf(f.name));
-  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, or a CSV or zip from Wise.' });
+  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s OFX or QFX download, or a CSV or zip from Wise.' });
   if (!pdfs.length) return render();
   if (state.example) { state.statements = []; state.example = false; }
   $('reading').hidden = false;
@@ -58,11 +65,19 @@ async function addFiles(files) {
     if (state.seen.has(key)) { state.problems.push({ file: file.name, text: 'Already read above.' }); continue; }
     $('reading-name').textContent = file.name;
     try {
-      if (kindOf(file.name) === 'csv') { addCsv(file.name, new Uint8Array(await file.arrayBuffer())); state.seen.add(key); continue; }
+      if (kindOf(file.name) === 'ofx') { addOfx(file.name, new Uint8Array(await file.arrayBuffer())); state.seen.add(key); continue; }
+      if (kindOf(file.name) === 'csv') {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        // Some banks name their OFX download .csv; what's in it decides.
+        if (looksLikeOfx(new TextDecoder().decode(bytes.subarray(0, 4096)))) addOfx(file.name, bytes);
+        else addCsv(file.name, bytes);
+        state.seen.add(key);
+        continue;
+      }
       if (kindOf(file.name) === 'zip') {
-        const inside = (await unzip(new Uint8Array(await file.arrayBuffer()))).filter((f) => kindOf(f.name) === 'csv');
-        if (!inside.length) state.problems.push({ file: file.name, text: 'There are no CSV files in this zip.' });
-        for (const f of inside) addCsv(f.name, f.bytes);
+        const inside = (await unzip(new Uint8Array(await file.arrayBuffer()))).filter((f) => ['csv', 'ofx'].includes(kindOf(f.name)));
+        if (!inside.length) state.problems.push({ file: file.name, text: 'There are no CSV or OFX files in this zip.' });
+        for (const f of inside) (kindOf(f.name) === 'ofx' ? addOfx : addCsv)(f.name, f.bytes);
         state.seen.add(key);
         continue;
       }
@@ -115,14 +130,17 @@ function render() {
   // Only accounts that could be checked count against it: one with no balance in its file
   // (an empty Wise currency) hasn't failed.
   const checked = accounts.filter((a) => a.check.checked).length;
-  const unchecked = accounts.length - checked;
+  // A bank's download carries no opening balance, so it has nothing to fail either.
+  const downloaded = accounts.filter((a) => a.openingWorkedOut).length;
+  const unchecked = accounts.length - checked - downloaded;
   $('summary').hidden = !accounts.length;
   $('stat-statements').textContent = state.statements.length;
   $('stat-accounts').textContent = accounts.length;
   $('stat-lines').textContent = accounts.reduce((t, a) => t + a.lines.length, 0);
   $('stat-adds').textContent = `${adding} of ${checked}`;
   $('stat-adds').closest('div').dataset.state = adding === checked ? 'ok' : 'warn';
-  $('stat-unchecked').textContent = unchecked ? ` · ${unchecked} not checked` : '';
+  $('stat-unchecked').textContent = [unchecked ? `${unchecked} not checked` : '', downloaded ? `${downloaded} from a bank download` : '']
+    .filter(Boolean).map((t) => ` · ${t}`).join('');
 
   const months = monthly(state.statements);
   $('months').innerHTML = months.length
@@ -138,7 +156,7 @@ function statementCard(s) {
   return `<article class="stmt card">
     <header class="stmt-head">
       <div class="who">
-        <h3>${esc(s.general ? 'Plain table' : s.institution)}</h3>
+        <h3>${esc(s.general ? 'Plain table' : s.institution ?? (s.reader === 'OFX' ? 'Bank download' : 'Statement'))}</h3>
         <span class="reader" title="The reader that read it">${esc(s.reader)}</span>
       </div>
       <div class="when"><span>${esc(period(s.period))}</span><span class="file">${esc(s.fileName)}</span></div>
@@ -162,9 +180,11 @@ function accountRow(a, s) {
   const figure = inCredit ? `${money(-a.closing, a.currency)} <small>in credit</small>` : money(a.closing, a.currency);
   const verdict = a.check.ok
     ? '<span class="pill ok">Adds up</span>'
+    : a.openingWorkedOut ? '<span class="pill plain">Bank’s own figures</span>'
     : a.check.checked ? '<span class="pill warn">Doesn’t add up</span>' : '<span class="pill plain">Not checked</span>';
   const why = !a.check.ok && a.check.checked
     ? `<p class="why">From ${money(a.opening, a.currency)}, the lines come to ${money(a.check.expected, a.currency)}; the statement says ${money(a.closing, a.currency)}.${a.check.messages.filter((m) => m.kind === 'line').length ? ` ${a.check.messages.filter((m) => m.kind === 'line').length} running balance${a.check.messages.filter((m) => m.kind === 'line').length === 1 ? '' : 's'} don’t follow on, marked below.` : ''}</p>`
+    : a.openingWorkedOut ? '<p class="why">From the bank’s own download: its figures are exact, but it carries no opening balance to check the lines against.</p>'
     : !a.check.checked && !a.lines.length && a.closing == null ? '<p class="why">No lines in this file, so it carries no balance for this account. Wise leaves a currency’s file empty when nothing happened in it.</p>'
     : !a.check.checked ? '<p class="why">The statement doesn’t print an opening and closing balance this page could find, so the lines aren’t checked.</p>' : '';
   // An overdrawn account is kept below zero only once the user confirms it (owner's ruling,
