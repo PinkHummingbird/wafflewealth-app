@@ -104,3 +104,16 @@ test('fingerprint: the bytes, and for a CSV its name first, as the app makes it'
   assert.equal(await fingerprint('x.pdf', bytes, webcrypto.subtle), sha(bytes));
   assert.equal(await fingerprint('USD.csv', bytes, webcrypto.subtle), sha(Buffer.concat([Buffer.from('USD.csv'), Buffer.from(bytes)])));
 });
+
+test('below zero: clamped to nothing unless confirmed, refused unconfirmed, a card never negative', () => {
+  const over = { ...current(), belowZero: true, closing: -3_000, lines: [line('2026-08-20', -10_000), line('2026-09-03', -93_000)] };
+  assert.deepEqual(balancePoints(over, '2026-09-30').map((p) => p.value), [90_000, 0]);
+  assert.deepEqual(balancePoints(over, '2026-09-30', true).map((p) => p.value), [90_000, -3_000]);
+  const statement = { reader: 'SG-UOB', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [over] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Over' }]), (e) => e.code === 'belowZeroNotConfirmed');
+  const kept = run(statement, [{ include: true, name: 'Over', keepBelowZero: true }]);
+  assert.deepEqual(kept.records.filter((r) => r.type === 'Balance').map((r) => r.f.value_minor), [90_000, -3_000]);
+  assert.equal(run(statement, [{ include: false, name: 'Over' }]).records.length, 1, 'left out, nothing but the statement');
+  const card = { owed: true, opening: 5_000, closing: -300, lines: [line('2026-08-28', 1_000), line('2026-09-02', 4_300)] };
+  assert.deepEqual(balancePoints(card, '2026-09-10', true).map((p) => p.value), [4_000, 0]);
+});

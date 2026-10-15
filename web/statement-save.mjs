@@ -27,9 +27,10 @@ const lastDayOf = (ym) => {
 
 /** What the account held, or owed, on each month end strictly inside the statement and on its
     last day: the opening balance moved by every line up to that day. Without an opening balance
-    only the closing one is known. Never negative: a card in credit owes nothing. */
-export function balancePoints(account, last) {
-  const clamp = (v) => Math.max(v, 0);
+    only the closing one is known. Never negative, unless the user confirmed keeping an account
+    they own below zero (`keepBelowZero`): a card in credit still owes nothing. */
+export function balancePoints(account, last, keepBelowZero = false) {
+  const clamp = (v) => (keepBelowZero && !account.owed ? v : Math.max(v, 0));
   const points = [];
   const dates = account.lines.map((l) => l.date).filter(Boolean).sort();
   if (account.opening != null && dates.length) {
@@ -69,7 +70,7 @@ function availableFromMonth(account, today) {
  * The records for one statement.
  *
  * - `statement`: as readers.js returns it, its lines labelled (labelLines).
- * - `choices`: one per account, `{ include, name }`, in the statement's order.
+ * - `choices`: one per account, `{ include, name, keepBelowZero }`, in the statement's order.
  * - `sha256`: the file's fingerprint, made as the app makes it.
  * - `known`: what's already in iCloud: `accountByRef(ref)` → an Account record or null,
  *   `nextDisplayOrder` → the number after the highest account's.
@@ -89,10 +90,15 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
   statement.accounts.forEach((account, index) => {
     const choice = choices[index];
     if (!choice || !choice.include) return;
+    // An account you own that went below zero is kept below zero only once you've said so.
+    const keepBelowZero = Boolean(account.belowZero && !account.owed && choice.keepBelowZero);
+    if (account.belowZero && !account.owed && !choice.keepBelowZero) {
+      throw { code: 'belowZeroNotConfirmed', reason: `${choice.name || account.name} went below zero: switch on “Keep it below zero”, or leave it out.` };
+    }
     const lastLine = account.lines.length ? account.lines[account.lines.length - 1].date : null;
     const asOf = statement.period?.to ?? lastLine;
     if (!account.currency || !asOf) return;
-    const points = balancePoints(account, asOf);
+    const points = balancePoints(account, asOf, keepBelowZero);
     if (!points.length) return;
     const existing = account.ref ? known.accountByRef(account.ref) : null;
     const balance = (accountId, point) => ({ name: uuid(), type: 'Balance', f: {

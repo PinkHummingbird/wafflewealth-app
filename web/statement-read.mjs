@@ -5,7 +5,7 @@
    is sent anywhere to be read. Loaded only when someone asks to read a document. */
 import * as pdfjs from '../statements/vendor/pdfjs/pdf.min.mjs';
 import { pagesFromPdf, readStatement, readCsvStatement, unzip, labelLines } from '../statements/readers.js';
-import { fingerprint } from './statement-save.mjs?v=14';
+import { fingerprint } from './statement-save.mjs?v=15';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('../statements/vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 

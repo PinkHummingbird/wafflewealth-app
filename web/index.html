@@ -242,6 +242,8 @@ details.proj-months summary { cursor: pointer; font-weight: 600; padding: 8px 0;
 .review-acct .note { display: block; font-size: 0.8rem; color: var(--ink-2); margin-top: 2px; }
 .review-acct .note.bad { color: var(--alert); }
 .review-acct .note.good { color: var(--good); }
+.review-acct .keep { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.9rem; color: var(--ink); cursor: pointer; }
+.review-acct .keep input[type="checkbox"] { margin-top: 0; }
 .totals { display: flex; flex-wrap: wrap; gap: 14px 20px; }
 .totals > div { border-top: 2px solid var(--rule); padding-top: 8px; flex: 1 1 9rem; min-width: 0; }
 .totals .v { font-family: var(--display); font-weight: 600; font-size: 1.3rem; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
@@ -495,8 +497,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=14"></script>
-<script src="cloud.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="money.js?v=15"></script>
+<script src="cloud.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

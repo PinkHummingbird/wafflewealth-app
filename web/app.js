@@ -558,7 +558,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=14"), import("./statement-save.mjs?v=14")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=15"), import("./statement-save.mjs?v=15")]);
     return { ...read, ...save };
   }
 
@@ -580,6 +580,7 @@
       state.review.choices = state.review.statements.map((st) => st.accounts.map((a) => ({
         include: !st.already && mods.includedByDefault(a) && !(a.check && a.check.checked && !a.check.ok),
         name: a.name,
+        keepBelowZero: false,
       })));
     } catch (error) {
       state.review = { doc, reading: false, statements: [], choices: [], problems: [C.explain(error)] };
@@ -603,7 +604,7 @@
     if (r.reading) { box.innerHTML = `<h2>Reading ${esc(r.doc.f.file_name)}…</h2><p class="cap">Here in your browser. The file isn't sent anywhere to be read.</p>`; return; }
     let html = `<h2>${esc(r.doc.f.file_name)}</h2>`;
     if (r.problems.length) html += `<ul class="error" style="margin:8px 0;padding-left:20px">${r.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
-    let anything = false;
+    let anything = false, unconfirmed = false;
     r.statements.forEach((st, si) => {
       const period = st.period && st.period.to ? `${st.period.from ? M.dayLabel(st.period.from) + " to " : "To "}${M.dayLabel(st.period.to)}` : "Dates not found";
       html += `<div class="month"><h3>${esc(st.institution || "Statement")} · ${esc(period)}</h3></div>`;
@@ -612,6 +613,7 @@
         const choice = r.choices[si][ai];
         const known = a.ref ? store.accountByRef(a.ref) : null;
         if (choice.include) anything = true;
+        if (choice.include && a.belowZero && !a.owed && !choice.keepBelowZero) unconfirmed = true;
         const closing = a.closing != null && a.currency ? M.format(a.closing, a.currency) : "No closing balance";
         html += `<div class="review-acct">
           <input type="checkbox" id="rv-${si}-${ai}" data-review-include="${si}:${ai}" ${choice.include ? "checked" : ""} aria-label="Add ${esc(a.name)}">
@@ -620,14 +622,16 @@
               : `<div class="field"><label for="rv-name-${si}-${ai}">New account</label><input id="rv-name-${si}-${ai}" data-review-name="${si}:${ai}" maxlength="60" value="${esc(choice.name)}"></div>`}
             <span class="note">${a.owed ? "Owed · " : ""}${a.lines.length} line${a.lines.length === 1 ? "" : "s"}</span>
             ${checkNote(a)}
-            ${a.belowZero ? `<span class="note bad">Below zero on this statement. WaffleWealth keeps balances at zero or above, so the overdraft isn't counted: add what's owed as an account of its own.</span>` : ""}
+            ${a.belowZero && !a.owed ? `<span class="note bad">Below zero on this statement: the account was overdrawn.</span>
+              <label class="keep"><input type="checkbox" data-review-keep="${si}:${ai}" ${choice.keepBelowZero ? "checked" : ""}> Keep it below zero</label>` : ""}
           </div>
           <div class="end"><span class="amt">${esc(closing)}</span></div>
         </div>`;
       });
     });
     html += `<div class="formacts" style="margin-top:12px">
-      ${r.statements.some((st) => !st.already) ? `<button type="button" class="btn" id="review-add" ${anything ? "" : "disabled"}>Add to your money</button>` : ""}
+      ${r.statements.some((st) => !st.already) ? `<button type="button" class="btn" id="review-add" ${anything && !unconfirmed ? "" : "disabled"}>Add to your money</button>` : ""}
+      ${unconfirmed ? `<p class="cap">An account went below zero: switch on “Keep it below zero”, or leave it out.</p>` : ""}
       <button type="button" class="linkbtn" id="review-cancel">${r.statements.some((st) => !st.already) ? "Cancel" : "Close"}</button>
     </div><p class="error" id="review-error" role="alert" hidden></p>`;
     box.innerHTML = html;
@@ -675,7 +679,7 @@
       $("upload-ok").textContent = `Added to your money: ${parts.join(", ")}.` + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Your iPhone has them the next time WaffleWealth opens.");
     } catch (error) {
       $("review-error").hidden = false;
-      $("review-error").textContent = C.explain(error);
+      $("review-error").textContent = error && error.code === "belowZeroNotConfirmed" ? error.reason : C.explain(error);
       $("review-add").disabled = false;
       if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
     }
@@ -709,7 +713,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=14");
+    return import("./projection.mjs?v=15");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1203,6 +1207,13 @@
 
     const review = $("review");
     review.addEventListener("change", (e) => {
+      const keep = e.target.closest("[data-review-keep]");
+      if (keep && state.review) {
+        const [si, ai] = keep.getAttribute("data-review-keep").split(":").map(Number);
+        state.review.choices[si][ai].keepBelowZero = keep.checked;
+        renderReview();
+        return;
+      }
       const box = e.target.closest("[data-review-include]");
       if (!box || !state.review) return;
       const [si, ai] = box.getAttribute("data-review-include").split(":").map(Number);

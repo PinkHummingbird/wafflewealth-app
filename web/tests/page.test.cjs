@@ -253,13 +253,17 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
     ok(w.__ck.records.get(doc1.recordName).fields.status.value==='ADDED','statement: the document marked added');
     ok(!d.querySelector(`[data-read-doc="${doc1.recordName}"]`) && /Added to your money/.test(d.getElementById('upload-ok').textContent),'statement: said so, and no more Read here');
     // the same bank account next month adds to the same account; the same file again is already added
-    next=made('b'.repeat(64), 97000); next.accounts[0].belowZero=true;
+    next=made('b'.repeat(64), -3000); next.accounts[0].belowZero=true;
     Object.defineProperty(up,'files',{value:[new w.File(['made,up,2\n'],'sep.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
     const doc2=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='sep.csv');
     d.querySelector(`[data-read-doc="${doc2.recordName}"]`).click(); await sleep(150);
     ok(/My SGD account/.test(d.getElementById('review').textContent) && /Adds to this account/.test(d.getElementById('review').textContent),'statement: found by its bank reference');
     ok(/Below zero on this statement/.test(d.getElementById('review').textContent),'statement: an overdraft is named, as the statements page names it');
+    ok(d.getElementById('review-add').disabled && !d.querySelector('[data-review-keep="0:0"]').checked,'statement: below zero, Add waits for the switch');
+    d.querySelector('[data-review-keep="0:0"]').click(); await sleep(20);
+    ok(!d.getElementById('review-add').disabled,'statement: kept below zero, Add can go');
     d.getElementById('review-add').click(); await sleep(200);
+    ok([...w.__ck.records.values()].some(r=>r.recordType==='Balance'&&r.fields.value_minor.value===-3000&&r.fields.as_of_date.value==='2026-09-30'),'statement: the negative balance kept, as confirmed');
     ok([...w.__ck.records.values()].filter(r=>r.recordType==='Account'&&/SGD/.test(r.fields.currency_code.value)).length===1,'statement: no second account');
     next=made('b'.repeat(64), 97000);
     Object.defineProperty(up,'files',{value:[new w.File(['again\n'],'sep-again.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
