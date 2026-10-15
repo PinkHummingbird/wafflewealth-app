@@ -144,14 +144,42 @@ export class Dec {
   /** × 10^power, exact. */
   shift(power) { return this.mag === 0n ? this : new Dec(this.neg, this.mag, this.e + power); }
 
-  /** Rounded to `scale` fractional digits, halves away from zero. */
-  round(scale = 0) {
+  /** Rounded to `scale` fractional digits: 'plain' halves away from zero, 'up' toward plus
+      infinity, 'down' toward minus infinity (NSDecimalRound's modes). */
+  round(scale = 0, mode = 'plain') {
     const s = scale + this.e;
     if (s >= 0) return this;
     const d = pow10(-s);
     let q = this.mag / d;
-    if (2n * (this.mag % d) >= d) q += 1n;
+    const rem = this.mag % d;
+    if (mode === 'plain' ? 2n * rem >= d : mode === 'up' ? rem !== 0n && !this.neg : rem !== 0n && this.neg) q += 1n;
     return new Dec(this.neg, q, -scale);
+  }
+
+  /** -1, 0 or 1. */
+  cmp(o) {
+    const d = this.sub(o);
+    return d.sign();
+  }
+
+  /** Plain notation, as the app writes a decimal ("5", "-3.25", "0.01"). */
+  toString() {
+    if (this.mag === 0n) return '0';
+    let digits = this.mag.toString();
+    if (this.e >= 0) digits += '0'.repeat(this.e);
+    else {
+      const point = digits.length + this.e;
+      digits = point > 0 ? `${digits.slice(0, point)}.${digits.slice(point)}` : `0.${'0'.repeat(-point)}${digits}`;
+    }
+    return (this.neg ? '-' : '') + digits;
+  }
+
+  /** The exact Int64 or null (exactInt64): whole, and inside the range. */
+  exactInt64() {
+    if (this.mag === 0n) return 0n;
+    if (this.e < 0) return null;
+    const v = (this.neg ? -1n : 1n) * this.mag * pow10(this.e);
+    return v > INT64_MAX || v < INT64_MIN ? null : v;
   }
 
   /** The exact integer, as BigInt, once rounded to scale 0. */
@@ -162,17 +190,21 @@ export class Dec {
   }
 }
 
+export const INT64_MAX = 9223372036854775807n;
+export const INT64_MIN = -9223372036854775808n;
 const ZERO = Dec.int(0);
+/** A rate as given: a Dec already, or a plain decimal string. */
+export const dec = (v) => (v instanceof Dec ? v : Dec.of(v == null ? '0' : v));
 
 // ---------------------------------------------------------------------------------------------
 // Months and days
 
-const monthIndex = (ym) => { const [y, m] = ym.split('-').map(Number); return y * 12 + (m - 1); };
-const monthOf = (index) => `${String(Math.floor(index / 12)).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`;
+export const monthIndex = (ym) => { const [y, m] = ym.split('-').map(Number); return y * 12 + (m - 1); };
+export const monthOf = (index) => `${String(Math.floor(index / 12)).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`;
 export const addMonthsToMonth = (ym, n) => monthOf(monthIndex(ym) + n);
-const monthsSince = (a, b) => monthIndex(a) - monthIndex(b);
+export const monthsSince = (a, b) => monthIndex(a) - monthIndex(b);
 
-function addMonthsToDay(day, n) {
+export function addMonthsToDay(day, n) {
   const target = addMonthsToMonth(day.slice(0, 7), n);
   const [y, m] = target.split('-').map(Number);
   const length = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -180,7 +212,7 @@ function addMonthsToDay(day, n) {
 }
 
 const STEP = { ONCE: 0, MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, ANNUAL: 12 };
-const PAY_MONTHS = { MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, ANNUAL: 12 };
+export const PAY_MONTHS = { MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, ANNUAL: 12 };
 
 /** Every date a planned item lands on, after today and to the end of `horizon` months. */
 export function occurrences(item, today, horizon) {
@@ -202,7 +234,7 @@ export function occurrences(item, today, horizon) {
 }
 
 /** One occurrence's amount: grown by the yearly rise for each full year since the first, rounded once. */
-function signedAmount(item, date) {
+export function signedAmount(item, date) {
   const signed = item.direction === 'IN' ? item.amountMinor : -item.amountMinor;
   const growth = Dec.of(item.growthPct || '0');
   if (growth.isZero()) return signed;
@@ -220,55 +252,75 @@ export class ProjectionError extends Error {
   constructor(kind, code) { super(kind === 'missingRate' ? `No rate for ${code}` : kind === 'unknownCurrency' ? `Unknown currency ${code}` : kind); this.kind = kind; this.code = code; }
 }
 
+/** An amount in a currency, in base minor units at today's rate, rounded once (the engine's convert). */
+export function convert(ctx, amount, code) {
+  if (ctx.scales[code] == null) throw new ProjectionError('unknownCurrency', code);
+  if (code === ctx.base) return amount;
+  if (ctx.rates[code] == null) throw new ProjectionError('missingRate', code);
+  return amount.mul(dec(ctx.rates[code])).shift(ctx.scales[ctx.base] - ctx.scales[code]).round(0);
+}
+
+/** A rounded figure as a whole number of minor units, or the engine's overflow. */
+export function minorOf(d) {
+  const v = d.round(0).exactInt64();
+  if (v == null) throw new ProjectionError('overflow');
+  return v;
+}
+
+/** The month an account's money can be reached from, or null (Availability.unlockMonth). */
+export function unlockMonth(acct, birth) {
+  if (acct.availableFromAge != null) return birth ? addMonthsToMonth(birth, acct.availableFromAge * 12) : null;
+  return acct.availableFromMonth || null;
+}
+
+/** "YYYY-MM" of the date of birth, or null when it isn't set or isn't sensible (Assumptions.birth). */
+export function birthOf(a) {
+  return a.birthYear != null && a.birthMonth != null && a.birthYear >= 1900 && a.birthYear <= 2100 && a.birthMonth >= 1 && a.birthMonth <= 12
+    ? `${String(a.birthYear).padStart(4, '0')}-${String(a.birthMonth).padStart(2, '0')}` : null;
+}
+
+/** What one payment of an account's rate is on a balance (AccountIncome.ratePayment). */
+export const ratePayment = (income, basis) =>
+  basis.mul(dec(income.ratePct || '0')).mul(Dec.int(PAY_MONTHS[income.frequency] || 12)).div(Dec.int(1200));
+export const pays = (income, m) => m > 0 && m % (PAY_MONTHS[income.frequency] || 12) === 0;
+
 /**
- * The context, in plain values (built from iCloud's records by `contextFrom`):
- * - base, scales: { code: decimals }, rates: { code: "decimal string" } (base absent)
- * - accounts: [{ kind, currency, invested, latestMinor (BigInt or number, ≥ 0) or null,
+ * The context, in plain values (built from iCloud's records by app.js's `projectionContext`):
+ * - base, scales: { code: decimals }, rates: { code: "decimal string" or Dec } (base absent)
+ * - accounts: [{ id, name, kind, currency, invested, latestMinor (≥ 0) or null, latestDate,
  *     income: { basis: 'RATE'|'AMOUNT', ratePct, amountMinor, frequency, reinvested } or null,
- *     availableFromAge, availableFromMonth }]
+ *     availableFromAge, availableFromMonth }] (the accounts in use; none put away)
  * - assumptions: { incomeMinor, spendingMinor, raisePct, raiseMonth, spendingGrowthPct,
- *     returnPct, horizonMonths, birthYear, birthMonth }
- * - planned: [{ direction, amountMinor, currency (null = base), firstDate, frequency, endsOn, growthPct }]
+ *     returnPct, horizonMonths, birthYear, birthMonth, withdrawalPct, fireInterestPct, fireGrowthPct }
+ *     (rates as strings or Dec)
+ * - planned: [{ id, name, direction, amountMinor, currency (null = base), firstDate, frequency, endsOn, growthPct }]
  */
 export function project(ctx, today, monthCount = ctx.assumptions.horizonMonths) {
   const base = ctx.base;
   const scale = ctx.scales[base];
   if (scale == null) throw new ProjectionError('unknownCurrency', base);
   const a = ctx.assumptions;
-
-  const convert = (amount, code) => {
-    if (ctx.scales[code] == null) throw new ProjectionError('unknownCurrency', code);
-    if (code === base) return amount;
-    if (ctx.rates[code] == null) throw new ProjectionError('missingRate', code);
-    return amount.mul(Dec.of(ctx.rates[code])).shift(scale - ctx.scales[code]).round(0);
-  };
-  const minor = (d) => d.round(0).toBigInt();
+  const minor = minorOf;
 
   const startMonth = today.slice(0, 7);
-  const birth = a.birthYear != null && a.birthMonth != null && a.birthYear >= 1900 && a.birthYear <= 2100 && a.birthMonth >= 1 && a.birthMonth <= 12
-    ? `${String(a.birthYear).padStart(4, '0')}-${String(a.birthMonth).padStart(2, '0')}` : null;
+  const birth = birthOf(a);
 
   let invested = ZERO;
   let cash = ZERO;
   const tracked = [];
   for (const acct of ctx.accounts) {
     const latest = acct.latestMinor == null ? 0n : BigInt(acct.latestMinor);
-    const magnitude = latest === 0n ? ZERO : convert(Dec.int(latest), acct.currency);
+    const magnitude = latest === 0n ? ZERO : convert(ctx, Dec.int(latest), acct.currency);
     const signed = acct.kind === 'ASSET' ? magnitude : magnitude.negate();
     if (acct.invested) invested = invested.add(signed); else cash = cash.add(signed);
-    let unlock = null;
-    if (acct.availableFromAge != null) {
-      if (birth) unlock = addMonthsToMonth(birth, acct.availableFromAge * 12);
-    } else if (acct.availableFromMonth) {
-      unlock = acct.availableFromMonth;
-    }
+    const unlock = unlockMonth(acct, birth);
     let unlocksAt = unlock ? monthsSince(unlock, startMonth) : null;
     if (unlocksAt != null && unlocksAt <= 0) unlocksAt = null;
     const income = acct.income;
     if (!income && unlocksAt == null) continue;
     let fixed = ZERO;
-    if (income && income.basis === 'AMOUNT' && Number(income.amountMinor) !== 0) {
-      const m = convert(Dec.int(income.amountMinor), acct.currency);
+    if (income && income.basis === 'AMOUNT' && BigInt(income.amountMinor) !== 0n) {
+      const m = convert(ctx, Dec.int(income.amountMinor), acct.currency);
       fixed = acct.kind === 'ASSET' ? m : m.negate();
     }
     tracked.push({ invested: acct.invested, income, basis: signed, fixed, unlocksAt });
@@ -280,14 +332,14 @@ export function project(ctx, today, monthCount = ctx.assumptions.horizonMonths) 
   const lockedNow = lockedAt(0);
   months.push({ offset: 0, month: startMonth, netWorth: previous, invested: minor(invested), cash: minor(cash),
     locked: minor(lockedNow), available: minor(invested.add(cash).sub(lockedNow)),
-    income: 0n, spending: 0n, savings: 0n, growth: 0n, interest: 0n, planned: 0n, change: 0n });
+    income: 0n, spending: 0n, savings: 0n, growth: 0n, interest: 0n, earned: 0n, charged: 0n, planned: 0n, change: 0n });
 
   const baseIncome = Dec.int(a.incomeMinor);
   const baseSpending = Dec.int(a.spendingMinor);
   const hundred = Dec.int(100);
-  const raiseFactor = Dec.int(1).add(Dec.of(a.raisePct).div(hundred));
-  const spendingFactor = Dec.int(1).add(Dec.of(a.spendingGrowthPct).div(hundred));
-  const monthlyReturn = Dec.of(a.returnPct).div(hundred).div(Dec.int(12));
+  const raiseFactor = Dec.int(1).add(dec(a.raisePct).div(hundred));
+  const spendingFactor = Dec.int(1).add(dec(a.spendingGrowthPct).div(hundred));
+  const monthlyReturn = dec(a.returnPct).div(hundred).div(Dec.int(12));
   let raises = 0;
   let years = -1;
 
@@ -297,7 +349,7 @@ export function project(ctx, today, monthCount = ctx.assumptions.horizonMonths) 
     for (const date of occurrences(item, today, monthCount)) {
       const offset = Math.max(1, monthsSince(date.slice(0, 7), startMonth));
       const signed = BigInt(signedAmount(item, date));
-      const magnitude = convert(Dec.int(signed < 0n ? -signed : signed), code).toBigInt();
+      const magnitude = minor(convert(ctx, Dec.int(signed < 0n ? -signed : signed), code));
       plannedByMonth.set(offset, (plannedByMonth.get(offset) || 0n) + (signed < 0n ? -magnitude : magnitude));
     }
   }
@@ -307,7 +359,7 @@ export function project(ctx, today, monthCount = ctx.assumptions.horizonMonths) 
   for (let m = 1; m <= monthCount; m++) {
     const month = addMonthsToMonth(startMonth, m);
     let stepped = false;
-    if (Number(month.slice(5, 7)) === a.raiseMonth) { raises += 1; stepped = true; }
+    if (Number(month.slice(5, 7)) === Number(a.raiseMonth)) { raises += 1; stepped = true; }
     if (Math.floor((m - 1) / 12) !== years) { years = Math.floor((m - 1) / 12); stepped = true; }
     if (stepped) {
       const income = baseIncome.mul(raiseFactor.pow(raises));
@@ -320,15 +372,13 @@ export function project(ctx, today, monthCount = ctx.assumptions.horizonMonths) 
     invested = invested.add(growth);
     cash = cash.add(savings).add(planned);
 
-    let interest = ZERO;
+    let interest = ZERO, earned = ZERO, charged = ZERO;
     for (const t of tracked) {
       if (t.invested) t.basis = t.basis.add(t.basis.mul(monthlyReturn));
-      if (!t.income) continue;
-      const every = PAY_MONTHS[t.income.frequency] || 12;
-      if (!(m > 0 && m % every === 0)) continue;
-      const payment = t.income.basis === 'AMOUNT' ? t.fixed
-        : t.basis.mul(Dec.of(t.income.ratePct || '0')).mul(Dec.int(every)).div(Dec.int(1200));
+      if (!t.income || !pays(t.income, m)) continue;
+      const payment = t.income.basis === 'AMOUNT' ? t.fixed : ratePayment(t.income, t.basis);
       interest = interest.add(payment);
+      if (payment.sign() > 0) earned = earned.add(payment); else charged = charged.sub(payment);
       if (t.income.reinvested) t.basis = t.basis.add(payment);
       if (t.income.reinvested && t.invested) invested = invested.add(payment); else cash = cash.add(payment);
     }
@@ -342,6 +392,8 @@ export function project(ctx, today, monthCount = ctx.assumptions.horizonMonths) 
       income: incomeM, spending: spendingM, savings: savingsM,
       growth: monthlyReturn.isZero() ? 0n : minor(growth),
       interest: untracked ? 0n : minor(interest),
+      earned: untracked ? 0n : minor(earned),
+      charged: untracked ? 0n : minor(charged),
       planned: plannedByMonth.get(m) || 0n,
       change: netWorth - previous,
     });
