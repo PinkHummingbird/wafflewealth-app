@@ -617,7 +617,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=16"), import("./statement-save.mjs?v=16")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=17"), import("./statement-save.mjs?v=17")]);
     return { ...read, ...save };
   }
 
@@ -772,7 +772,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=16");
+    return import("./projection.mjs?v=17");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1324,6 +1324,13 @@
   }
 
   PAGES.assumptions = { title: () => "Income & spending", render: () => {} };
+  // Until their own screens are in: History says so, Settings leads to Income & spending.
+  PAGES.__history = () => { if (!$("history-body").dataset.screen) $("history-body").innerHTML = `<p class="empty">History, as the app shows it, is coming to the website next.</p>`; };
+  PAGES.__settings = () => {
+    if ($("settings-body").dataset.screen) return;
+    $("settings-body").innerHTML = `<div class="card list"><button type="button" class="rowlink" id="go-assumptions"><span>Income &amp; spending</span><span class="cap">›</span></button></div>`;
+    $("go-assumptions").addEventListener("click", () => show("settings", { page: "assumptions" }));
+  };
 
   /** What the screens in their own files share with this one. */
   globalThis.WW = {
@@ -1331,9 +1338,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=16"),
-        globalThis.WWReadings || import("./readings.mjs?v=16"),
-        globalThis.WWHistory || import("./history.mjs?v=16"),
+        globalThis.WWProjection || import("./projection.mjs?v=17"),
+        globalThis.WWReadings || import("./readings.mjs?v=17"),
+        globalThis.WWHistory || import("./history.mjs?v=17"),
       ]);
       return { P, R, H };
     },

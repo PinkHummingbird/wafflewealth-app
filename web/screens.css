@@ -73,3 +73,39 @@
 .chart path.s2 { stroke: var(--owed); } .chart circle.s2 { fill: var(--owed); }
 .chart path.s3 { stroke: var(--good); } .chart circle.s3 { fill: var(--good); }
 .chart path.s4 { stroke: var(--honey); stroke-dasharray: 1 3; } .chart circle.s4 { fill: var(--honey); }
+
+/* Pages: Target, FIRE, Breakdown, the sum, groups */
+.stack1 { display: grid; gap: 16px; }
+.answer { display: grid; gap: 4px; }
+.answer .k { color: var(--ink-2); font-size: 0.9rem; }
+.answer .k2 { color: var(--ink-2); font-size: 0.85rem; }
+.answer .v { font-family: var(--display); font-weight: 700; font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.3rem); letter-spacing: -0.01em; }
+.answer .d { color: var(--ink-2); }
+.answer .sumrow { margin-top: 8px; }
+.cap.sub { color: var(--ink-2); margin: -6px 0 0; }
+.verdict { margin: 10px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.row-inline { flex-direction: row !important; gap: 6px; align-items: center !important; }
+.row-inline select { min-height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink); padding: 0 8px; }
+.segs .gap { width: 12px; }
+.segbtn:disabled { opacity: 0.5; cursor: default; }
+.tiles.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tile.static { cursor: default; padding-right: 16px; }
+.stackbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 14px 0 6px; background: var(--sunken); }
+.stackbar .seg { display: block; height: 100%; min-width: 2px; }
+.dist-legend .sumrow > span:first-child { flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dist-legend .sumrow > span:first-child small { flex-basis: 100%; padding-left: 18px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.c0 { background: var(--accent); } .c1 { background: var(--owed); } .c2 { background: var(--good); } .c3 { background: var(--honey); opacity: 0.6; }
+.c4 { background: var(--ink-2); } .c5 { background: color-mix(in srgb, var(--accent) 50%, var(--ground)); } .c6 { background: color-mix(in srgb, var(--owed) 50%, var(--ground)); }
+.c7 { background: color-mix(in srgb, var(--good) 50%, var(--ground)); } .c8 { background: var(--faint); }
+.lev > summary .cap { color: var(--ink-2); font-size: 0.85rem; }
+details.card.sumgroup { border-top: 1px solid var(--rule); }
+details.card.sumgroup > summary { padding: 0 0 6px; font-weight: 600; }
+.checks { border: 0; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.checks legend { font-weight: 600; margin-bottom: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; }
+.checks input { width: 18px; height: 18px; accent-color: var(--accent); }
+.linkbtn.danger { color: var(--alert); }
+small.n { color: var(--ink-2); font-size: 0.8rem; margin-left: 4px; }
+.card > h2 { margin: 0 0 10px; font-size: 1.1rem; }
+.card .segs + .cap, .card .segs + .two, .card .segs + .sumrow { margin-top: 10px; }
