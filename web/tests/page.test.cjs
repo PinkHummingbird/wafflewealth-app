@@ -197,6 +197,55 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   d.querySelector('[data-balance-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(150);
   const nb=[...w.__ck.records.values()].filter(r=>r.recordType==='Balance').find(r=>r.fields.as_of_date.value==='2026-10-11');
   ok(nb && nb.fields.value_minor.value===1300000 && nb.fields.source.value==='MANUAL','icloud: balance appended');
+  // a statement read here: stub reader, the real save
+  {
+    const save = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','statement-save.mjs')).href);
+    const made = (sha, closing) => ({ reader:'SG-UOB', institution:'Made-up Bank', fileName:'aug.csv', period:{from:'2026-08-01',to:'2026-09-30'}, sha256:sha,
+      accounts:[{ ref:'SG-UOB:111', name:'Made-up Bank ·· 0111', type:'current', owed:false, currency:'SGD', ratePct:null, closes:null, closed:false,
+        opening:100000, closing, check:{ok:true,checked:true}, lines:[
+          {date:'2026-08-20',madeOn:null,description:'Made-up grocer',amount:-10000,running:null,ref:null,foreign:null,label:'out'},
+          {date:'2026-09-03',madeOn:null,description:'Made-up pay',amount:closing-90000,running:null,ref:null,foreign:null,label:'in'}]}] });
+    let next=made('a'.repeat(64), 95000);
+    w.WWStatementModules={ ...save, readDocument: async ()=>({statements:[next], problems:[]}) };
+    d.getElementById('tab-documents').click();
+    const up=d.getElementById('file'); Object.defineProperty(up,'files',{value:[new w.File(['made,up\n'],'aug.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+    const doc1=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='aug.csv');
+    const readBtn=d.querySelector(`[data-read-doc="${doc1.recordName}"]`);
+    ok(readBtn,'statement: a new CSV can be read here');
+    readBtn.click(); await sleep(150);
+    ok(!d.getElementById('review').hidden && /Adds up/.test(d.getElementById('review').textContent),'statement: reviewed, the check shown: '+d.getElementById('review').textContent.replace(/\s+/g,' ').slice(0,300));
+    ok(d.querySelector('[data-review-include="0:0"]').checked,'statement: kept by default');
+    setVal(d,'rv-name-0-0','My SGD account'); d.getElementById('rv-name-0-0').dispatchEvent(new w.Event('input',{bubbles:true}));
+    w.__ck.atomics=[];
+    d.getElementById('review-add').click(); await sleep(200);
+    const all=[...w.__ck.records.values()];
+    const st=all.find(r=>r.recordType==='Statement'); const acct=all.find(r=>r.recordType==='Account'&&r.fields.name.value==='My SGD account');
+    ok(st && st.fields.file_sha256.value==='a'.repeat(64) && st.fields.reader.value==='SG-UOB','statement: the statement kept');
+    ok(acct && acct.fields.display_order.type==='INT64' && acct.fields.kind.value==='ASSET' && acct.fields.currency_code.value==='SGD','statement: a new account');
+    const bals=all.filter(r=>r.recordType==='Balance'&&r.fields.account_id.value===acct.recordName);
+    ok(bals.length===2 && bals.every(b=>b.fields.source.value==='STATEMENT'),'statement: month end and closing balances');
+    ok(w.__ck.records.get(`statement-account-${acct.recordName}`).fields.ref.value==='SG-UOB:111','statement: the bank link');
+    const lines=all.filter(r=>r.recordType==='StatementLine'&&r.fields.statement_id.value===st.recordName);
+    ok(lines.length===2 && lines[0].fields.position.type==='INT64' && /made_on/.test(lines[0].fields.nulls.value),'statement: lines, typed, nulls named: '+JSON.stringify(lines[0]&&lines[0].fields));
+    ok(w.__ck.atomics.length===1 && w.__ck.atomics[0]===true,'statement: one request iCloud keeps whole');
+    ok(w.__ck.records.get(doc1.recordName).fields.status.value==='ADDED','statement: the document marked added');
+    ok(!d.querySelector(`[data-read-doc="${doc1.recordName}"]`) && /Added to your money/.test(d.getElementById('upload-ok').textContent),'statement: said so, and no more Read here');
+    // the same bank account next month adds to the same account; the same file again is already added
+    next=made('b'.repeat(64), 97000);
+    Object.defineProperty(up,'files',{value:[new w.File(['made,up,2\n'],'sep.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+    const doc2=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='sep.csv');
+    d.querySelector(`[data-read-doc="${doc2.recordName}"]`).click(); await sleep(150);
+    ok(/My SGD account/.test(d.getElementById('review').textContent) && /Adds to this account/.test(d.getElementById('review').textContent),'statement: found by its bank reference');
+    d.getElementById('review-add').click(); await sleep(200);
+    ok([...w.__ck.records.values()].filter(r=>r.recordType==='Account'&&/SGD/.test(r.fields.currency_code.value)).length===1,'statement: no second account');
+    next=made('b'.repeat(64), 97000);
+    Object.defineProperty(up,'files',{value:[new w.File(['again\n'],'sep-again.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+    const doc3=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='sep-again.csv');
+    d.querySelector(`[data-read-doc="${doc3.recordName}"]`).click(); await sleep(150);
+    ok(/Already added/.test(d.getElementById('review').textContent) && !d.getElementById('review-add'),'statement: the same file twice is already added');
+    d.getElementById('review-cancel').click(); await sleep(20);
+    ok(d.getElementById('review').hidden,'statement: closed');
+  }
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
   w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});
   d.getElementById('refresh').click(); await sleep(150);

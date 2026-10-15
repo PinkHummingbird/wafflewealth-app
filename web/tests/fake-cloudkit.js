@@ -8,7 +8,7 @@
     saveRecordZones: async (z)=>{ ck.zone=true; return {hasErrors:false, zones:z}; },
     fetchRecordZoneChanges: async (q)=>{ if(!ck.zone) return {hasErrors:true, errors:[{ckErrorCode:'ZONE_NOT_FOUND'}]};
       return {hasErrors:false, zones:[{zoneID:q.zoneID, syncToken:'tok', moreComing:false, records:[...ck.records.values()].map(r=>JSON.parse(JSON.stringify(r)))}]}; },
-    saveRecords: async (records, opts)=>{
+    saveRecords: async (records, opts)=>{ ck.atomics=(ck.atomics||[]).concat([Boolean(opts&&opts.atomic)]);
       if(!ck.zone) return {hasErrors:true, errors:[{ckErrorCode:'ZONE_NOT_FOUND'}], records:[]};
       if(ck.failAfter!==undefined && ck.failAfter!==null){ if(ck.failAfter===0){ ck.failAfter=null; return {hasErrors:true, errors:[{ckErrorCode:'NETWORK_ERROR', reason:'x'}], records:[]}; } ck.failAfter--; }
       if(ck.failNext){ const c=ck.failNext; ck.failNext=null; return {hasErrors:true, errors:[{ckErrorCode:c, reason:'x'}], records:[]}; }

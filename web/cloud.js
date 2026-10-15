@@ -16,7 +16,7 @@
     "amount_minor", "value_minor", "byte_count", "is_invested", "display_order",
     "income_amount_minor", "income_reinvested", "available_from_age", "parts", "part",
     "monthly_income_minor", "monthly_spending_minor", "raise_effective_month", "horizon_months",
-    "birth_year", "birth_month", "income_day", "written_order",
+    "birth_year", "birth_month", "income_day", "written_order", "position", "running_minor", "foreign_minor",
   ]);
   /* Fields held as raw bytes: a piece of a document's file (see `uploadDocument`). */
   const BYTES = new Set(["data"]);
@@ -33,6 +33,8 @@
       "available_from_age", "available_from_month"],
     PlannedItem: ["ends_on", "archived_at", "currency_code", "category"],
     Assumptions: ["birth_year", "birth_month", "income_day", "fire_interest_pct", "fire_growth_pct"],
+    Statement: ["institution", "file_name", "period_from", "period_to"],
+    StatementLine: ["posted_on", "made_on", "running_minor", "ref", "line_kind", "foreign_currency", "foreign_minor"],
   };
   /* The parts of the assumptions the projection reads: a change to any of them is a new line
      of history, exactly as the app appends one (AssumptionVersion.appendIfChanged). */
@@ -177,8 +179,9 @@
       return { changed, deleted, token: syncToken, zoneMissing: false };
     }
 
-    async save(records) {
-      const attempt = () => this.db.saveRecords(records.map(toCloud), { zoneID: ZONE });
+    /** With `atomic`, iCloud keeps all of them or none (one zone, one request). */
+    async save(records, { atomic = false } = {}) {
+      const attempt = () => this.db.saveRecords(records.map(toCloud), atomic ? { zoneID: ZONE, atomic: true } : { zoneID: ZONE });
       let response;
       try {
         response = await attempt();
@@ -229,6 +232,7 @@
       return { changed: [...this.rows.values()].map((r) => structuredCloneSafe(r)), deleted: [], token: "example", zoneMissing: false };
     }
     async save(records) {
+      if (this.failNext) { const e = this.failNext; this.failNext = null; throw e; }
       return records.map((record) => {
         const copy = { name: record.name, type: record.type, tag: `t${this.counter++}`, f: { ...record.f }, file: null };
         const prior = this.rows.get(record.name);
@@ -633,6 +637,53 @@
       const [saved] = await this.backend.save([{ name: account.name, type: "Account", tag: account.tag, f }]);
       this.rows.set(saved.name, saved);
       return saved;
+    }
+
+    // ---- statements read here ----
+
+    /** A document's file as bytes: joined from its pieces, or fetched from the attachment a phone sent. */
+    async documentBytes(document) {
+      let blob = await this.documentFile(document);
+      if (!blob && document.file && document.file.downloadURL) {
+        const response = await fetch(document.file.downloadURL.replace("${f}", encodeURIComponent(document.f.file_name)));
+        if (!response.ok) throw { reason: "The file couldn't be fetched from iCloud. Read it on your iPhone instead." };
+        blob = await response.blob();
+      }
+      if (!blob) throw { reason: "This file isn't in iCloud yet." };
+      return readBytes(blob);
+    }
+
+    /** Whether a file with this fingerprint has been added to the money already, here or on a phone. */
+    statementRead(sha256) { return this.of("Statement").some((s) => s.f.file_sha256 === sha256); }
+
+    /** The account a bank account became last time, found by its reference, as the app finds it. */
+    accountByRef(ref) {
+      const link = this.of("StatementAccount").find((l) => l.f.ref === ref);
+      if (!link) return null;
+      return this.account(link.name.replace(/^statement-account-/, ""));
+    }
+
+    nextDisplayOrder() { return this.of("Account").reduce((m, a) => Math.max(m, Number(a.f.display_order) || 0), -1) + 1; }
+
+    /** Keeps a statement's records and marks its document added. **All or nothing where iCloud
+        allows it**: up to 390 records go in one request iCloud keeps whole. A longer statement
+        sends its lines first and everything else last, together; lines that arrive without
+        their statement are dropped by the phone, so a statement half sent adds nothing. */
+    async saveStatement(records, document) {
+      const marked = document ? [{ name: document.name, type: "Document", tag: document.tag,
+        f: { ...document.f, status: "ADDED", status_note: null, status_at: M.stamp() } }] : [];
+      const LIMIT = 390;
+      const batches = [];
+      if (records.length + marked.length <= LIMIT) batches.push([...records, ...marked]);
+      else {
+        const lines = records.filter((r) => r.type === "StatementLine");
+        for (let i = 0; i < lines.length; i += LIMIT) batches.push(lines.slice(i, i + LIMIT));
+        batches.push([...records.filter((r) => r.type !== "StatementLine"), ...marked]);
+      }
+      for (const batch of batches) {
+        const saved = await this.backend.save(batch, { atomic: true });
+        for (const r of saved) this.rows.set(r.name, r);
+      }
     }
 
     static pieceNames(document) {

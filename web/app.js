@@ -22,7 +22,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   const TABS = ["documents", "transactions", "accounts", "plan"];
-  const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null };
+  const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null, review: null };
 
   /* ---------- starting ---------- */
 
@@ -129,7 +129,7 @@
   }
 
   const STATUS = {
-    NEW: ["Waiting for your iPhone", "new"],
+    NEW: ["Not added yet", "new"],
     ADDED: ["Added to your money", "added"],
     KEPT: ["Kept", ""],
     NOT_READ: ["Couldn't be read", ""],
@@ -153,11 +153,13 @@
       const download = d.file && d.file.downloadURL
         ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>`
         : Number(d.f.parts) > 0 ? `<button type="button" class="linkbtn" data-download-doc="${esc(d.name)}">Download</button>` : "";
+      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
+      const read = readable ? `<button type="button" class="linkbtn" data-read-doc="${esc(d.name)}">Read here</button>` : "";
       return `<div class="row">
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
         <div class="main"><span class="t">${esc(d.f.file_name)}</span>
           <span class="d">${esc(when)} · ${esc(M.bytes(Number(d.f.byte_count) || 0))} · ${esc(from)}${d.f.note ? " · " + esc(d.f.note) : ""}</span>
-          <span class="acts">${download}<button type="button" class="linkbtn danger" data-remove-doc="${esc(d.name)}">Remove</button></span></div>
+          <span class="acts">${read}${download}<button type="button" class="linkbtn danger" data-remove-doc="${esc(d.name)}">Remove</button></span></div>
         <div class="end"><span class="pill ${cls}">${esc(label)}</span></div>
       </div>`;
     }).join("");
@@ -459,7 +461,8 @@
     if (ok.length) {
       $("upload-ok").hidden = false;
       $("upload-ok").textContent = (ok.length === 1 ? `${ok[0]} is in your iCloud.` : `${ok.length} files are in your iCloud.`)
-        + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Open WaffleWealth on your iPhone and it's under Activity.");
+        + " Choose “Read here” to add it to your money now, or do it on your iPhone under Activity."
+        + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : "");
     }
     if (problems.length) {
       $("upload-problems").hidden = false;
@@ -494,6 +497,134 @@
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       showError(C.explain(error));
+    }
+  }
+
+  /* ---------- reading a statement here ---------- */
+
+  /* The reading code is loaded only when it's wanted: it brings PDF.js with it. Tests hand in
+     their own (WWStatementModules). */
+  async function statementModules() {
+    if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=7"), import("./statement-save.mjs?v=7")]);
+    return { ...read, ...save };
+  }
+
+  async function readHere(name) {
+    const store = state.store;
+    const doc = store.rows.get(name);
+    if (!doc) return;
+    state.review = { doc, reading: true, statements: [], problems: [], choices: [] };
+    renderReview();
+    if ($("review").scrollIntoView) $("review").scrollIntoView({ block: "nearest" });
+    try {
+      const mods = await statementModules();
+      const bytes = await store.documentBytes(doc);
+      const { statements, problems } = await mods.readDocument(doc.f.file_name, bytes);
+      state.review = {
+        doc, reading: false, problems, mods,
+        statements: statements.map((st) => ({ ...st, already: store.statementRead(st.sha256) })),
+      };
+      state.review.choices = state.review.statements.map((st) => st.accounts.map((a) => ({
+        include: !st.already && mods.includedByDefault(a) && !(a.check && a.check.checked && !a.check.ok),
+        name: a.name,
+      })));
+    } catch (error) {
+      state.review = { doc, reading: false, statements: [], choices: [], problems: [C.explain(error)] };
+    }
+    renderReview();
+  }
+
+  function checkNote(a) {
+    const c = a.check || {};
+    if (c.ok) return `<span class="note good">Adds up: the opening balance and every line come to the closing balance.</span>`;
+    if (c.checked) return `<span class="note bad">Doesn't add up: the lines come to ${esc(M.format(c.expected, a.currency))}, the statement says ${esc(M.format(a.closing, a.currency))}. Left out unless you include it; your iPhone can read it too.</span>`;
+    return `<span class="note">No opening balance printed, so there's nothing to check the lines against.</span>`;
+  }
+
+  function renderReview() {
+    const box = $("review");
+    const r = state.review;
+    box.hidden = !r;
+    if (!r) { box.innerHTML = ""; return; }
+    const store = state.store;
+    if (r.reading) { box.innerHTML = `<h2>Reading ${esc(r.doc.f.file_name)}…</h2><p class="cap">Here in your browser. The file isn't sent anywhere to be read.</p>`; return; }
+    let html = `<h2>${esc(r.doc.f.file_name)}</h2>`;
+    if (r.problems.length) html += `<ul class="error" style="margin:8px 0;padding-left:20px">${r.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
+    let anything = false;
+    r.statements.forEach((st, si) => {
+      const period = st.period && st.period.to ? `${st.period.from ? M.dayLabel(st.period.from) + " to " : "To "}${M.dayLabel(st.period.to)}` : "Dates not found";
+      html += `<div class="month"><h3>${esc(st.institution || "Statement")} · ${esc(period)}</h3></div>`;
+      if (st.already) { html += `<p class="empty">Already added to your money, here or on your iPhone.</p>`; return; }
+      st.accounts.forEach((a, ai) => {
+        const choice = r.choices[si][ai];
+        const known = a.ref ? store.accountByRef(a.ref) : null;
+        if (choice.include) anything = true;
+        const closing = a.closing != null && a.currency ? M.format(a.closing, a.currency) : "No closing balance";
+        html += `<div class="review-acct">
+          <input type="checkbox" id="rv-${si}-${ai}" data-review-include="${si}:${ai}" ${choice.include ? "checked" : ""} aria-label="Add ${esc(a.name)}">
+          <div class="main">
+            ${known ? `<label class="t" for="rv-${si}-${ai}">${esc(known.f.name)}</label><span class="note">Adds to this account, as last time.</span>`
+              : `<div class="field"><label for="rv-name-${si}-${ai}">New account</label><input id="rv-name-${si}-${ai}" data-review-name="${si}:${ai}" maxlength="60" value="${esc(choice.name)}"></div>`}
+            <span class="note">${a.owed ? "Owed · " : ""}${a.lines.length} line${a.lines.length === 1 ? "" : "s"}</span>
+            ${checkNote(a)}
+          </div>
+          <div class="end"><span class="amt">${esc(closing)}</span></div>
+        </div>`;
+      });
+    });
+    html += `<div class="formacts" style="margin-top:12px">
+      ${r.statements.some((st) => !st.already) ? `<button type="button" class="btn" id="review-add" ${anything ? "" : "disabled"}>Add to your money</button>` : ""}
+      <button type="button" class="linkbtn" id="review-cancel">${r.statements.some((st) => !st.already) ? "Cancel" : "Close"}</button>
+    </div><p class="error" id="review-error" role="alert" hidden></p>`;
+    box.innerHTML = html;
+  }
+
+  async function addReviewed() {
+    const r = state.review;
+    const store = state.store;
+    if (!r || !r.mods) return;
+    for (const [si, list] of r.choices.entries()) {
+      for (const [ai, choice] of list.entries()) {
+        const known = r.statements[si].accounts[ai].ref && store.accountByRef(r.statements[si].accounts[ai].ref);
+        const name = (choice.name || "").trim();
+        if (choice.include && !known && (name.length < 1 || name.length > 60)) {
+          $("review-error").hidden = false;
+          $("review-error").textContent = "Give each new account a name, up to 60 characters.";
+          return;
+        }
+      }
+    }
+    $("review-add").disabled = true;
+    try {
+      const records = [];
+      const totals = { created: [], updated: [], balances: 0, lines: 0 };
+      let order = store.nextDisplayOrder();
+      r.statements.forEach((st, si) => {
+        if (st.already) return;
+        const out = r.mods.recordsForStatement({
+          statement: st, choices: r.choices[si], sha256: st.sha256,
+          known: { accountByRef: (ref) => store.accountByRef(ref), nextDisplayOrder: order },
+          uuid: M.uuid, now: M.stamp(), today: M.today(),
+        });
+        order += out.created.length;
+        records.push(...out.records);
+        totals.created.push(...out.created); totals.updated.push(...out.updated);
+        totals.balances += out.balances; totals.lines += out.lines;
+      });
+      await store.saveStatement(records, r.doc);
+      state.review = null;
+      render();
+      const parts = [totals.created.length ? `${totals.created.length} new account${totals.created.length === 1 ? "" : "s"}` : "",
+        totals.updated.length ? `${totals.updated.join(", ")} brought up to date` : "",
+        `${totals.balances} balance${totals.balances === 1 ? "" : "s"}`, `${totals.lines} line${totals.lines === 1 ? "" : "s"}`].filter(Boolean);
+      $("upload-ok").hidden = false;
+      $("upload-ok").textContent = `Added to your money: ${parts.join(", ")}.` + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Your iPhone has them the next time WaffleWealth opens.");
+    } catch (error) {
+      $("review-error").hidden = false;
+      $("review-error").textContent = C.explain(error);
+      $("review-add").disabled = false;
+      if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
     }
   }
 
@@ -782,6 +913,8 @@
       if (button) removeDocument(button.getAttribute("data-remove-doc"));
       const download = e.target.closest("[data-download-doc]");
       if (download) downloadDocument(download.getAttribute("data-download-doc"));
+      const read = e.target.closest("[data-read-doc]");
+      if (read) readHere(read.getAttribute("data-read-doc"));
     });
 
     $("txn-form").addEventListener("submit", submitTransaction);
@@ -822,6 +955,25 @@
     $("accts-away").addEventListener("click", (e) => {
       const back = e.target.closest("[data-account-restore]");
       if (back) setAccountAway(back.getAttribute("data-account-restore"), false);
+    });
+
+    const review = $("review");
+    review.addEventListener("change", (e) => {
+      const box = e.target.closest("[data-review-include]");
+      if (!box || !state.review) return;
+      const [si, ai] = box.getAttribute("data-review-include").split(":").map(Number);
+      state.review.choices[si][ai].include = box.checked;
+      renderReview();
+    });
+    review.addEventListener("input", (e) => {
+      const input = e.target.closest("[data-review-name]");
+      if (!input || !state.review) return;
+      const [si, ai] = input.getAttribute("data-review-name").split(":").map(Number);
+      state.review.choices[si][ai].name = input.value;
+    });
+    review.addEventListener("click", (e) => {
+      if (e.target.closest("#review-add")) addReviewed();
+      if (e.target.closest("#review-cancel")) { state.review = null; renderReview(); }
     });
 
     $("plan-form").addEventListener("submit", submitAssumptions);
