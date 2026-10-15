@@ -22,7 +22,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   const TABS = ["documents", "transactions", "accounts", "plan"];
-  const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null, review: null };
+  const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null, review: null, open: new Set() };
 
   /* ---------- starting ---------- */
 
@@ -176,40 +176,90 @@
 
   const KIND = { own: "Between your accounts", interest: "Interest" };
 
+  /* Transactions, grouped as the app groups them (ActivityGroups): by month, a row per account;
+     by account, a row per month. A row is what moved through that account that month; open it
+     for its lines. Moves between your own accounts are listed but counted apart. */
+  function grouping() {
+    try { return localStorage.getItem("ww.grouping") === "account" ? "account" : "month"; } catch (e) { return "month"; }
+  }
+
+  function setGrouping(value) {
+    try { localStorage.setItem("ww.grouping", value); } catch (e) { /* remembered for this visit only */ }
+    state.open.clear();
+    renderTransactions();
+  }
+
+  function accountTitle(id) {
+    if (!id) return "No account";
+    const a = state.store.rows.get(id);
+    return a && a.type === "Account" ? a.f.name : "An account no longer here";
+  }
+
   function renderTransactions() {
     const store = state.store;
     const all = store.activity();
     $("txns-count").textContent = all.length ? `${all.length} in all` : "";
-    $("txns-legend").hidden = !all.some((e) => e.kind === "auto");
+    const by = grouping();
+    $(by === "account" ? "group-account" : "group-month").checked = true;
     if (!all.length) {
       $("txns").innerHTML = `<p class="empty">No transactions yet. Add one with the form; it appears on your iPhone under Activity. Statements you add show their lines here too.</p>`;
       return;
     }
-    const months = new Map();
-    for (const entry of all) {
-      const key = String(entry.day).slice(0, 7);
-      if (!months.has(key)) months.set(key, []);
-      months.get(key).push(entry);
-    }
+    const entries = all.map((entry) => {
+      const r = entry.record;
+      return {
+        id: r.name, day: entry.day, minor: Number(r.f.amount_minor), source: entry,
+        account: r.f.account_id || null,
+        currency: entry.kind === "auto" ? r.currency : r.f.currency_code,
+        between: entry.kind === "auto" && r.f.line_kind === "own",
+      };
+    });
+    const order = store.accounts().map((a) => a.name);
     let html = "";
-    for (const [ym, list] of months) {
-      // In and out per currency. A move between your own accounts is listed and not counted;
-      // interest is money in; everything else counts by its sign.
-      const totals = new Map();
-      for (const entry of list) {
-        const r = entry.record;
-        if (entry.kind === "auto" && r.f.line_kind === "own") continue;
-        const code = entry.kind === "auto" ? r.currency : r.f.currency_code;
-        const minor = Number(r.f.amount_minor);
-        const sum = totals.get(code) || { in: 0, out: 0 };
-        if (minor > 0) sum.in += minor; else sum.out -= minor;
-        totals.set(code, sum);
+    if (by === "account") {
+      for (const section of C.Groups.byAccount(entries, order)) {
+        html += `<div class="month"><h3>${esc(accountTitle(section.account))}</h3></div>`;
+        html += section.movements.map((m) => movementRow(m, M.monthLabel(m.month))).join("");
       }
-      const tot = [...totals].map(([code, v]) => [v.in ? `In ${M.format(v.in, code)}` : "", v.out ? `Out ${M.format(v.out, code)}` : ""].filter(Boolean).join(" · ")).filter(Boolean).join("<br>");
-      html += `<div class="month"><h3>${esc(M.monthLabel(ym))}</h3><span class="tot">${tot}</span></div>`;
-      html += list.map((entry) => entry.kind === "manual" ? manualRow(entry.record) : autoRow(entry.record)).join("");
+    } else {
+      for (const section of C.Groups.byMonth(entries, order)) {
+        const totals = new Map();
+        for (const m of section.movements) {
+          const t = totals.get(m.currency) || { in: 0, out: 0 };
+          t.in += m.in; t.out += m.out;
+          totals.set(m.currency, t);
+        }
+        const tot = [...totals].map(([code, v]) => [v.in ? `In ${M.format(v.in, code)}` : "", v.out ? `Out ${M.format(v.out, code)}` : ""].filter(Boolean).join(" · ")).filter(Boolean).join("<br>");
+        html += `<div class="month"><h3>${esc(M.monthLabel(section.month))}</h3><span class="tot">${tot}</span></div>`;
+        html += section.movements.map((m) => movementRow(m, m.account ? accountTitle(m.account) : `No account · ${m.currency}`)).join("");
+      }
     }
     $("txns").innerHTML = html;
+  }
+
+  function movementRow(m, title) {
+    const open = state.open.has(m.key);
+    const parts = [m.in ? `In ${M.format(m.in, m.currency)}` : "", m.out ? `Out ${M.format(m.out, m.currency)}` : "",
+      `${m.entries.length} line${m.entries.length === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
+    const between = m.between ? `<span class="d">Between your accounts ${esc(M.formatSigned(m.between, m.currency))}</span>` : "";
+    let detail = "";
+    if (open) {
+      const figs = [["Money in", m.in], ["Money out", m.out], ["Net", m.net], ["Between your accounts", m.between]]
+        .filter(([, v]) => v !== 0)
+        .map(([k, v]) => `<span>${k} <b>${esc(k === "Net" || k === "Between your accounts" ? M.formatSigned(v, m.currency) : M.format(v, m.currency))}</b></span>`).join("");
+      const hasAuto = m.entries.some((e) => e.source.kind === "auto");
+      detail = `<div class="mv-open">
+        ${figs ? `<div class="mv-figs">${figs}</div>` : ""}
+        ${m.between ? `<p class="foot">Money moved between your own accounts is listed, but not counted as money in or out.</p>` : ""}
+        ${hasAuto ? `<p class="legend"><span class="pill auto">Auto</span> read from statements you added. <span class="pill">Manual</span> typed by you, here or on your iPhone.</p>` : ""}
+        ${m.entries.map((e) => (e.source.kind === "manual" ? manualRow(e.source.record) : autoRow(e.source.record))).join("")}
+      </div>`;
+    }
+    return `<div class="row clickable${open ? " editing" : ""}" data-movement="${esc(m.key)}" tabindex="0" role="button" aria-expanded="${open}" aria-label="${esc(title)}, ${open ? "close" : "open"}">
+      <span class="ic" aria-hidden="true">${open ? "▾" : "▸"}</span>
+      <div class="main"><span class="t">${esc(title)}</span><span class="d">${esc(parts)}</span>${between}</div>
+      <div class="end"><span class="amt${m.net > 0 ? " in" : ""}">${esc(M.formatSigned(m.net, m.currency))}</span></div>
+    </div>${detail}`;
   }
 
   function manualRow(t) {
@@ -506,7 +556,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=7"), import("./statement-save.mjs?v=7")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=8"), import("./statement-save.mjs?v=8")]);
     return { ...read, ...save };
   }
 
@@ -926,14 +976,23 @@
       if (account) fillCurrencySelect(account.f.currency_code);
     });
     const txns = $("txns");
-    txns.addEventListener("click", (e) => {
-      const row = e.target.closest("[data-edit]");
-      if (row) editTransaction(row.getAttribute("data-edit"));
-    });
+    const activate = (target) => {
+      const row = target.closest("[data-edit]");
+      if (row) { editTransaction(row.getAttribute("data-edit")); return true; }
+      const movement = target.closest("[data-movement]");
+      if (movement) {
+        const key = movement.getAttribute("data-movement");
+        if (state.open.has(key)) state.open.delete(key); else state.open.add(key);
+        renderTransactions();
+        return true;
+      }
+      return false;
+    };
+    txns.addEventListener("click", (e) => activate(e.target));
     txns.addEventListener("keydown", (e) => {
-      const row = e.target.closest("[data-edit]");
-      if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); editTransaction(row.getAttribute("data-edit")); }
+      if ((e.key === "Enter" || e.key === " ") && e.target.closest("[data-edit], [data-movement]")) { e.preventDefault(); activate(e.target); }
     });
+    for (const id of ["group-month", "group-account"]) $(id).addEventListener("change", (e) => setGrouping(e.target.value));
 
     const accts = $("accts");
     accts.addEventListener("click", (e) => {

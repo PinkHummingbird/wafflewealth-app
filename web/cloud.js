@@ -314,6 +314,66 @@
     ];
   }
 
+  /* ---------- the Activity list, grouped (the app's ActivityGroups) ----------
+
+     An entry is { id, day, minor, account, currency, between }, newest first. A movement is
+     what moved through one account (or none) in one month, in one currency: money in and money
+     out leave out moves between the user's own accounts, which are summed apart (`between`). */
+  const Groups = {
+    movements(entries, accountOrder) {
+      const byKey = new Map();
+      for (const e of entries) {
+        const month = String(e.day).slice(0, 7);
+        const key = `${month}|${e.account ?? "-"}|${e.currency}`;
+        let m = byKey.get(key);
+        if (!m) { m = { key, month, account: e.account ?? null, currency: e.currency, in: 0, out: 0, between: 0, entries: [] }; byKey.set(key, m); }
+        if (e.between) m.between += e.minor;
+        else if (e.minor > 0) m.in += e.minor;
+        else m.out -= e.minor;
+        m.entries.push(e);
+      }
+      const rank = Groups.rank(accountOrder);
+      return [...byKey.values()].map((m) => ({ ...m, net: m.in - m.out })).sort((a, b) => {
+        if (a.month !== b.month) return a.month < b.month ? 1 : -1;
+        const ra = rank(a.account), rb = rank(b.account);
+        if (ra[0] !== rb[0]) return ra[0] - rb[0];
+        if (ra[1] !== rb[1]) return ra[1] < rb[1] ? -1 : 1;
+        return a.currency < b.currency ? -1 : a.currency > b.currency ? 1 : 0;
+      });
+    },
+    byMonth(entries, accountOrder) {
+      const sections = [];
+      for (const m of Groups.movements(entries, accountOrder)) {
+        const last = sections[sections.length - 1];
+        if (last && last.month === m.month) last.movements.push(m);
+        else sections.push({ month: m.month, movements: [m] });
+      }
+      return sections;
+    },
+    byAccount(entries, accountOrder) {
+      const sections = [];
+      const index = new Map();
+      for (const m of Groups.movements(entries, accountOrder)) {
+        const key = m.account ?? "-";
+        if (index.has(key)) sections[index.get(key)].movements.push(m);
+        else { index.set(key, sections.length); sections.push({ account: m.account, movements: [m] }); }
+      }
+      const rank = Groups.rank(accountOrder);
+      return sections.map((s, i) => ({ s, i })).sort((a, b) => {
+        const ra = rank(a.s.account), rb = rank(b.s.account);
+        if (ra[0] !== rb[0]) return ra[0] - rb[0];
+        if (ra[1] !== rb[1]) return ra[1] < rb[1] ? -1 : 1;
+        return a.i - b.i;
+      }).map((x) => x.s);
+    },
+    /** The user's order first, then any other account (archived, say) by id, then no account. */
+    rank(order) {
+      const position = new Map();
+      order.forEach((id, i) => { if (!position.has(id)) position.set(id, i); });
+      return (id) => (id == null ? [Number.MAX_SAFE_INTEGER, ""] : position.has(id) ? [position.get(id), ""] : [Number.MAX_SAFE_INTEGER - 1, id]);
+    },
+  };
+
   /* How often a planned item comes round, as the app names it. */
   const FREQUENCIES = [["ONCE", "Once"], ["MONTHLY", "Every month"], ["QUARTERLY", "Every 3 months"],
     ["SEMIANNUAL", "Every 6 months"], ["ANNUAL", "Every year"]];
@@ -765,5 +825,5 @@
     return bytes;
   }
 
-  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES, FREQUENCIES };
+  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES, FREQUENCIES, Groups };
 })();

@@ -21,6 +21,7 @@ let fails=0; const ok=(c,m)=>{ if(!c){fails++;console.log('FAIL',m)} else consol
 function setVal(d,id,v){const el=d.getElementById(id); el.value=v; el.dispatchEvent(new d.defaultView.Event('input',{bubbles:true})); el.dispatchEvent(new d.defaultView.Event('change',{bubbles:true}));}
 function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event('submit',{bubbles:true,cancelable:true}));}
 
+const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector('#txns [data-movement][aria-expanded="false"]'); if(!closed) break; closed.click(); await new Promise(r=>setTimeout(r,5)); } };
 (async()=>{
  // ---------- example ----------
  {const {d,w,errs}=page({}); await sleep(300);
@@ -28,9 +29,17 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   ok(d.getElementById('welcome').hidden,'example: welcome hidden');
   ok(d.querySelectorAll('#docs .row').length===2,'example: 2 documents');
   ok(d.getElementById('n-new').textContent==='1','example: 1 new badge');
-  ok(d.querySelectorAll('#txns .row').length===8,'example: 5 typed + 3 statement lines');
-  ok(d.querySelectorAll('#txns .pill.auto').length===3 && !d.getElementById('txns-legend').hidden,'example: statement lines tagged Auto, legend shown');
+  ok(d.querySelectorAll('#txns [data-movement]').length>0 && !d.querySelector('#txns [data-edit]'),'example: grouped, lines closed');
+  await openAll(d,w);
+  ok(d.querySelectorAll('#txns .mv-open .row').length===8,'example: 5 typed + 3 statement lines');
+  ok(d.querySelectorAll('#txns .mv-open .row .pill.auto').length===3 && Boolean(d.querySelector('#txns .mv-open .legend')),'example: statement lines tagged Auto, legend shown ('+d.querySelectorAll('#txns .pill.auto').length+' '+Boolean(d.querySelector('#txns .mv-open .legend'))+')');
   ok(d.querySelectorAll('#txns [data-edit]').length===5,'example: only typed ones can be edited');
+  d.getElementById('group-account').checked=true; d.getElementById('group-account').dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+  const heads=[...d.querySelectorAll('#txns .month h3')].map(h=>h.textContent);
+  ok(heads[0]==='Current account' && heads.includes('No account'),'by account: a section per account, yours first, no account last ('+heads.join(', ')+')');
+  ok(!d.querySelector('#txns .mv-open'),'by account: groups start closed');
+  d.getElementById('group-month').checked=true; d.getElementById('group-month').dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+  await openAll(d,w);
   ok(/Current account/.test(d.getElementById('accts').textContent),'example: accounts listed');
   ok(/USD 48,000.00/.test(d.getElementById('accts').textContent),'example: latest balance shown 48,000');
   // tabs
@@ -46,6 +55,7 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   // valid
   setVal(d,'txn-account','ex-savings'); ok(d.getElementById('txn-currency').value==='GBP','account picks its currency');
   setVal(d,'txn-amount','1,250.5'); setVal(d,'txn-note','Groceries'); setVal(d,'txn-category','P_HOME'); submit(d,'txn-form'); await sleep(100);
+  await openAll(d,w);
   ok(d.querySelectorAll('#txns [data-edit]').length===6,'saved: 6 typed transactions');
   ok(/−GBP 1,250.50/.test(d.getElementById('txns').textContent),'saved: shown as −GBP 1,250.50');
   ok(!d.getElementById('txn-ok').hidden,'saved: confirmation shown');
@@ -176,6 +186,7 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   ok(t && t.fields.nulls.value==='category,note','icloud: transaction nulls');
   // edit sends change tag
   const before=t.recordChangeTag;
+  await openAll(d,w);
   d.querySelector(`[data-edit="${t.recordName}"]`).click(); setVal(d,'txn-note','Fuel'); submit(d,'txn-form'); await sleep(150);
   ok(before && w.__ck.lastSaveTag===before,'icloud: edit sends the record change tag ('+before+' vs '+w.__ck.lastSaveTag+')');
   ok(w.__ck.records.get(t.recordName).fields.note.value==='Fuel' && w.__ck.records.get(t.recordName).fields.nulls.value==='category','icloud: edit updates note and nulls');
@@ -188,7 +199,8 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   w.__ck.put({recordType:'StatementLine',recordName:'l2',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:1},posted_on:{value:'2026-10-10'},description:{value:'To my savings'},amount_minor:{value:-500000},line_kind:{value:'own'},nulls:{value:''}}});
   w.__ck.put({recordType:'StatementLine',recordName:'l3',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:2},description:{value:'Undated'},amount_minor:{value:-1},nulls:{value:'posted_on'}}});
   d.getElementById('refresh').click(); await sleep(150);
-  const rows=[...d.querySelectorAll('#txns .row')].map(r=>r.textContent.replace(/\s+/g,' '));
+  await openAll(d,w);
+  const rows=[...d.querySelectorAll('#txns .mv-open .row')].map(r=>r.textContent.replace(/\s+/g,' '));
   ok(rows.length===3 && /Fuel/.test(rows[0]) && /Made up grocer/.test(rows[1]) && /To my savings/.test(rows[2]),'icloud: typed first, then statement order, undated line left out ('+rows.length+')');
   ok(/Out AED\u00A0320.00/.test(d.getElementById('txns').textContent),'icloud: month total leaves out a move between own accounts');
   ok(!d.querySelector('[data-edit="l1"]'),'icloud: a statement line is read-only');

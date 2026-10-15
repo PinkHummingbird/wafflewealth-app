@@ -192,6 +192,10 @@ form.f { display: flex; flex-direction: column; gap: 14px; }
 .inline-form .field { flex: 1 1 140px; }
 .check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--fs-small); cursor: pointer; }
 .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.mv-open { padding: 6px 0 4px 14px; margin-left: 18px; border-left: 2px solid var(--rule); }
+.mv-figs { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: var(--fs-small); margin-bottom: 6px; }
+.mv-figs b { font-variant-numeric: tabular-nums; }
+.mv-open .legend, .mv-open .foot { font-size: 0.8rem; color: var(--ink-2); margin: 4px 0; }
 .review-acct { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--rule); }
 .review-acct input[type="checkbox"] { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); }
 .review-acct .field input { height: 38px; }
@@ -352,7 +356,10 @@ footer a { color: var(--ink-2); }
       </div>
       <div class="card list" aria-labelledby="h-txns">
         <div class="head"><h2 id="h-txns">Transactions</h2><span class="label" id="txns-count"></span></div>
-        <p class="legend" id="txns-legend" hidden><span class="pill auto">Auto</span> read from statements you added. <span class="pill">Manual</span> typed by you, here or on your iPhone.</p>
+        <div class="seg" role="radiogroup" aria-label="Group transactions" style="margin:4px 0 8px">
+          <input type="radio" name="grouping" id="group-month" value="month" checked><label for="group-month">By month</label>
+          <input type="radio" name="grouping" id="group-account" value="account"><label for="group-account">By account</label>
+        </div>
         <div id="txns"></div>
       </div>
     </div>
@@ -440,8 +447,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=7"></script>
-<script src="cloud.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="money.js?v=8"></script>
+<script src="cloud.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
