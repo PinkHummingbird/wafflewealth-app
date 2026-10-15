@@ -558,7 +558,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=13"), import("./statement-save.mjs?v=13")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=14"), import("./statement-save.mjs?v=14")]);
     return { ...read, ...save };
   }
 
@@ -620,6 +620,7 @@
               : `<div class="field"><label for="rv-name-${si}-${ai}">New account</label><input id="rv-name-${si}-${ai}" data-review-name="${si}:${ai}" maxlength="60" value="${esc(choice.name)}"></div>`}
             <span class="note">${a.owed ? "Owed · " : ""}${a.lines.length} line${a.lines.length === 1 ? "" : "s"}</span>
             ${checkNote(a)}
+            ${a.belowZero ? `<span class="note bad">Below zero on this statement. WaffleWealth keeps balances at zero or above, so the overdraft isn't counted: add what's owed as an account of its own.</span>` : ""}
           </div>
           <div class="end"><span class="amt">${esc(closing)}</span></div>
         </div>`;
@@ -708,7 +709,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=13");
+    return import("./projection.mjs?v=14");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */

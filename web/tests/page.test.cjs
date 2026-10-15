@@ -236,6 +236,7 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
     readBtn.click(); await sleep(150);
     ok(!d.getElementById('review').hidden && /Adds up/.test(d.getElementById('review').textContent),'statement: reviewed, the check shown: '+d.getElementById('review').textContent.replace(/\s+/g,' ').slice(0,300));
     ok(d.querySelector('[data-review-include="0:0"]').checked,'statement: kept by default');
+    ok(!/Below zero/.test(d.getElementById('review').textContent),'statement: no overdraft note when nothing is below zero');
     setVal(d,'rv-name-0-0','My SGD account'); d.getElementById('rv-name-0-0').dispatchEvent(new w.Event('input',{bubbles:true}));
     w.__ck.atomics=[];
     d.getElementById('review-add').click(); await sleep(200);
@@ -252,11 +253,12 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
     ok(w.__ck.records.get(doc1.recordName).fields.status.value==='ADDED','statement: the document marked added');
     ok(!d.querySelector(`[data-read-doc="${doc1.recordName}"]`) && /Added to your money/.test(d.getElementById('upload-ok').textContent),'statement: said so, and no more Read here');
     // the same bank account next month adds to the same account; the same file again is already added
-    next=made('b'.repeat(64), 97000);
+    next=made('b'.repeat(64), 97000); next.accounts[0].belowZero=true;
     Object.defineProperty(up,'files',{value:[new w.File(['made,up,2\n'],'sep.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
     const doc2=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='sep.csv');
     d.querySelector(`[data-read-doc="${doc2.recordName}"]`).click(); await sleep(150);
     ok(/My SGD account/.test(d.getElementById('review').textContent) && /Adds to this account/.test(d.getElementById('review').textContent),'statement: found by its bank reference');
+    ok(/Below zero on this statement/.test(d.getElementById('review').textContent),'statement: an overdraft is named, as the statements page names it');
     d.getElementById('review-add').click(); await sleep(200);
     ok([...w.__ck.records.values()].filter(r=>r.recordType==='Account'&&/SGD/.test(r.fields.currency_code.value)).length===1,'statement: no second account');
     next=made('b'.repeat(64), 97000);
