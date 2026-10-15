@@ -1,6 +1,6 @@
 # WaffleWealth — Privacy Policy
 
-_Last updated: 15 October 2026_
+_Last updated: 15 October 2026 (the copy in iCloud now covers every input)_
 
 **Contact: wafflewealth.app.support@gmail.com**
 
@@ -29,13 +29,13 @@ If your iPhone backs itself up to iCloud or to a computer, iOS includes the app'
 
 ## The copy in your iCloud
 
-From version 1.1, WaffleWealth can keep a copy of your accounts, balances, transactions, documents and statements in your own iCloud, so that you can upload statements and add transactions from a computer at [the web page](web/) and find them on your iPhone.
+From version 1.1, WaffleWealth can keep a copy of everything you have put into it in your own iCloud, so that you can upload statements and make changes from a computer at [the web page](web/) and find them on your iPhone, and so that a new iPhone gets your whole file.
 
 - **It is off when you install or update the app.** You turn it on yourself, in Settings › iCloud, and you can turn it off at any time.
 - **Where it goes:** the private database of your own iCloud account, through Apple's CloudKit, in WaffleWealth's container. Only someone signed in with your Apple ID can read it. We, the developer, have no access to your private iCloud data.
-- **What goes:** your accounts (names, currencies, categories and settings), the balances recorded for them, balances you took back, transactions, documents with their files, and the statements you added (which file, which account each bank account became, and each line as the bank printed it). Your income and spending, planned items, assumptions, target and history marks stay on your iPhone.
+- **What goes:** your accounts (names, currencies, categories and settings), the balances recorded for them, balances you took back, transactions, documents with their files, the statements you added (which file, which account each bank account became, and each line as the bank printed it), your income and spending and the other assumptions, planned items, your target, exchange rates, account groups, history marks, and the record of how your assumptions and rates changed over time. Whether the app fetches exchange rates is a setting of each iPhone and does not go. Nothing the app works out from these figures is stored anywhere: each device works it out again.
 - **How it is protected:** Apple encrypts iCloud data in transit and at rest. If you use Advanced Data Protection, it is end-to-end encrypted, and the web page can reach it only if you turn on "Access iCloud Data on the Web" in your Apple ID settings. Apple's handling of iCloud data is described in [Apple's privacy policy](https://www.apple.com/legal/privacy/).
-- **The web page** at `/web/` runs in your browser. You sign in with your Apple ID through Apple; we never see your password. The page loads Apple's CloudKit library and talks to Apple's iCloud servers and nothing else. It has no visit counter. Statements you upload there are read by WaffleWealth on your iPhone, not on any server.
+- **The web page** at `/web/` runs in your browser. You sign in with your Apple ID through Apple; we never see your password. The page loads Apple's CloudKit library and talks to Apple's iCloud servers and nothing else. It has no visit counter. A file you upload there goes into the same private database, in pieces of half a megabyte that your iPhone puts back together; it is never sent anywhere else. Statements you upload there are read by WaffleWealth on your iPhone, not on any server.
 - **Turning it off** stops the copying and leaves the copy in iCloud as it is. **"Remove the copy from iCloud"** in Settings deletes everything WaffleWealth keeps there, including uploaded documents. Neither changes anything on your iPhone.
 - **Notifications from iCloud** are silent: they tell the app something changed so it can fetch it, and carry no figures.
 
