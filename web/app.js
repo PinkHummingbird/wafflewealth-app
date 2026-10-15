@@ -256,7 +256,7 @@
       </div>`;
     }
     return `<div class="row clickable${open ? " editing" : ""}" data-movement="${esc(m.key)}" tabindex="0" role="button" aria-expanded="${open}" aria-label="${esc(title)}, ${open ? "close" : "open"}">
-      <span class="ic" aria-hidden="true">${open ? "▾" : "▸"}</span>
+      <span class="ic chev${open ? " open" : ""}" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <div class="main"><span class="t">${esc(title)}</span><span class="d">${esc(parts)}</span>${between}</div>
       <div class="end"><span class="amt${m.net > 0 ? " in" : ""}">${esc(M.formatSigned(m.net, m.currency))}</span></div>
     </div>${detail}`;

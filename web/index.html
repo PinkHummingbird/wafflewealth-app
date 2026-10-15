@@ -192,6 +192,9 @@ form.f { display: flex; flex-direction: column; gap: 14px; }
 .inline-form .field { flex: 1 1 140px; }
 .check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--fs-small); cursor: pointer; }
 .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.ic.chev svg { display: block; transition: transform 0.15s ease; }
+.ic.chev.open svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .ic.chev svg { transition: none; } }
 .mv-open { padding: 6px 0 4px 14px; margin-left: 18px; border-left: 2px solid var(--rule); }
 .mv-figs { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: var(--fs-small); margin-bottom: 6px; }
 .mv-figs b { font-variant-numeric: tabular-nums; }
@@ -447,8 +450,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=8"></script>
-<script src="cloud.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="money.js?v=9"></script>
+<script src="cloud.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
