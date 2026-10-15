@@ -172,6 +172,19 @@ let ENGINES={};
   const gbp=d.querySelector('[data-rate="GBP"]'); gbp.value='1.3'; submit(d,'rates-form'); await sleep(150);
   ok(store.rows.get('rate-GBP').f.rate==='1.3' && store.rows.get('rate-GBP').f.source==='MANUAL','currencies: a rate typed, held as Manual');
   d.getElementById('back').click(); await sleep(60);
+  // history
+  const hb=()=>d.getElementById('history-body').textContent;
+  d.getElementById('tab-history').click(); await sleep(200);
+  ok(/What you were worth/.test(hb()) && d.querySelector('#hist-chart svg path.line'),'history: the line drawn');
+  ok(/What moved it/.test(hb()) && /Savings \(UK\)/.test(hb()) && /New/.test(hb()),'history: what moved it, a new account named');
+  w.prompt=()=> 'Before the move'; d.querySelector('[data-h="mark"]').click(); await sleep(200);
+  ok(store.markers().length===1 && store.markers()[0].f.label==='Before the move' && store.markers()[0].f.taken_on===w.WWMoney.today(),'history: a moment marked');
+  d.querySelector(`[data-h-archive="${store.markers()[0].name}"]`).click(); await sleep(200);
+  ok(store.markers().length===0 && store.markers(true).length===1,'history: a mark archived');
+  w.confirm=()=>true; d.querySelector('[data-h-delete]').click(); await sleep(200);
+  ok(store.markers(true).length===0,'history: a mark deleted');
+  d.querySelector('details.more').open=true; await sleep(20);
+  ok(/Side by side/.test(hb()) && d.querySelector('table.snap') && /How the forecast held up/.test(hb()),'history: side by side and the forecast');
   // projection, worked out here
   w.WWProjection = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','projection.mjs')).href);
   w.WWApp.render(); await sleep(50);
@@ -417,6 +430,10 @@ let ENGINES={};
   setVal(d,'t-amount','100000'); submit(d,'target-form'); await sleep(200);
   const tg=w.__ck.records.get('target-1');
   ok(tg && tg.fields.amount_minor.value===10000000 && tg.fields.amount_minor.type==='INT64' && tg.fields.basis.value==='NET_WORTH' && /by_month/.test(tg.fields.nulls.value),'icloud: the target, as the app keeps it '+JSON.stringify(tg&&tg.fields));
+  // a mark, as the phone keeps one
+  await w.WWApp.state.store.addMarker('Mark 16 Oct 2026','2026-10-16'); await sleep(50);
+  const mk=[...w.__ck.records.values()].find(r=>r.recordType==='Marker');
+  ok(mk && /^[0-9a-f]{32}$/.test(mk.recordName) && mk.fields.taken_on.value==='2026-10-16' && /archived_at/.test(mk.fields.nulls.value) && mk.fields.created_at.value,'icloud: a mark named as the phone names one, its empty date named');
   // sign out
   w.__ck.signOut(); await sleep(100);
   ok(!d.getElementById('welcome').hidden && d.getElementById('workspace').hidden,'icloud: sign out returns to welcome');

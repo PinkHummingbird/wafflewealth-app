@@ -618,7 +618,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=18"), import("./statement-save.mjs?v=18")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=19"), import("./statement-save.mjs?v=19")]);
     return { ...read, ...save };
   }
 
@@ -773,7 +773,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=18");
+    return import("./projection.mjs?v=19");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1360,9 +1360,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=18"),
-        globalThis.WWReadings || import("./readings.mjs?v=18"),
-        globalThis.WWHistory || import("./history.mjs?v=18"),
+        globalThis.WWProjection || import("./projection.mjs?v=19"),
+        globalThis.WWReadings || import("./readings.mjs?v=19"),
+        globalThis.WWHistory || import("./history.mjs?v=19"),
       ]);
       return { P, R, H };
     },

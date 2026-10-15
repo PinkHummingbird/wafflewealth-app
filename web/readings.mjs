@@ -14,7 +14,7 @@
 import {
   Dec, dec, project, convert, minorOf, occurrences, signedAmount, addMonthsToMonth, monthsSince,
   unlockMonth, birthOf, ratePayment, pays, ProjectionError, INT64_MAX, INT64_MIN,
-} from './projection.mjs?v=18';
+} from './projection.mjs?v=19';
 
 export const MONTH_CAP = 600;
 export const TREND_WINDOW = 12;
