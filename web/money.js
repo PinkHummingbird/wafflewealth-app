@@ -164,9 +164,30 @@
     return { ok: true, value };
   }
 
+
+  /** The app's account categories (WaffleWealthCore/Accounts/AccountCategory.swift): a label,
+      which changes no figure. [key, name, tag] by group. */
+  const accountCategories = {
+    invested: [["STOCKS", "Stocks & shares", "Stocks"], ["FUNDS", "Funds & ETFs", "Funds"], ["BONDS", "Bonds"], ["TREASURY", "Treasury & government bonds", "Treasury"],
+      ["FIXED_DEPOSIT", "Fixed deposit"], ["MONEY_MARKET", "Money market fund", "Money market"], ["RETIREMENT", "Retirement & pension", "Pension"],
+      ["PROPERTY_INVESTMENT", "Investment property", "Property"], ["CRYPTO", "Crypto"], ["COMMODITIES", "Commodities & metals", "Commodities"],
+      ["PRIVATE_EQUITY", "Private company stake", "Private stake"], ["ENDOWMENT", "Investment-linked insurance", "Insurance plan"],
+      ["STRUCTURED", "Structured product", "Structured"], ["OTHER_INVESTMENT", "Other investment", "Other"]],
+    cash: [["CURRENT", "Current account", "Current"], ["SAVINGS", "Savings account", "Savings"], ["CASH", "Cash on hand", "Cash"], ["EWALLET", "E-wallet & prepaid", "E-wallet"],
+      ["EMERGENCY", "Emergency fund", "Emergency"], ["RECEIVABLE", "Money owed to me", "Owed to me"], ["DEPOSIT_HELD", "Deposit held for me", "Deposit held"],
+      ["HOME", "Home I live in", "Home"], ["VEHICLE", "Vehicle"], ["VALUABLES", "Valuables & collectibles", "Valuables"], ["OTHER_ASSET", "Other"]],
+    liability: [["HOME_MORTGAGE", "Home mortgage", "Mortgage"], ["PROPERTY_LOAN", "Investment property loan", "Property loan"], ["CAR_LOAN", "Car loan"],
+      ["PERSONAL_LOAN", "Personal loan", "Personal"], ["STUDENT_LOAN", "Student loan", "Student"], ["CREDIT_CARD", "Credit card"], ["BNPL", "Buy now, pay later", "Pay later"],
+      ["OVERDRAFT", "Overdraft"], ["INSURANCE", "Insurance premium", "Insurance"], ["TAX", "Tax owed"], ["BUSINESS_LOAN", "Business loan", "Business"],
+      ["MARGIN_LOAN", "Margin loan", "Margin"], ["FAMILY_LOAN", "Money I owe someone", "I owe someone"], ["RENT_OWED", "Rent owed"], ["MEDICAL", "Medical bill"],
+      ["BILLS", "Bills owed"], ["OTHER_LIABILITY", "Other"]],
+  };
+  const accountCategoryByKey = new Map(Object.values(accountCategories).flat().map(([key, name, tag]) => [key, { key, name, tag: tag || name }]));
+  const accountCategory = (key) => accountCategoryByKey.get(key) || null;
+
   globalThis.WWMoney = {
     parsePercent,
     scale, currencies, currencyName, parseAmount, plain, format, formatSigned, editable,
-    today, isDay, dayLabel, monthLabel, stamp, uuid, bytes, categories, categoryName,
+    today, isDay, dayLabel, monthLabel, stamp, uuid, bytes, categories, categoryName, accountCategories, accountCategory,
   };
 })();

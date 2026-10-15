@@ -109,3 +109,26 @@ details.card.sumgroup > summary { padding: 0 0 6px; font-weight: 600; }
 small.n { color: var(--ink-2); font-size: 0.8rem; margin-left: 4px; }
 .card > h2 { margin: 0 0 10px; font-size: 1.1rem; }
 .card .segs + .cap, .card .segs + .two, .card .segs + .sumrow { margin-top: 10px; }
+
+/* Your money */
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.tools .grow { flex: 1; }
+.tools select, .month.sec select { min-height: 32px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink); padding: 0 8px; font-size: 0.85rem; }
+.month.sec { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.linklike { border: 0; background: none; padding: 0; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.linklike:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 0.2em; }
+.row.acct .main { display: flex; flex-direction: column; gap: 3px; }
+.row .d.down { color: var(--alert); }
+.end .d { display: block; color: var(--ink-2); font-size: 0.8rem; text-align: right; }
+small.cap2 { display: block; color: var(--ink-2); font-size: 0.8rem; font-weight: 400; }
+.ub { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ub input, input.rate { width: 9.5em; min-height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink); padding: 0 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.row-inline.wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row-inline.wrap select { min-height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink); padding: 0 8px; }
+fieldset.group { border: 1px solid var(--rule); border-radius: var(--r-md); padding: 12px 14px; margin: 12px 0 0; display: grid; gap: 8px; }
+fieldset.group legend { font-weight: 600; padding: 0 6px; }
+label.check { display: flex; gap: 8px; align-items: center; }
+label.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.answer .tags { margin-top: 6px; }
+.answer .formacts { margin-top: 10px; }
+.card > .cap, .summary > .cap, fieldset.group .cap, .field > .cap { font-size: 0.85rem; color: var(--ink-2); margin: 4px 0 0; }

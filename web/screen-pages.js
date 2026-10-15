@@ -48,7 +48,7 @@
           ${ed.id ? `<button type="button" class="linkbtn danger" data-g="delete">Delete group</button>` : ""}</div>
         <p class="error" id="g-error" role="alert" hidden></p></form>` : "";
     box.innerHTML = `<div class="stack1">${form}<div class="card list">
-      ${list.length ? list.map((g) => `<div class="row"><div class="main"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.accountIds.map(name).filter(Boolean).join(", ") || "No accounts at the moment")}</span></div>
+      ${list.length ? list.map((g) => `<div class="row plain"><div class="main"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.accountIds.map(name).filter(Boolean).join(", ") || "No accounts at the moment")}</span></div>
         <div class="end"><button type="button" class="linkbtn" data-g-edit="${esc(g.id)}">Edit</button></div></div>`).join("")
         : `<p class="empty">Put accounts together under one name and see where they head as a line of their own.</p>`}
       ${ed ? "" : `<button type="button" class="btn ghost small" data-g="new">+ New group</button>`}</div></div>`;
@@ -114,7 +114,8 @@
   async function target(arg, box) {
     const store = WW.state.store;
     const w = await S.projectionWork(store);
-    if (w.waiting || w.error) { box.innerHTML = w.waiting ? S.pageHelpers.waiting : ""; return; }
+    if (w.waiting) { box.innerHTML = S.pageHelpers.waiting; return; }
+    if (w.error) w.projection = { months: [{ locked: 0n }] };
     const t = store.target(), base = w.base, today = w.today;
     const ret = ui.pct(w.ctx.assumptions.returnPct);
     const locked = w.projection.months.some((m) => m.locked !== 0n);
@@ -138,7 +139,8 @@
     let take = "";
     if (t) {
       const by = t.f.by_month;
-      if (!by) take = `<div class="card"><h2>What it would take</h2><button type="button" class="btn ghost small" data-t="aim">Pick a month to aim for</button>
+      if (w.error) take = "";
+      else if (!by) take = `<div class="card"><h2>What it would take</h2><button type="button" class="btn ghost small" data-t="aim">Pick a month to aim for</button>
         <p class="cap">Pick a month and the app says what reaching the amount by then would take: saving more each month, or a higher yearly return. One at a time, never both.</p></div>`;
       else {
         const y0 = Number(today.slice(0, 4));

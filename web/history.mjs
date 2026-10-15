@@ -8,7 +8,7 @@
    happened. Converted at today's rates, as the app converts. Nothing is stored.
 
    web/tests/history.test.mjs holds them to a corpus the app itself worked out. */
-import { Dec, convert, minorOf, project, addMonthsToMonth, monthsSince } from './projection.mjs?v=17';
+import { Dec, convert, minorOf, project, addMonthsToMonth, monthsSince } from './projection.mjs?v=18';
 
 const abs = (v) => (v < 0n ? -v : v);
 export const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

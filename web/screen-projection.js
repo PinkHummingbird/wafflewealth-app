@@ -295,7 +295,7 @@
     const list = all ? w.coming : w.coming.slice(0, 3);
     return `<div class="card list coming">
       <button type="button" class="head rowlink" data-go="planned"><h2>Coming up · next 30 days</h2><span class="chev" aria-hidden="true">›</span></button>
-      ${list.map((l) => `<div class="row"><div class="main"><span class="t">${esc(l.name)}</span><span class="d">${esc(M.dayLabel(l.date))}</span></div><div class="end"><span class="amt">${esc(ui.signed(l.amount, w.base))}</span></div></div>`).join("")}
+      ${list.map((l) => `<div class="row plain"><div class="main"><span class="t">${esc(l.name)}</span><span class="d">${esc(M.dayLabel(l.date))}</span></div><div class="end"><span class="amt">${esc(ui.signed(l.amount, w.base))}</span></div></div>`).join("")}
       ${w.coming.length > 3 ? `<button type="button" class="linkbtn" data-act="coming">${all ? "Show fewer" : `Show ${w.coming.length - 3} more`}</button>` : ""}
     </div>`;
   }

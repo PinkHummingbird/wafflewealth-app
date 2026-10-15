@@ -351,6 +351,7 @@
   }
 
   function renderAccounts() {
+    if (globalThis.WW && WW.screens && WW.screens.money) return WW.screens.money.accounts();
     const store = state.store;
     const accounts = store.accounts();
     // What each currency adds up to: own less owe. No exchange rates here — those live on the
@@ -617,7 +618,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=17"), import("./statement-save.mjs?v=17")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=18"), import("./statement-save.mjs?v=18")]);
     return { ...read, ...save };
   }
 
@@ -772,7 +773,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=17");
+    return import("./projection.mjs?v=18");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -973,11 +974,32 @@
     }
     // A new item starts in the base currency, which may only be known once the phone's settings arrive.
     if (!state.plannedEditing && !$("pi-name").value && !$("pi-amount").value) $("pi-currency").value = base;
-    const active = store.planned(false);
+    const every = store.planned(false);
     const away = store.planned(true);
-    $("planned-count").textContent = active.length ? `${active.length} planned` : "";
-    $("planned").innerHTML = active.length ? active.map((p) => plannedRow(p, base)).join("")
-      : `<p class="empty">Nothing planned yet. Add money you know is coming in or going out: a bonus, school fees, a car.</p>`;
+    // The app's side chips, filter and order (PlannedOrder); finished items always go last.
+    const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    const side = (globalThis.WW && WW.screens && WW.screens.moneyParts && WW.screens.moneyParts.mv.plannedSide) || "all";
+    const filter = read("ww.plannedFilter") || "", sort = read("ww.plannedSort") || "soonest";
+    const today = M.today();
+    const next = new Map(every.map((p) => [p.name, C.nextOccurrence(p, today)]));
+    let active = every.filter((p) => side === "all" || p.f.direction === (side === "in" ? "IN" : "OUT"));
+    if (filter === "repeats") active = active.filter((p) => p.f.frequency !== "ONCE");
+    else if (filter === "oneoff") active = active.filter((p) => p.f.frequency === "ONCE");
+    else if (filter === "tocome") active = active.filter((p) => next.get(p.name));
+    else if (filter) active = active.filter((p) => p.f.category === filter);
+    const amount = (p) => Number(p.f.amount_minor);
+    const by = { soonest: (a, b) => String(next.get(a.name)).localeCompare(String(next.get(b.name))), furthest: (a, b) => String(next.get(b.name)).localeCompare(String(next.get(a.name))),
+      largest: (a, b) => amount(b) - amount(a), smallest: (a, b) => amount(a) - amount(b), name: (a, b) => a.f.name.localeCompare(b.f.name) }[sort] || (() => 0);
+    active = [...active].sort((a, b) => (Boolean(next.get(a.name)) !== Boolean(next.get(b.name)) ? (next.get(a.name) ? -1 : 1) : by(a, b) || a.f.name.localeCompare(b.f.name)));
+    const cats = [...new Set(every.map((p) => p.f.category).filter(Boolean))];
+    const tools = every.length ? `<div class="tools">
+      <div class="segs">${[["all", "All"], ["in", "Money in"], ["out", "Money out"]].map(([k, l]) => `<button type="button" class="segbtn" data-planned-side="${k}" aria-pressed="${side === k}">${l}</button>`).join("")}</div>
+      ${every.length > 1 ? `<select data-planned-filter aria-label="Show only"><option value="">Everything</option><optgroup label="What it does"><option value="repeats" ${filter === "repeats" ? "selected" : ""}>Repeats</option><option value="oneoff" ${filter === "oneoff" ? "selected" : ""}>One-off</option><option value="tocome" ${filter === "tocome" ? "selected" : ""}>Still to come</option></optgroup>${cats.length ? `<optgroup label="What it is">${cats.map((c) => `<option value="${esc(c)}" ${filter === c ? "selected" : ""}>${esc(M.categoryName(c))}</option>`).join("")}</optgroup>` : ""}</select>
+      <select data-planned-sort aria-label="Order">${[["soonest", "Soonest first"], ["furthest", "Furthest first"], ["largest", "Largest first"], ["smallest", "Smallest first"], ["name", "Name A–Z"]].map(([k, l]) => `<option value="${k}" ${sort === k ? "selected" : ""}>${l}</option>`).join("")}</select>` : ""}</div>` : "";
+    $("planned-count").textContent = every.length ? `${every.length} planned` : "";
+    $("planned").innerHTML = every.length ? tools + (active.length ? active.map((p) => plannedRow(p, base)).join("") : `<p class="empty">Nothing here matches that.</p>`)
+        + `<p class="cap foot">${active.length < every.length ? `Showing ${active.length} of ${every.length}. The projection still counts them all.` : "Planned money is not set to grow: it never earns the growth rate."}</p>`
+      : `<div class="emptyscreen"><h2>Nothing planned yet</h2><p>Money that arrives or leaves on a date rather than every month: a bonus, school fees, rent paid quarterly. The line counts each one in the month it lands.</p></div>`;
     $("planned-away").innerHTML = away.length ? `<div class="month"><h3>Put away</h3></div>` + away.map((p) => plannedRow(p, base, true)).join("") : "";
   }
 
@@ -999,7 +1021,7 @@
     ].join("");
     const inBase = p.f.currency_code && p.f.currency_code !== base ? `<span class="d">in ${esc(code)}</span>` : "";
     const acts = away
-      ? `<button type="button" class="linkbtn" data-planned-restore="${esc(p.name)}">Put back</button><button type="button" class="linkbtn danger" data-planned-delete="${esc(p.name)}">Delete</button>`
+      ? `<button type="button" class="linkbtn" data-planned-restore="${esc(p.name)}">Put back</button><button type="button" class="linkbtn danger" data-planned-delete="${esc(p.name)}">Remove for good</button>`
       : `<button type="button" class="linkbtn" data-planned-edit="${esc(p.name)}">Edit</button><button type="button" class="linkbtn" data-planned-away="${esc(p.name)}">Put away</button>`;
     return `<div class="row plain${state.plannedEditing && state.plannedEditing.name === p.name ? " editing" : ""}">
       <div class="main"><span class="t">${esc(p.f.name)}</span><span class="d">${esc(when)}</span>
@@ -1338,9 +1360,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=17"),
-        globalThis.WWReadings || import("./readings.mjs?v=17"),
-        globalThis.WWHistory || import("./history.mjs?v=17"),
+        globalThis.WWProjection || import("./projection.mjs?v=18"),
+        globalThis.WWReadings || import("./readings.mjs?v=18"),
+        globalThis.WWHistory || import("./history.mjs?v=18"),
       ]);
       return { P, R, H };
     },

@@ -35,6 +35,8 @@
     Assumptions: ["birth_year", "birth_month", "income_day", "fire_interest_pct", "fire_growth_pct"],
     Statement: ["institution", "file_name", "period_from", "period_to"],
     StatementLine: ["posted_on", "made_on", "running_minor", "ref", "line_kind", "foreign_currency", "foreign_minor"],
+    Target: ["by_month"],
+    Marker: ["created_at", "archived_at"],
   };
   /* The parts of the assumptions the projection reads: a change to any of them is a new line
      of history, exactly as the app appends one (AssumptionVersion.appendIfChanged). */
@@ -890,6 +892,87 @@
       const w = this.rows.get(`withdrawal-${balance.name}`);
       if (w) await this.drop(w);
     }
+
+    // ---- accounts, in full ----
+
+    /** The app's checks on an account (Account.validate), in its words. */
+    checkAccountDraft(d) {
+      const problems = {};
+      const name = (d.name || "").trim();
+      if (name.length < 1 || name.length > 60) problems.name = "Give the account a name of up to 60 characters.";
+      if (d.balance && !d.balance.ok) problems.balance = d.balance.reason === "empty" ? "Type the balance, or 0." : d.balance.reason;
+      if (d.income) {
+        if (d.income.basis === "RATE" && !d.income.rate.ok) problems.income = d.income.rate.reason;
+        if (d.income.basis === "AMOUNT" && !d.income.amount.ok) problems.income = d.income.amount.reason === "empty" ? "Type each payment." : d.income.amount.reason;
+      }
+      if (d.availability.mode !== "now" && d.kind !== "ASSET") problems.availability = "Money you owe is owed whatever age you are, so only an asset can be restricted.";
+      if (d.availability.mode === "age" && !(d.availability.age >= 40 && d.availability.age <= 100)) problems.availability = "Choose an age between 40 and 100.";
+      if (d.availability.mode === "age" && !(d.birthYear >= 1900 && d.birthYear <= 2100 && d.birthMonth >= 1 && d.birthMonth <= 12)) problems.birth = "Check the year and month of birth.";
+      if (d.rate != null && !(Number(d.rate) > 0)) problems.rate = "Enter a rate greater than zero.";
+      return problems;
+    }
+
+    accountFields(d) {
+      const inc = d.income;
+      return {
+        name: d.name.trim(), kind: d.kind, currency_code: d.currency, is_invested: d.invested && d.kind === "ASSET" ? 1 : 0,
+        category: d.category || null,
+        income_basis: inc ? inc.basis : null,
+        income_rate_pct: inc && inc.basis === "RATE" ? inc.rate.value : null,
+        income_amount_minor: inc && inc.basis === "AMOUNT" ? inc.amount.minor : null,
+        income_frequency: inc ? inc.frequency : null,
+        income_reinvested: inc && inc.reinvested ? 1 : 0,
+        available_from_age: d.kind === "ASSET" && d.availability.mode === "age" ? d.availability.age : null,
+        available_from_month: d.kind === "ASSET" && d.availability.mode === "month" ? d.availability.month : null,
+      };
+    }
+
+    /** A new account and its first balance, today. */
+    async createAccount(d) {
+      const now = M.stamp();
+      const id = M.uuid();
+      const account = { name: id, type: "Account", f: { ...this.accountFields(d), display_order: this.nextDisplayOrder(), archived_at: null, created_at: now } };
+      const balance = { name: M.uuid(), type: "Balance", f: { account_id: id, value_minor: d.balance.minor, as_of_date: M.today(), source: "MANUAL", created_at: now } };
+      const saved = await this.backend.save([account, balance], { atomic: true });
+      for (const r of saved) this.rows.set(r.name, r);
+      return saved[0];
+    }
+
+    /** Changes the account; a new balance only when the figure typed differs from the latest. */
+    async updateAccount(account, d) {
+      const f = { ...account.f, ...this.accountFields(d) };
+      const records = [{ name: account.name, type: "Account", tag: account.tag, f }];
+      const latest = this.latest(account.name);
+      if (d.balance && (!latest || Number(latest.f.value_minor) !== d.balance.minor)) {
+        records.push({ name: M.uuid(), type: "Balance", f: { account_id: account.name, value_minor: d.balance.minor, as_of_date: M.today(), source: "MANUAL", created_at: M.stamp() } });
+      }
+      const saved = await this.backend.save(records, { atomic: true });
+      for (const r of saved) this.rows.set(r.name, r);
+      return saved[0];
+    }
+
+    /** Several balances at once, all dated today, kept whole (Update balances). */
+    async recordBalances(list) {
+      const now = M.stamp(), day = M.today();
+      const records = list.map(({ accountId, minor }) => ({ name: M.uuid(), type: "Balance", f: { account_id: accountId, value_minor: minor, as_of_date: day, source: "MANUAL", created_at: now } }));
+      const saved = await this.backend.save(records, { atomic: true });
+      for (const r of saved) this.rows.set(r.name, r);
+    }
+
+    /** An account put away goes for good: every balance it had, and its place in any group. */
+    async deleteAccount(account) {
+      const balances = this.of("Balance").filter((b) => b.f.account_id === account.name);
+      const ids = new Set(balances.map((b) => b.name));
+      const withdrawals = this.of("BalanceWithdrawal").filter((w) => ids.has(w.name.replace(/^withdrawal-/, "")));
+      for (const g of this.groups().filter((x) => x.accountIds.includes(account.name))) {
+        await this.put("AccountGroup", g.id, { ...g.record.f, members: g.accountIds.filter((id) => id !== account.name).join(",") }, g.record);
+      }
+      const gone = [...withdrawals, ...balances, account];
+      for (let i = 0; i < gone.length; i += 200) await this.backend.remove(gone.slice(i, i + 200));
+      for (const r of gone) this.rows.delete(r.name);
+    }
+
+    async deletePlanned(item) { await this.drop(item); }
 
     // ---- statements read here ----
 

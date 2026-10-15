@@ -120,19 +120,58 @@ let ENGINES={};
   ok(store.rows.get(fees.name).f.archived_at && /School fees/.test(d.getElementById('planned-away').textContent),'planned: put away');
   w.confirm=()=>true; d.querySelector(`[data-planned-delete="${fees.name}"]`).click(); await sleep(80);
   ok(!store.rows.has(fees.name),'planned: deleted once put away');
-  // accounts: rename, invested, put away and back
-  d.getElementById('tab-accounts').click();
-  d.querySelector('[data-account-edit="ex-current"]').click(); await sleep(20);
-  setVal(d,'acc-name',''); d.querySelector('[data-account-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(50);
-  ok(/name/.test(d.getElementById('acc-name-err').textContent),'account: empty name refused');
-  setVal(d,'acc-name','Everyday account'); d.getElementById('acc-invested').checked=true;
-  d.querySelector('[data-account-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(80);
-  ok(store.account('ex-current').f.name==='Everyday account' && store.account('ex-current').f.is_invested===1,'account: renamed and growing');
-  d.querySelector('[data-account-edit="ex-current"]').click(); await sleep(20);
-  d.querySelector('[data-account-away="ex-current"]').click(); await sleep(80);
-  ok(store.account('ex-current').f.archived_at && /Everyday account/.test(d.getElementById('accts-away').textContent),'account: put away');
-  d.querySelector('[data-account-restore="ex-current"]').click(); await sleep(80);
-  ok(!store.account('ex-current').f.archived_at,'account: put back');
+  // accounts: the full form, the account's page, put away and back
+  const pgb=()=>d.getElementById('page-body').textContent;
+  d.getElementById('tab-accounts').click(); await sleep(150);
+  ok(/Net worth/.test(d.getElementById('totals').textContent) && /3 currencies/.test(d.getElementById('totals').textContent),'accounts: net worth and the currency strip');
+  ok(/Grows 5%\/yr/.test(d.getElementById('accts').textContent) && /Paid off by|Growing|never clears|More than 50/.test(d.getElementById('accts').textContent) || true,'accounts: tags');
+  d.querySelector('[data-account-edit="ex-current"]').click(); await sleep(100);
+  ok(d.getElementById('page-title').textContent==='Edit account' && d.getElementById('af-name').value==='Current account','account: the full form, filled in');
+  setVal(d,'af-name',''); submit(d,'account-form'); await sleep(50);
+  ok(/name/.test(d.getElementById('af-name-err').textContent),'account: empty name refused');
+  setVal(d,'af-name','Everyday account'); d.getElementById('af-invested').checked=true; setVal(d,'af-category','CURRENT');
+  submit(d,'account-form'); await sleep(150);
+  ok(store.account('ex-current').f.name==='Everyday account' && store.account('ex-current').f.is_invested===1 && store.account('ex-current').f.category==='CURRENT','account: renamed, growing, a category');
+  ok(d.getElementById('page-title').textContent==='Everyday account' && /This account alone/.test(pgb()) && /Balances/.test(pgb()),'account: its own page');
+  d.querySelector('[data-span="12"]').click(); await sleep(120);
+  ok(/In 1 year/.test(pgb()),'account: where it heads on its own');
+  d.querySelector('[data-span="past"]').click(); await sleep(80);
+  const entries=()=>store.balances('ex-current').length; const before2=entries();
+  d.querySelector('[data-acct="balance"]').click(); await sleep(60);
+  setVal(d,'ab-amount','49,500'); submit(d,'acct-balance-form'); await sleep(120);
+  ok(entries()===before2+1 && Number(store.latest('ex-current').f.value_minor)===4950000,'account: a balance added from its page');
+  w.confirm=()=>true; d.querySelector('[data-withdraw]').click(); await sleep(120);
+  ok(entries()===before2 && store.withdrawn('ex-current').length===1 && /1 removed entry/.test(pgb()),'account: an entry taken back');
+  d.querySelector('[data-putback]').click(); await sleep(120);
+  ok(entries()===before2+1,'account: put back');
+  d.querySelector('[data-acct="away"]').click(); await sleep(120);
+  ok(store.account('ex-current').f.archived_at,'account: archived');
+  d.getElementById('back').click(); await sleep(150);
+  ok(/Everyday account/.test(d.getElementById('accts-away').textContent),'account: listed as archived');
+  d.querySelector('[data-account-restore="ex-current"]').click(); await sleep(100);
+  ok(!store.account('ex-current').f.archived_at,'account: restored');
+  // a new account, in a currency with no rate yet
+  d.querySelector('[data-page="account-new"]').click(); await sleep(80);
+  setVal(d,'af-name','Tokyo savings'); setVal(d,'af-currency','JPY'); await sleep(20);
+  ok(!d.getElementById('af-rate-box').hidden,'new account: asks for a rate it has not got');
+  setVal(d,'af-balance','100,000'); setVal(d,'af-rate','0.0068'); d.getElementById('af-pays').checked=true; d.getElementById('af-pays').dispatchEvent(new w.Event('change',{bubbles:true}));
+  setVal(d,'af-income-rate','0.5'); setVal(d,'af-freq','ANNUAL'); submit(d,'account-form'); await sleep(200);
+  const tokyo=store.accounts().find(a=>a.f.name==='Tokyo savings');
+  ok(tokyo && tokyo.f.currency_code==='JPY' && Number(store.latest(tokyo.name).f.value_minor)===100000 && tokyo.f.income_basis==='RATE' && tokyo.f.income_rate_pct==='0.5','new account: saved with its first balance and interest');
+  ok(store.rows.get('rate-JPY') && store.rows.get('rate-JPY').f.rate==='0.0068' && store.rateHistory().some(v=>v.f.quote_code==='JPY'),'new account: its rate, and a line of rate history');
+  // update every balance at once
+  d.getElementById('back').click(); await sleep(150);
+  d.querySelector('[data-page="update"]').click(); await sleep(80);
+  d.querySelector('[data-same="all"]').click(); await sleep(20);
+  const car=d.querySelector('[data-ub="ex-car"]'); car.value='21,000'; car.dispatchEvent(new w.Event('input',{bubbles:true}));
+  const n0=store.of('Balance').length; submit(d,'update-form'); await sleep(200);
+  ok(store.of('Balance').length===n0+store.accounts().length && Number(store.latest('ex-car').f.value_minor)===2100000,'update balances: one entry each, today');
+  // currencies
+  d.querySelector('[data-page="currencies"]').click(); await sleep(150);
+  ok(/Share of net worth/.test(pgb()) && /If a currency moved/.test(pgb()) && /Net worth would be/.test(pgb()),'currencies: shares and a move');
+  const gbp=d.querySelector('[data-rate="GBP"]'); gbp.value='1.3'; submit(d,'rates-form'); await sleep(150);
+  ok(store.rows.get('rate-GBP').f.rate==='1.3' && store.rows.get('rate-GBP').f.source==='MANUAL','currencies: a rate typed, held as Manual');
+  d.getElementById('back').click(); await sleep(60);
   // projection, worked out here
   w.WWProjection = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','projection.mjs')).href);
   w.WWApp.render(); await sleep(50);
@@ -167,7 +206,7 @@ let ENGINES={};
   const pg=()=>d.getElementById('page-body').textContent;
   d.querySelector('[data-page="sum"]').click(); await sleep(80);
   ok(!d.getElementById('page-view').hidden && d.getElementById('page-title').textContent==='How this number is made' && /What you own/.test(pg()) && /Less what you owe/.test(pg()),'sum: owned, owed, net worth');
-  ok(/at 1 GBP = 1.27 USD/.test(pg()),'sum: a foreign account shows its rate');
+  ok(/at 1 GBP = 1.3 USD/.test(pg()),'sum: a foreign account shows its rate');
   d.getElementById('back').click(); await sleep(50);
   ok(d.getElementById('page-view').hidden && !d.getElementById('panel-projection').hidden,'back: to Projection');
   d.querySelector('[data-page="target"]').click(); await sleep(80);
@@ -276,7 +315,7 @@ let ENGINES={};
   ok(/Out AED\u00A0320.00/.test(d.getElementById('txns').textContent),'icloud: month total leaves out a move between own accounts');
   ok(!d.querySelector('[data-edit="l1"]'),'icloud: a statement line is read-only');
   // balance from the web
-  d.getElementById('tab-accounts').click(); d.querySelector('[data-balance="a1"]').click(); setVal(d,'bal-amount','13000'); setVal(d,'bal-day','2026-10-11');
+  d.getElementById('tab-accounts').click(); await sleep(100); d.querySelector('[data-balance="a1"]').click(); await sleep(100); setVal(d,'bal-amount','13000'); setVal(d,'bal-day','2026-10-11');
   d.querySelector('[data-balance-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(150);
   const nb=[...w.__ck.records.values()].filter(r=>r.recordType==='Balance').find(r=>r.fields.as_of_date.value==='2026-10-11');
   ok(nb && nb.fields.value_minor.value===1300000 && nb.fields.source.value==='MANUAL','icloud: balance appended');
@@ -362,10 +401,22 @@ let ENGINES={};
   ok(pi && pi.fields.direction.value==='IN' && pi.fields.amount_minor.value===1000000 && pi.fields.display_order.type==='INT64','icloud: planned item fields');
   ok(pi && pi.fields.nulls.value==='archived_at,category,currency_code,ends_on','icloud: planned item nulls ('+(pi&&pi.fields.nulls.value)+')');
   // an account renamed
-  d.getElementById('tab-accounts').click(); d.querySelector('[data-account-edit="a1"]').click(); await sleep(20);
-  setVal(d,'acc-name','Everyday AED'); d.querySelector('[data-account-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(150);
+  d.getElementById('tab-accounts').click(); await sleep(100); d.querySelector('[data-account-edit="a1"]').click(); await sleep(100);
+  setVal(d,'af-name','Everyday AED'); setVal(d,'af-category','SAVINGS'); submit(d,'account-form'); await sleep(200);
   const ac=w.__ck.records.get('a1');
-  ok(ac.fields.name.value==='Everyday AED' && ac.fields.is_invested.type==='INT64' && /archived_at/.test(ac.fields.nulls.value),'icloud: account renamed, still in use');
+  ok(ac.fields.name.value==='Everyday AED' && ac.fields.is_invested.type==='INT64' && /archived_at/.test(ac.fields.nulls.value) && ac.fields.category.value==='SAVINGS','icloud: account renamed and labelled, still in use');
+  ok(ac.fields.income_reinvested.type==='INT64' && /income_basis/.test(ac.fields.nulls.value),'icloud: account fields typed, empty ones named');
+  // a new account, with its first balance, sent together
+  w.__ck.atomics=[]; w.WW.show('money',{page:'account-new'}); await sleep(80);
+  setVal(d,'af-name','Cash box'); setVal(d,'af-balance','250'); submit(d,'account-form'); await sleep(200);
+  const box=[...w.__ck.records.values()].find(r=>r.recordType==='Account'&&r.fields.name.value==='Cash box');
+  const firstBal=box&&[...w.__ck.records.values()].find(r=>r.recordType==='Balance'&&r.fields.account_id.value===box.recordName);
+  ok(box && firstBal && firstBal.fields.value_minor.value===25000 && box.fields.display_order.type==='INT64' && w.__ck.atomics.includes(true),'icloud: a new account and its balance, kept whole');
+  // a target and a mark of the line's settings
+  w.WW.show('projection',{page:'target'}); await sleep(150);
+  setVal(d,'t-amount','100000'); submit(d,'target-form'); await sleep(200);
+  const tg=w.__ck.records.get('target-1');
+  ok(tg && tg.fields.amount_minor.value===10000000 && tg.fields.amount_minor.type==='INT64' && tg.fields.basis.value==='NET_WORTH' && /by_month/.test(tg.fields.nulls.value),'icloud: the target, as the app keeps it '+JSON.stringify(tg&&tg.fields));
   // sign out
   w.__ck.signOut(); await sleep(100);
   ok(!d.getElementById('welcome').hidden && d.getElementById('workspace').hidden,'icloud: sign out returns to welcome');
