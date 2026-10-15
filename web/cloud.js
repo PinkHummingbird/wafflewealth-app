@@ -60,6 +60,8 @@
   /** A sentence for a CloudKit failure, in the page's words. */
   function explain(error) {
     const code = codeOf(error);
+    // The whole error, for whoever opens the browser's console; the page shows a sentence.
+    if (error && globalThis.console) console.warn("WaffleWealth: iCloud error", code, error);
     switch (code) {
       case "AUTHENTICATION_REQUIRED": case "AUTHENTICATION_FAILED":
         return "You're signed out of iCloud. Sign in again to carry on.";
@@ -69,13 +71,21 @@
         return "Your iCloud storage is full, so this can't be saved. Free some space and try again.";
       case "CONFLICT": case "ATOMIC_ERROR":
         return "This changed somewhere else a moment ago. The page has the latest now: please try again.";
+      case "UNEXPECTED_SERVER_RESPONSE":
+        // Apple's library says this when a file's bytes never reached Apple's storage server:
+        // the browser stopped the request before it left. Saving records still works.
+        if (/NETWORK_ERROR/.test(String(error && (error.reason || error.message)))) {
+          return "The file couldn't reach Apple's storage server: something in this browser or network stopped it. An ad or privacy blocker, a VPN or a work network can do this. Try another browser, or turn the blocker off for this page, and upload again.";
+        }
+        break;
       case "NETWORK_ERROR": case "SERVICE_UNAVAILABLE": case "THROTTLED": case "TRY_AGAIN_LATER":
         return "iCloud couldn't be reached. Check the connection and try again.";
       case "ZONE_NOT_FOUND":
         return "There's nothing from WaffleWealth in this iCloud yet.";
       default:
-        return "iCloud: " + ((error && (error.reason || error.message)) || "something went wrong") + (code ? ` (${code})` : "");
+        break;
     }
+    return "iCloud: " + ((error && (error.reason || error.message)) || "something went wrong") + (code ? ` (${code})` : "");
   }
 
   /* ---------- the real one: the user's private iCloud ---------- */
