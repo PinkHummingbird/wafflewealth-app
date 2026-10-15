@@ -216,7 +216,7 @@
       const download = d.file && d.file.downloadURL
         ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>`
         : Number(d.f.parts) > 0 ? `<button type="button" class="linkbtn" data-download-doc="${esc(d.name)}">Download</button>` : "";
-      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
+      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip|ofx|qfx|qbo)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
       const read = readable ? `<button type="button" class="linkbtn" data-read-doc="${esc(d.name)}">Read here</button>` : "";
       return `<div class="row">
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=21"), import("./statement-save.mjs?v=21")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=22"), import("./statement-save.mjs?v=22")]);
     return { ...read, ...save };
   }
 
@@ -652,6 +652,7 @@
 
   function checkNote(a) {
     const c = a.check || {};
+    if (a.openingWorkedOut) return `<span class="note">The bank's own figures, from its download: it carries no opening balance to check the lines against.</span>`;
     if (c.ok) return `<span class="note good">Adds up: the opening balance and every line come to the closing balance.</span>`;
     if (c.checked) return `<span class="note bad">Doesn't add up: the lines come to ${esc(M.format(c.expected, a.currency))}, the statement says ${esc(M.format(a.closing, a.currency))}. Left out unless you include it; your iPhone can read it too.</span>`;
     return `<span class="note">No opening balance printed, so there's nothing to check the lines against.</span>`;
@@ -775,7 +776,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=21");
+    return import("./projection.mjs?v=22");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1379,9 +1380,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=21"),
-        globalThis.WWReadings || import("./readings.mjs?v=21"),
-        globalThis.WWHistory || import("./history.mjs?v=21"),
+        globalThis.WWProjection || import("./projection.mjs?v=22"),
+        globalThis.WWReadings || import("./readings.mjs?v=22"),
+        globalThis.WWHistory || import("./history.mjs?v=22"),
       ]);
       return { P, R, H };
     },

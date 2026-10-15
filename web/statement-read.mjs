@@ -4,12 +4,12 @@
    the app reads; PDFs are opened with the copy of PDF.js that page keeps on this site. Nothing
    is sent anywhere to be read. Loaded only when someone asks to read a document. */
 import * as pdfjs from '../statements/vendor/pdfjs/pdf.min.mjs';
-import { pagesFromPdf, readStatement, readCsvStatement, unzip, labelLines } from '../statements/readers.js';
-import { fingerprint } from './statement-save.mjs?v=21';
+import { pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, ofxText, isOfxName, looksLikeOfx, unzip, labelLines } from '../statements/readers.js';
+import { fingerprint } from './statement-save.mjs?v=22';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('../statements/vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
-const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : /\.zip$/i.test(name) ? 'zip' : null);
+const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx' : /\.zip$/i.test(name) ? 'zip' : null);
 
 /**
  * One document's file → `{ statements, problems }`. A zip is the CSVs in it, each a statement
@@ -20,14 +20,23 @@ export async function readDocument(name, bytes) {
   const statements = [];
   const problems = [];
   const kind = kindOf(name);
-  if (!kind) return { statements, problems: ['This isn’t a statement WaffleWealth reads: a PDF, or a CSV or zip from Wise.'] };
+  if (!kind) return { statements, problems: ['This isn’t a statement WaffleWealth reads: a PDF, a bank’s OFX or QFX download, or a CSV or zip from Wise.'] };
+  // A bank's download (OFX, QFX, QBO) is read exactly as the bank sent it, and hashed on its bytes
+  // alone, like a PDF. Some banks name it .csv, so a CSV's contents are looked at first.
+  const addOfx = async (fileName, data) => {
+    const statement = readOfxStatement(ofxText(data), { fileName });
+    if (statement.unknownOfx) problems.push(`${fileName}: no bank or card statement was found in this download.`);
+    else statements.push({ ...statement, sha256: await fingerprint('download.ofx', data) });
+  };
   const addCsv = async (fileName, data) => {
     const statement = readCsvStatement(new TextDecoder().decode(data), { fileName });
     if (statement.unknownCsv) problems.push(`${fileName}: this CSV isn’t one WaffleWealth reads yet. Wise statements in CSV are.`);
     else statements.push({ ...statement, sha256: await fingerprint(fileName, data) });
   };
   try {
-    if (kind === 'csv') await addCsv(name, bytes);
+    if (kind === 'ofx') await addOfx(name, bytes);
+    else if (kind === 'csv' && looksLikeOfx(new TextDecoder().decode(bytes.subarray(0, 4096)))) await addOfx(name, bytes);
+    else if (kind === 'csv') await addCsv(name, bytes);
     else if (kind === 'zip') {
       const inside = (await unzip(bytes)).filter((f) => kindOf(f.name) === 'csv');
       if (!inside.length) problems.push('There are no CSV files in this zip.');

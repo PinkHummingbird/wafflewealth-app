@@ -123,7 +123,7 @@
   const box = $("settings-body");
   const fail = (error) => { const el = $("set-error"); if (el) { el.hidden = false; el.textContent = error && error.reason && !error.ckErrorCode ? error.reason : WW.C.explain(error); } };
 
-  const exporter = () => globalThis.WWExport || import("./export.mjs?v=21");
+  const exporter = () => globalThis.WWExport || import("./export.mjs?v=22");
 
   function download(name, data, type) {
     const blob = new Blob([data], { type });
