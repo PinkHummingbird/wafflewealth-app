@@ -29,11 +29,11 @@ If your iPhone backs itself up to iCloud or to a computer, iOS includes the app'
 
 ## The copy in your iCloud
 
-From version 1.1, WaffleWealth can keep a copy of your accounts, balances, transactions and documents in your own iCloud, so that you can upload statements and add transactions from a computer at [the web page](web/) and find them on your iPhone.
+From version 1.1, WaffleWealth can keep a copy of your accounts, balances, transactions, documents and statements in your own iCloud, so that you can upload statements and add transactions from a computer at [the web page](web/) and find them on your iPhone.
 
 - **It is off when you install or update the app.** You turn it on yourself, in Settings › iCloud, and you can turn it off at any time.
 - **Where it goes:** the private database of your own iCloud account, through Apple's CloudKit, in WaffleWealth's container. Only someone signed in with your Apple ID can read it. We, the developer, have no access to your private iCloud data.
-- **What goes:** your accounts (names, currencies, categories and settings), the balances recorded for them, balances you took back, transactions, and documents with their files. Your income and spending, planned items, assumptions, target and history marks stay on your iPhone.
+- **What goes:** your accounts (names, currencies, categories and settings), the balances recorded for them, balances you took back, transactions, documents with their files, and the statements you added (which file, which account each bank account became, and each line as the bank printed it). Your income and spending, planned items, assumptions, target and history marks stay on your iPhone.
 - **How it is protected:** Apple encrypts iCloud data in transit and at rest. If you use Advanced Data Protection, it is end-to-end encrypted, and the web page can reach it only if you turn on "Access iCloud Data on the Web" in your Apple ID settings. Apple's handling of iCloud data is described in [Apple's privacy policy](https://www.apple.com/legal/privacy/).
 - **The web page** at `/web/` runs in your browser. You sign in with your Apple ID through Apple; we never see your password. The page loads Apple's CloudKit library and talks to Apple's iCloud servers and nothing else. It has no visit counter. Statements you upload there are read by WaffleWealth on your iPhone, not on any server.
 - **Turning it off** stops the copying and leaves the copy in iCloud as it is. **"Remove the copy from iCloud"** in Settings deletes everything WaffleWealth keeps there, including uploaded documents. Neither changes anything on your iPhone.
@@ -41,7 +41,7 @@ From version 1.1, WaffleWealth can keep a copy of your accounts, balances, trans
 
 ## Statements and documents
 
-You can add bank statements (PDF, CSV or zip) and other files to WaffleWealth, from the Files app or, with iCloud on, from the web page. A statement is read on your iPhone, by the app itself; pages that are only pictures are read by iOS's own on-device text recognition. Nothing about a statement is sent anywhere to be read. Documents are kept in the app with complete file protection, and in your iCloud only if the copy there is on.
+You can add bank statements (PDF, CSV or zip) and other files to WaffleWealth, from the Files app or, with iCloud on, from the web page. A statement is read on your iPhone, by the app itself; pages that are only pictures are read by iOS's own on-device text recognition. Nothing about a statement is sent anywhere to be read. Documents and what was read from statements are kept in the app with complete file protection, and in your iCloud only if the copy there is on.
 
 ## The one network request
 
