@@ -2,6 +2,37 @@
 // Sources/WaffleTxnCore/Statements/Profiles/*.json: edit those, then run it. Do not edit here.
 export const PROFILES = [
   {
+    "id": "ET-CBE",
+    "institution": "Commercial Bank of Ethiopia",
+    "country": "ET",
+    "currency": "ETB",
+    "recognise": [
+      "Commercial Bank of Ethiopia"
+    ],
+    "dateOrder": "DMY",
+    "period": "As on (?<to>\\d{1,2} [A-Za-z]{3} \\d{4})",
+    "account": "Account (?:No\\.?|Number)[ |:.]*(?<number>\\d{8,})",
+    "name": "CBE ·· {last4}",
+    "accountType": "current",
+    "columns": {
+      "balance": "^balances?$"
+    }
+  },
+  {
+    "id": "IN-KVB",
+    "institution": "Karur Vysya Bank",
+    "country": "IN",
+    "currency": "INR",
+    "recognise": [
+      "Karur Vysya Bank"
+    ],
+    "dateOrder": "DMY",
+    "period": "St\\.?\\s*Period[ |:]*(?<from>\\d{2}/\\d{2}/\\d{4}) to (?<to>\\d{2}/\\d{2}/\\d{4})",
+    "account": "Acc\\.?\\s*No\\.?[ |:]*(?<number>\\d{10,})",
+    "name": "KVB ·· {last4}",
+    "accountType": "savings"
+  },
+  {
     "id": "UK-HSBC",
     "institution": "HSBC UK",
     "country": "UK",
@@ -30,12 +61,85 @@ export const PROFILES = [
     }
   },
   {
+    "id": "US-BMO-Card",
+    "institution": "BMO",
+    "country": "US",
+    "currency": "USD",
+    "recognise": [
+      "BMO",
+      "Trans Amount"
+    ],
+    "dateOrder": "MDY",
+    "period": "Statement Date[^|\\d]*[ |]*(?<to>\\d{2}/\\d{2}/\\d{4})",
+    "account": "Account Number:?[ |]*(?<number>[X*\\d ]{8,}\\d)",
+    "name": "BMO card ·· {last4}",
+    "accountType": "card",
+    "opening": [
+      "Previous Balance"
+    ],
+    "closing": [
+      "New Account Balance",
+      "New Balance"
+    ],
+    "columns": {
+      "date": "^trans date$",
+      "description": "^description$",
+      "amount": "^trans amount$"
+    }
+  },
+  {
+    "id": "US-BofA",
+    "institution": "Bank of America",
+    "country": "US",
+    "currency": "USD",
+    "recognise": [
+      "Bank of America"
+    ],
+    "dateOrder": "MDY",
+    "period": "(?<from>[A-Z][a-z]+ \\d{1,2}, \\d{4}) to (?<to>[A-Z][a-z]+ \\d{1,2}, \\d{4})",
+    "account": "Account #[ |:]*(?<number>\\d{4} \\d{4} \\d{4})",
+    "name": "Bank of America ·· {last4}",
+    "accountType": "current",
+    "opening": [
+      "Beginning balance on"
+    ],
+    "closing": [
+      "Ending balance on"
+    ],
+    "columns": {
+      "description": "^(description|transaction description|check #)$"
+    },
+    "skip": [
+      "continued on the next page",
+      "^Card account #"
+    ],
+    "sections": [
+      {
+        "heading": "Deposits and other credits",
+        "sign": 1
+      },
+      {
+        "heading": "Withdrawals and other debits",
+        "sign": -1
+      },
+      {
+        "heading": "Checks",
+        "sign": -1
+      },
+      {
+        "heading": "Service fees",
+        "sign": -1
+      }
+    ]
+  },
+  {
     "id": "US-Chase",
     "institution": "Chase",
     "country": "US",
     "currency": "USD",
     "recognise": [
-      "JPMorgan Chase Bank"
+      "JPMorgan Chase Bank",
+      "TRANSACTION DETAIL"
     ],
     "dateOrder": "MDY",
     "period": "(?<from>[A-Z][a-z]+ \\d{1,2}, \\d{4}) through (?<to>[A-Z][a-z]+ \\d{1,2}, \\d{4})",
@@ -51,6 +155,118 @@ export const PROFILES = [
     ],
     "skip": [
       "^Page \\d+ of \\d+$"
+    ]
+  },
+  {
+    "id": "US-Chase-Card",
+    "institution": "Chase",
+    "country": "US",
+    "currency": "USD",
+    "recognise": [
+      "Merchant Name or Transaction Description"
+    ],
+    "dateOrder": "MDY",
+    "period": "Opening/Closing Date[ |:]*(?<from>\\d{2}/\\d{2}/\\d{2,4})\\s*-\\s*(?<to>\\d{2}/\\d{2}/\\d{2,4})",
+    "account": "Account Number:?[ |]*(?<number>[X\\d ]{8,}\\d)",
+    "name": "Chase card ·· {last4}",
+    "accountType": "card",
+    "opening": [
+      "Previous Balance"
+    ],
+    "closing": [
+      "New Balance"
+    ],
+    "columns": {
+      "date": "^date of\\s+transaction$",
+      "description": "^merchant name or transaction description$",
+      "amount": "^\\$ ?amount$"
+    },
+    "skip": [
+      "^PAYMENTS AND OTHER CREDITS$",
+      "^PURCHASES?$",
+      "^ACCOUNT ACTIVITY"
+    ]
+  },
+  {
+    "id": "US-TD",
+    "institution": "TD Bank",
+    "country": "US",
+    "currency": "USD",
+    "recognise": [
+      "TD Bank",
+      "DAILY ACCOUNT ACTIVITY"
+    ],
+    "dateOrder": "MDY",
+    "period": "Statement Period:?[ |]*(?<from>[A-Za-z]{3} \\d{1,2} \\d{4})\\s*-\\s*(?<to>[A-Za-z]{3} \\d{1,2} \\d{4})",
+    "account": "Primary Account #:?[ |]*(?<number>\\d[\\d-]{5,})",
+    "name": "TD Bank ·· {last4}",
+    "accountType": "current",
+    "opening": [
+      "Beginning Balance"
+    ],
+    "closing": [
+      "Ending Balance"
+    ],
+    "end": [
+      "DAILY BALANCE SUMMARY"
+    ],
+    "sections": [
+      {
+        "heading": "Deposits",
+        "sign": 1
+      },
+      {
+        "heading": "Electronic Deposits",
+        "sign": 1
+      },
+      {
+        "heading": "Other Credits",
+        "sign": 1
+      },
+      {
+        "heading": "Checks Paid",
+        "sign": -1
+      },
+      {
+        "heading": "Electronic Payments",
+        "sign": -1
+      },
+      {
+        "heading": "Other Withdrawals",
+        "sign": -1
+      },
+      {
+        "heading": "Service Charges",
+        "sign": -1
+      }
+    ]
+  },
+  {
+    "id": "US-WellsFargo",
+    "institution": "Wells Fargo",
+    "country": "US",
+    "currency": "USD",
+    "recognise": [
+      "Wells Fargo"
+    ],
+    "dateOrder": "MDY",
+    "period": "(?<to>[A-Z][a-z]+ \\d{1,2}, \\d{4})[ |■]*Page \\d+ of \\d+",
+    "account": "Account number:?[ |]*(?<number>\\d{6,})",
+    "name": "Wells Fargo ·· {last4}",
+    "accountType": "current",
+    "opening": [
+      "Beginning balance on"
+    ],
+    "closing": [
+      "Ending balance on"
+    ],
+    "columns": {
+      "in": "^deposits/ ?credits$",
+      "out": "^withdrawals/ ?debits$",
+      "balance": "^ending daily balance$"
+    },
+    "end": [
+      "Summary of checks written"
     ]
   }
 ];

@@ -673,7 +673,8 @@ const GeneralTable = {
         return;
       }
       if (index <= headerUntil) return;
-      const section = sections?.find((sec) => new RegExp(`^${escapeRe(sec.heading)}(?: \\(continued\\))?$`, 'i').test(row.text));
+      // "Checks Paid (continued)", "Withdrawals and other debits - continued"
+      const section = sections?.find((sec) => new RegExp(`^${escapeRe(sec.heading)}(?:\\s*(?:\\(continued\\)|[-–] ?continued))?$`, 'i').test(row.text));
       if (section) { sign = section.sign; return; }
       const lastFigure = () => parseAmount(c[c.length - 1].s, digits);
       if (openingRe?.test(row.text)) { if (opening == null) opening = lastFigure(); return; }
@@ -721,7 +722,11 @@ const GeneralTable = {
       if (sign != null && amount != null) amount = sign * Math.abs(amount);
       const rightEdge = Math.max(...Object.values(columns).map((k) => k.x2)) + 10;
       const used = [...Object.values(taken), ...(dateCell ? [dateCell] : [])];
-      const wordCells = c.filter((x) => !used.includes(x) && x.x2 <= rightEdge);
+      // Words never sit in the money columns (".00" in an empty one), and a date standing alone
+      // right of the description is a value date, not words.
+      const moneyFrom = Math.min(...Object.entries(columns).filter(([k]) => ['amount', 'out', 'in', 'balance'].includes(k)).map(([, v]) => v.x), rightEdge);
+      const wordCells = c.filter((x) => !used.includes(x) && x.x2 <= rightEdge && x.x < moneyFrom - 10
+        && !(x.x > descriptionX && parseDate(x.s, { dayFirst })));
       let madeOn = null;
       if (date && wordCells[0] && wordCells[0].x < descriptionX - 4) {
         const made = parseDate(wordCells[0].s, { year, before: to, dayFirst });
@@ -824,7 +829,12 @@ export function readStatement(pages, { fileName = null } = {}) {
   // A bank described rather than coded: the table engine, told how this bank prints.
   const profile = reader ? null : PROFILES.find((p) => p.recognise.length && p.recognise.every((re) => new RegExp(re, 'i').test(text(allRows(pages)))));
   const read = reader ? reader.read(pages) : GeneralTable.read(pages, profile);
-  for (const a of read.accounts) a.check = check(a);
+  for (const a of read.accounts) {
+    a.check = check(a);
+    // An account of the user's own that went below zero (overdrawn): balances are kept at zero
+    // or above, so the review says the overdraft isn't counted.
+    a.belowZero = !a.owed && [a.opening, a.closing, ...a.lines.map((l) => l.running)].some((v) => v != null && v < 0);
+  }
   const by = reader ?? (profile ? { id: profile.id, institution: profile.institution, country: profile.country } : GeneralTable);
   return {
     reader: by.id, institution: read.institution ?? by.institution, country: by.country, general: !reader && !profile,

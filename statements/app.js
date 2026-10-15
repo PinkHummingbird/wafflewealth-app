@@ -167,6 +167,10 @@ function accountRow(a, s) {
     ? `<p class="why">From ${money(a.opening, a.currency)}, the lines come to ${money(a.check.expected, a.currency)}; the statement says ${money(a.closing, a.currency)}.${a.check.messages.filter((m) => m.kind === 'line').length ? ` ${a.check.messages.filter((m) => m.kind === 'line').length} running balance${a.check.messages.filter((m) => m.kind === 'line').length === 1 ? '' : 's'} don’t follow on, marked below.` : ''}</p>`
     : !a.check.checked && !a.lines.length && a.closing == null ? '<p class="why">No lines in this file, so it carries no balance for this account. Wise leaves a currency’s file empty when nothing happened in it.</p>'
     : !a.check.checked ? '<p class="why">The statement doesn’t print an opening and closing balance this page could find, so the lines aren’t checked.</p>' : '';
+  // Balances are kept at zero or above, so an overdraft would otherwise be lost unsaid.
+  const overdrawn = a.belowZero
+    ? '<p class="why">Below zero on this statement. WaffleWealth keeps balances at zero or above, so the overdraft isn’t counted: add what’s owed as an account of its own.</p>'
+    : '';
   const flagged = new Set(a.check.messages.filter((m) => m.kind === 'line').map((m) => m.index));
   const lines = a.lines.length
     ? `<div class="lines-wrap"><table class="lines">
@@ -186,7 +190,7 @@ function accountRow(a, s) {
       <span class="main"><span class="name">${esc(name)}</span><span class="facts">${facts}</span></span>
       <span class="end"><span class="bal fig">${figure}</span>${verdict}</span>
     </summary>
-    <div class="body">${why}${a.lines.length ? `<p class="count">${a.lines.length} line${a.lines.length === 1 ? '' : 's'} · opening ${money(a.opening, a.currency)}</p>` : ''}${lines}</div>
+    <div class="body">${why}${overdrawn}${a.lines.length ? `<p class="count">${a.lines.length} line${a.lines.length === 1 ? '' : 's'} · opening ${money(a.opening, a.currency)}</p>` : ''}${lines}</div>
   </details>`;
 }
 
