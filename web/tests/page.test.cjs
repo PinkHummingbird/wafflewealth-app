@@ -252,6 +252,24 @@ let ENGINES={};
   ok(grp && grp.name==='Retirement' && grp.accountIds.join()==='ex-pension','groups: saved');
   d.getElementById('back').click(); await sleep(100);
   ok(d.querySelector(`[data-series="group:${grp.id}"][aria-pressed="true"]`),'groups: its line switched on in the chart');
+  // settings
+  const sb=()=>d.getElementById('settings-body').textContent;
+  d.getElementById('tab-settings').click(); await sleep(150);
+  ok(/Main currency/.test(sb()) && /Save your figures/.test(sb()) && /Exchange rates/.test(sb()),'settings: the sections');
+  d.querySelector('[data-theme-set="dark"]').click(); await sleep(30);
+  ok(d.documentElement.getAttribute('data-theme')==='dark','settings: dark, chosen');
+  d.querySelector('[data-theme-set="system"]').click(); await sleep(30);
+  ok(!d.documentElement.hasAttribute('data-theme'),'settings: back to the system');
+  const s0=store.assumptions().f, inc0=Number(s0.monthly_income_minor), gbpRate=Number(store.rows.get('rate-GBP').f.rate);
+  setVal(d,'set-base','GBP'); await sleep(50);
+  submit(d,'base-form'); await sleep(300);
+  const s1=store.assumptions().f;
+  ok(s1.base_currency_code==='GBP' && Number(s1.monthly_income_minor)===Math.round(inc0/gbpRate),'settings: switched to GBP, income restated ('+s1.monthly_income_minor+')');
+  ok(!store.rows.get('rate-GBP') && store.rows.get('rate-USD') && Number(store.rows.get('rate-USD').f.rate).toFixed(6)===(1/gbpRate).toFixed(6),'settings: the rates re-expressed in GBP');
+  ok(store.history()[store.history().length-1].f.base_currency_code==='GBP','settings: a line of history for the switch');
+  w.WW.show('settings',{page:'assumptions'}); await sleep(100);
+  setVal(d,'as-payday','25'); await sleep(100);
+  ok(Number(store.assumptions().f.income_day)===25,'income & spending: pay day saved');
   ok(errs.length===0,'example: no script errors '+errs.join(' | '));
  }
  // ---------- fake iCloud ----------

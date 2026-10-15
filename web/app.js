@@ -618,7 +618,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=19"), import("./statement-save.mjs?v=19")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=20"), import("./statement-save.mjs?v=20")]);
     return { ...read, ...save };
   }
 
@@ -773,7 +773,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=19");
+    return import("./projection.mjs?v=20");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -958,7 +958,7 @@
     $("plan-waiting").hidden = Boolean(a);
     const base = store.baseCurrency();
     if (a && !$("plan-form").contains(document.activeElement)) {
-      $("plan-base").textContent = `In ${base}, your base currency. The projection itself is drawn on your iPhone.`;
+      $("plan-base").textContent = `Every amount here is in ${base}, your main currency. The line moves when you save.`;
       $("as-income").value = M.editable(Number(a.f.monthly_income_minor), base);
       $("as-spending").value = M.editable(Number(a.f.monthly_spending_minor), base);
       $("as-raise").value = a.f.annual_raise_pct;
@@ -1360,9 +1360,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=19"),
-        globalThis.WWReadings || import("./readings.mjs?v=19"),
-        globalThis.WWHistory || import("./history.mjs?v=19"),
+        globalThis.WWProjection || import("./projection.mjs?v=20"),
+        globalThis.WWReadings || import("./readings.mjs?v=20"),
+        globalThis.WWHistory || import("./history.mjs?v=20"),
       ]);
       return { P, R, H };
     },

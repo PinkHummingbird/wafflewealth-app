@@ -155,3 +155,4 @@ details.more[open] > summary { margin-bottom: 12px; }
 .snap tbody th { text-align: left; font-weight: 400; }
 .snap tr.grp th, .snap tr.grp td { font-weight: 600; }
 .formacts .cap { font-size: 0.85rem; color: var(--ink-2); }
+.formacts.wrap { flex-wrap: wrap; justify-content: flex-start; }

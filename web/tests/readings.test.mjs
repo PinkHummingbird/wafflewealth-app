@@ -4,8 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { project } from '../projection.mjs?v=19';
-import * as R from '../readings.mjs?v=19';
+import { project } from '../projection.mjs?v=20';
+import * as R from '../readings.mjs?v=20';
 
 const corpus = JSON.parse(readFileSync(new URL('./readings-corpus.json', import.meta.url)));
 const str = (v) => (v == null ? null : typeof v === 'bigint' ? String(v) : v);
