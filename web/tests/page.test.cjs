@@ -8,9 +8,9 @@ function page({token, fake}){
   const fakeCK = fake ? `<script>${fake}</script>` : '';
   html=html.replace(/<script src="https:\/\/cdn.apple-cloudkit.com[^>]*><\/script>/, fakeCK);
   let app=read('app.js'); if(token) app=app.replace('apiToken: ""',`apiToken: "${token}"`);
-  html=html.replace('<script src="money.js"></script>',`<script>${read('money.js')}</script>`)
-           .replace('<script src="cloud.js"></script>',`<script>${read('cloud.js')}</script>`)
-           .replace('<script src="app.js"></script>',`<script>${app}</script>`);
+  html=html.replace(/<script src="money\.js(\?v=\d+)?"><\/script>/,`<script>${read('money.js')}</script>`)
+           .replace(/<script src="cloud\.js(\?v=\d+)?"><\/script>/,`<script>${read('cloud.js')}</script>`)
+           .replace(/<script src="app\.js(\?v=\d+)?"><\/script>/,`<script>${app}</script>`);
   const vc=new VirtualConsole();const errs=[];vc.on('jsdomError',e=>errs.push(String(e.stack||e)));vc.on('error',e=>errs.push(String(e)));
   const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://pinkhummingbird.github.io/wafflewealth-app/web/'+(token?'':'?example'),virtualConsole:vc,
     beforeParse(w){w.URL.createObjectURL=()=> 'blob:x'; w.confirm=()=>true; w.Intl=Intl; w.structuredClone=structuredClone;}});
