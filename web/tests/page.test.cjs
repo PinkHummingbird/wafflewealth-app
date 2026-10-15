@@ -129,6 +129,15 @@ const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector(
   ok(store.account('ex-current').f.archived_at && /Everyday account/.test(d.getElementById('accts-away').textContent),'account: put away');
   d.querySelector('[data-account-restore="ex-current"]').click(); await sleep(80);
   ok(!store.account('ex-current').f.archived_at,'account: put back');
+  // projection, worked out here
+  w.WWProjection = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','projection.mjs')).href);
+  w.WWApp.render(); await sleep(50);
+  d.getElementById('tab-projection').click(); await sleep(50);
+  const hero=d.querySelector('.proj-hero');
+  ok(hero && /Net worth now/.test(hero.textContent) && /USD/.test(hero.textContent),'projection: the headline, in the base currency');
+  ok(d.querySelectorAll('.proj-table tbody tr').length===25,'projection: now and 24 months ('+d.querySelectorAll('.proj-table tbody tr').length+')');
+  ok(d.querySelector('#proj-chart svg path.line'),'projection: the line is drawn');
+  ok(/Available/.test(d.getElementById('proj-body').textContent),'projection: the pension locked until 60 shows what is within reach');
   ok(errs.length===0,'example: no script errors '+errs.join(' | '));
  }
  // ---------- fake iCloud ----------

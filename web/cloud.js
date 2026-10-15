@@ -310,10 +310,12 @@
       line("ex-l1", "ex-current", 0, -6_420, 5, "out", "Corner Grocer"),
       line("ex-l2", "ex-current", 1, -50_000, 5, "own", "To Savings (UK)"),
       line("ex-l3", "ex-current", 2, 112, 1, "interest", "Interest earned"),
+      { name: "rate-GBP", type: "FXRate", tag: "x", file: null, f: { rate: "1.27", source: "MANUAL", updated_at: at(60) } },
+      { name: "rate-DKK", type: "FXRate", tag: "x", file: null, f: { rate: "0.146", source: "MANUAL", updated_at: at(60) } },
       { name: "assumptions-1", type: "Assumptions", tag: "x", file: null, f: {
         base_currency_code: "USD", monthly_income_minor: 1_800_000, monthly_spending_minor: 1_150_000, annual_raise_pct: "3",
         raise_effective_month: 4, annual_spending_growth_pct: "2", annual_return_pct: "5", horizon_months: 24, updated_at: at(60),
-        birth_year: null, birth_month: null, annual_withdrawal_pct: "4", income_day: 25, fire_interest_pct: null, fire_growth_pct: null } },
+        birth_year: 1984, birth_month: 6, annual_withdrawal_pct: "4", income_day: 25, fire_interest_pct: null, fire_growth_pct: null } },
       { name: "exversion1", type: "AssumptionVersion", tag: "x", file: null, f: {
         base_currency_code: "USD", monthly_income_minor: 1_800_000, monthly_spending_minor: 1_150_000, annual_raise_pct: "3",
         raise_effective_month: 4, annual_spending_growth_pct: "2", annual_return_pct: "5", valid_from: at(60), written_order: 1 } },

@@ -21,7 +21,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-  const TABS = ["documents", "transactions", "accounts", "plan"];
+  const TABS = ["projection", "documents", "transactions", "accounts", "plan"];
   const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null, review: null, open: new Set() };
 
   /* ---------- starting ---------- */
@@ -108,6 +108,7 @@
 
   function choose(tab) {
     state.tab = tab;
+    if (tab === "projection" && state.projection) requestAnimationFrame(() => drawProjection(state.projection));
     for (const name of TABS) {
       $(`tab-${name}`).setAttribute("aria-selected", String(name === tab));
       $(`panel-${name}`).hidden = name !== tab;
@@ -125,6 +126,7 @@
     renderTransactions();
     renderAccounts();
     renderPlan();
+    renderProjection();
     fillAccountSelect();
   }
 
@@ -556,7 +558,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=11"), import("./statement-save.mjs?v=11")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=12"), import("./statement-save.mjs?v=12")]);
     return { ...read, ...save };
   }
 
@@ -700,6 +702,175 @@
       button.disabled = false;
       $("bal-amount-err").textContent = C.explain(error);
     }
+  }
+
+  /* ---------- projection: worked out here, exactly as the app works it out ---------- */
+
+  async function projectionModule() {
+    if (globalThis.WWProjection) return globalThis.WWProjection;
+    return import("./projection.mjs?v=12");
+  }
+
+  /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
+  function projectionContext(store) {
+    const a = store.assumptions();
+    if (!a) return null;
+    const base = a.f.base_currency_code;
+    const codes = new Set([base]);
+    const accounts = store.accounts().map((acc) => {
+      const latest = store.latest(acc.name);
+      codes.add(acc.f.currency_code);
+      return {
+        kind: acc.f.kind, currency: acc.f.currency_code, invested: Number(acc.f.is_invested) === 1,
+        latestMinor: latest ? Number(latest.f.value_minor) : null,
+        income: acc.f.income_basis ? {
+          basis: acc.f.income_basis, ratePct: acc.f.income_rate_pct || "0", amountMinor: Number(acc.f.income_amount_minor || 0),
+          frequency: acc.f.income_frequency || "ANNUAL", reinvested: Number(acc.f.income_reinvested) === 1,
+        } : null,
+        availableFromAge: acc.f.available_from_age == null ? null : Number(acc.f.available_from_age),
+        availableFromMonth: acc.f.available_from_month || null,
+      };
+    });
+    const planned = store.planned(false).map((p) => {
+      if (p.f.currency_code) codes.add(p.f.currency_code);
+      return { direction: p.f.direction, amountMinor: Number(p.f.amount_minor), currency: p.f.currency_code || null,
+        firstDate: p.f.first_date, frequency: p.f.frequency, endsOn: p.f.ends_on || null, growthPct: p.f.growth_pct || "0" };
+    });
+    const rates = {};
+    for (const r of store.of("FXRate")) {
+      const code = r.name.replace(/^rate-/, "");
+      if (code !== base) { rates[code] = String(r.f.rate); codes.add(code); }
+    }
+    const scales = {};
+    for (const code of codes) scales[code] = M.scale(code);
+    return {
+      base, scales, rates, accounts, planned,
+      assumptions: {
+        incomeMinor: Number(a.f.monthly_income_minor), spendingMinor: Number(a.f.monthly_spending_minor),
+        raisePct: a.f.annual_raise_pct, raiseMonth: Number(a.f.raise_effective_month), spendingGrowthPct: a.f.annual_spending_growth_pct,
+        returnPct: a.f.annual_return_pct, horizonMonths: Number(a.f.horizon_months),
+        birthYear: a.f.birth_year == null ? null : Number(a.f.birth_year), birthMonth: a.f.birth_month == null ? null : Number(a.f.birth_month),
+      },
+    };
+  }
+
+  let projectionRun = 0;
+  async function renderProjection() {
+    const store = state.store;
+    const body = $("proj-body");
+    if (!store) return;
+    const run = ++projectionRun;
+    const ctx = projectionContext(store);
+    if (!ctx) {
+      body.innerHTML = `<p class="empty">Your projection appears here once WaffleWealth on your iPhone has sent your income, spending and accounts: open the app with “Keep a copy in iCloud” on.</p>`;
+      return;
+    }
+    let result;
+    try {
+      const mod = await projectionModule();
+      result = mod.project(ctx, M.today());
+    } catch (error) {
+      if (run !== projectionRun) return;
+      const code = error && error.code;
+      body.innerHTML = `<p class="error">${esc(error && error.kind === "missingRate"
+        ? `There's no exchange rate for ${code} yet, so the projection can't count money held in it. Add one on your iPhone, under Currencies.`
+        : "The projection couldn't be worked out from these figures.")}</p>`;
+      return;
+    }
+    if (run !== projectionRun) return;
+    state.projection = result;
+    drawProjection(result);
+  }
+
+  function drawProjection(p) {
+    const base = p.base;
+    const months = p.months.map((m) => ({ ...m, nw: Number(m.netWorth), av: Number(m.available), locked: Number(m.locked) }));
+    const first = months[0], last = months[months.length - 1];
+    const hasLocked = months.some((m) => m.locked !== 0);
+    const change = last.nw - first.nw;
+    const span = months.length - 1;
+    const anyInterest = months.some((m) => m.interest !== 0n);
+    const anyPlanned = months.some((m) => m.planned !== 0n);
+    const anyGrowth = months.some((m) => m.growth !== 0n);
+    const cols = [["Income", "income"], ["Spending", "spending"], anyPlanned && ["Planned", "planned"], anyGrowth && ["Growth", "growth"], anyInterest && ["Interest", "interest"]].filter(Boolean);
+    $("proj-body").innerHTML = `
+      <div class="proj-hero">
+        <div><div class="k">Net worth now</div><div class="v">${esc(M.format(first.nw, base))}</div></div>
+        <div><div class="k">In ${esc(M.monthLabel(last.month))}, ${span} month${span === 1 ? "" : "s"} ahead</div><div class="v">${esc(M.format(last.nw, base))}</div>
+          <div class="d">${esc(M.formatSigned(change, base))} from now${hasLocked ? ` · ${esc(M.format(last.av, base))} of it within reach` : ""}</div></div>
+      </div>
+      ${hasLocked ? `<div class="chart-legend"><span><i></i>Net worth</span><span><i class="avail"></i>Available, without what's locked</span></div>` : ""}
+      <div class="chart" id="proj-chart" role="img" aria-label="Net worth, ${esc(M.monthLabel(first.month))} to ${esc(M.monthLabel(last.month))}: from ${esc(M.format(first.nw, base))} to ${esc(M.format(last.nw, base))}"></div>
+      <p class="cap" style="font-size:0.8rem;color:var(--ink-2);margin:6px 0 0">Worked out here from your accounts, income, spending and plans, the same way WaffleWealth on your iPhone works it out, to the last ${base === "JPY" ? "yen" : "cent"}. It reports figures and doesn't advise.</p>
+      <details class="proj-months"><summary>Month by month</summary>
+        <div class="proj-scroll"><table class="proj-table"><thead><tr><th>Month</th>${cols.map(([t]) => `<th>${t}</th>`).join("")}<th>Net worth</th></tr></thead>
+        <tbody>${months.map((m) => `<tr><td>${esc(M.monthLabel(m.month))}${m.offset === 0 ? " (now)" : ""}</td>${cols.map(([, k]) => `<td>${m.offset === 0 ? "" : esc(M.format(Number(m[k]), base))}</td>`).join("")}<td>${esc(M.format(m.nw, base))}</td></tr>`).join("")}</tbody></table></div>
+      </details>`;
+    drawChart($("proj-chart"), months, base, hasLocked);
+  }
+
+  const compact = (minor, base) => {
+    const value = minor / 10 ** M.scale(base);
+    return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+  };
+
+  function niceTicks(lo, hi, count) {
+    if (lo === hi) { lo -= 1; hi += 1; }
+    const raw = (hi - lo) / count;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw);
+    const start = Math.floor(lo / step) * step;
+    const ticks = [];
+    for (let v = start; v <= hi + step * 0.001; v += step) ticks.push(v);
+    if (ticks[ticks.length - 1] < hi) ticks.push(ticks[ticks.length - 1] + step);
+    return ticks;
+  }
+
+  function drawChart(box, months, base, hasLocked) {
+    if (!box) return;
+    const W = Math.max(280, box.clientWidth || 640), H = W < 500 ? 200 : 240;
+    const pad = { l: 52, r: 14, t: 10, b: 26 };
+    const values = months.flatMap((m) => (hasLocked ? [m.nw, m.av] : [m.nw]));
+    const ticks = niceTicks(Math.min(...values), Math.max(...values), 4);
+    const lo = ticks[0], hi = ticks[ticks.length - 1];
+    const x = (i) => pad.l + (months.length === 1 ? 0 : (i / (months.length - 1)) * (W - pad.l - pad.r));
+    const y = (v) => pad.t + (1 - (v - lo) / (hi - lo || 1)) * (H - pad.t - pad.b);
+    const path = (key) => months.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m[key]).toFixed(1)}`).join("");
+    const labelAt = [0, Math.floor((months.length - 1) / 2), months.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+    const short = (ym) => M.monthLabel(ym).replace(/^(\w{3})\w*/, "$1");
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" aria-hidden="true">
+      ${ticks.map((t) => `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${pad.l - 8}" y="${y(t) + 4}" text-anchor="end">${esc(compact(t, base))}</text>`).join("")}
+      ${labelAt.map((i) => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === months.length - 1 ? "end" : "middle"}">${esc(short(months[i].month))}</text>`).join("")}
+      <path class="wash" d="${path("nw")}L${x(months.length - 1)},${y(lo)}L${x(0)},${y(lo)}Z"/>
+      ${hasLocked ? `<path class="avail" d="${path("av")}"/>` : ""}
+      <path class="line" d="${path("nw")}"/>
+      <line class="cross" id="proj-cross" y1="${pad.t}" y2="${H - pad.b}" visibility="hidden"/>
+      <circle class="dot" id="proj-dot" r="4.5" visibility="hidden"/>
+      <rect id="proj-hit" x="${pad.l}" y="0" width="${W - pad.l - pad.r}" height="${H}" fill="transparent"/>
+    </svg><div class="tip" id="proj-tip" hidden></div>`;
+    const svg = box.querySelector("svg");
+    const show = (clientX) => {
+      const rect = svg.getBoundingClientRect();
+      const scale = W / (rect.width || W);
+      const px = (clientX - rect.left) * scale;
+      const i = Math.max(0, Math.min(months.length - 1, Math.round(((px - pad.l) / (W - pad.l - pad.r)) * (months.length - 1))));
+      const m = months[i];
+      const cross = box.querySelector("#proj-cross"), dot = box.querySelector("#proj-dot"), tip = box.querySelector("#proj-tip");
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(m.nw)); dot.setAttribute("visibility", "visible");
+      tip.hidden = false;
+      tip.innerHTML = `${esc(M.monthLabel(m.month))}<br>Net worth <b>${esc(M.format(m.nw, base))}</b>${hasLocked ? `<br>Available <b>${esc(M.format(m.av, base))}</b>` : ""}`;
+      tip.style.left = `${(x(i) / W) * 100}%`;
+      tip.style.top = `${(y(m.nw) / H) * (rect.height || H)}px`;
+    };
+    const hide = () => {
+      for (const id of ["proj-cross", "proj-dot"]) box.querySelector(`#${id}`).setAttribute("visibility", "hidden");
+      box.querySelector("#proj-tip").hidden = true;
+    };
+    const hit = box.querySelector("#proj-hit");
+    hit.addEventListener("pointermove", (e) => show(e.clientX));
+    hit.addEventListener("pointerdown", (e) => show(e.clientX));
+    hit.addEventListener("pointerleave", hide);
   }
 
   /* ---------- plan: income and spending, planned items ---------- */
@@ -1058,6 +1229,12 @@
         }
       });
     }
+
+    let resizing = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizing);
+      resizing = setTimeout(() => { if (state.tab === "projection" && state.projection) drawProjection(state.projection); }, 150);
+    });
 
     // Coming back to the tab is when a phone's change is most likely waiting.
     document.addEventListener("visibilitychange", () => {

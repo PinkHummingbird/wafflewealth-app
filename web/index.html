@@ -204,6 +204,30 @@ form.f { display: flex; flex-direction: column; gap: 14px; }
 .tag.accent { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .tag.owed { color: var(--owed); background: color-mix(in srgb, var(--owed) 11%, transparent); }
 .row.plain { grid-template-columns: minmax(0, 1fr) auto; }
+.proj-hero { display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-end; margin-bottom: 14px; }
+.proj-hero .k { font-size: var(--fs-small); color: var(--ink-2); }
+.proj-hero .v { font-family: var(--display); font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.proj-hero .d { font-size: var(--fs-small); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.chart { position: relative; margin: 6px 0 4px; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { fill: var(--ink-2); font-size: 11px; font-family: var(--body); font-variant-numeric: tabular-nums; }
+.chart .grid { stroke: var(--rule); stroke-width: 1; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .avail { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-dasharray: 5 4; }
+.chart .wash { fill: var(--accent); opacity: 0.09; }
+.chart .cross { stroke: var(--ink-2); stroke-width: 1; }
+.chart .dot { fill: var(--accent); stroke: var(--raised); stroke-width: 2; }
+.chart .tip { position: absolute; pointer-events: none; background: var(--raised); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); padding: 6px 10px; font-size: 0.8rem; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+.chart .tip b { font-variant-numeric: tabular-nums; }
+.chart-legend { display: flex; gap: 16px; font-size: 0.8rem; color: var(--ink-2); margin: 4px 0 8px; }
+.chart-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--accent); vertical-align: middle; margin-right: 6px; }
+.chart-legend i.avail { border-top: 2px dashed var(--ink-2); }
+.proj-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.proj-table th, .proj-table td { padding: 6px 8px; border-top: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+.proj-table th:first-child, .proj-table td:first-child { text-align: left; }
+.proj-table th { color: var(--ink-2); font-weight: 600; }
+.proj-scroll { overflow-x: auto; }
+details.proj-months summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
 .ic.chev svg { display: block; transition: transform 0.15s ease; }
 .ic.chev.open svg { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .ic.chev svg { transition: none; } }
@@ -285,6 +309,7 @@ footer a { color: var(--ink-2); }
       </div>
     </div>
     <div class="chips" role="tablist" aria-label="Lists">
+      <button type="button" class="chip" role="tab" id="tab-projection" aria-controls="panel-projection" aria-selected="false">Projection</button>
       <button type="button" class="chip" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="true">Documents<span class="n" id="n-new" hidden></span></button>
       <button type="button" class="chip" role="tab" id="tab-transactions" aria-controls="panel-transactions" aria-selected="false">Transactions</button>
       <button type="button" class="chip" role="tab" id="tab-accounts" aria-controls="panel-accounts" aria-selected="false">Accounts</button>
@@ -292,6 +317,13 @@ footer a { color: var(--ink-2); }
     </div>
     <p class="notice" id="nothing-yet" hidden><b>Nothing from your iPhone yet.</b> In WaffleWealth, open Settings and switch on “Keep a copy in iCloud”: your accounts appear here a minute later. You can upload documents already.</p>
     <p class="error" id="work-error" role="alert" hidden></p>
+
+    <!-- Projection: worked out here, as the app works it out -->
+    <div class="panel one" id="panel-projection" role="tabpanel" aria-labelledby="tab-projection" hidden>
+      <div class="card">
+        <div id="proj-body"></div>
+      </div>
+    </div>
 
     <!-- Documents -->
     <div class="panel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
@@ -462,8 +494,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=11"></script>
-<script src="cloud.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<script src="money.js?v=12"></script>
+<script src="cloud.js?v=12"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
