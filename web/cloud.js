@@ -75,7 +75,7 @@
         // Apple's library says this when a file's bytes never reached Apple's storage server:
         // the browser stopped the request before it left. Saving records still works.
         if (/NETWORK_ERROR/.test(String(error && (error.reason || error.message)))) {
-          return "The file couldn't reach Apple's storage server: something in this browser or network stopped it. An ad or privacy blocker, a VPN or a work network can do this. Try another browser, or turn the blocker off for this page, and upload again.";
+          return "The file couldn't reach Apple's storage server, so it wasn't kept. Nothing else is affected: try again in a moment.";
         }
         break;
       case "NETWORK_ERROR": case "SERVICE_UNAVAILABLE": case "THROTTLED": case "TRY_AGAIN_LATER":
@@ -437,10 +437,13 @@
       return null;
     }
 
-    /** Uploads a file as a document. The iPhone reads it the next time WaffleWealth opens. */
+    /** Uploads a file as a document. The iPhone reads it the next time WaffleWealth opens.
+        The bytes go as a plain blob with no type: a typed one ("application/pdf") makes the
+        browser ask Apple's storage server for permission first, and it doesn't answer that, so
+        the upload never leaves. The name travels in the record. */
     async uploadDocument(file) {
       const record = {
-        name: M.uuid(), type: "Document", upload: file,
+        name: M.uuid(), type: "Document", upload: new Blob([file]),
         f: { file_name: file.name, byte_count: file.size, added_at: M.stamp(), added_from: "WEB", status: "NEW", status_note: null, status_at: null, note: null },
       };
       const [saved] = await this.backend.save([record]);

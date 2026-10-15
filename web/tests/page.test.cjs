@@ -97,7 +97,8 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   ok(w.__ck.zone,'icloud: zone created on first save');
   ok(doc && doc.fields.byte_count.type==='INT64' && doc.fields.status.value==='NEW' && doc.fields.added_from.value==='WEB','icloud: document fields typed');
   ok(doc && doc.fields.nulls.value==='note,status_at,status_note','icloud: nulls named');
-  ok(doc && doc.fields.file && doc.fields.file.value && doc.fields.file.value.name==='wise.csv','icloud: file sent as asset');
+  ok(doc && doc.fields.file && doc.fields.file.value instanceof w.Blob && doc.fields.file.value.size===file.size,'icloud: file sent as asset');
+  ok(doc && doc.fields.file.value.type==='' && doc.fields.file_name.value==='wise.csv','icloud: bytes untyped, name in the record');
   // the phone syncs accounts in
   w.__ck.put({recordType:'Account',recordName:'a1',fields:{name:{value:'Everyday'},kind:{value:'ASSET'},currency_code:{value:'AED'},display_order:{value:0},created_at:{value:'2026-10-01T00:00:00.000Z'},nulls:{value:'archived_at,category'}}});
   w.__ck.put({recordType:'Balance',recordName:'b1',fields:{account_id:{value:'a1'},value_minor:{value:1234567},as_of_date:{value:'2026-10-01'},source:{value:'MANUAL'},created_at:{value:'2026-10-01T00:00:00.000Z'},nulls:{value:''}}});
