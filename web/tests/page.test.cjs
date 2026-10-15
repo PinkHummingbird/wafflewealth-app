@@ -23,7 +23,7 @@ function setVal(d,id,v){const el=d.getElementById(id); el.value=v; el.dispatchEv
 function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event('submit',{bubbles:true,cancelable:true}));}
 
 const openAll=async(d,w)=>{ for(let i=0;i<50;i++){ const closed=d.querySelector('#txns [data-movement][aria-expanded="false"]'); if(!closed) break; closed.click(); await new Promise(r=>setTimeout(r,5)); } };
-let ENGINES={};
+let ENGINES={}; let submit2;
 (async()=>{
  const mod=(f)=>import(require('url').pathToFileURL(path.join(W,f)).href);
  ENGINES={WWProjection:await mod('projection.mjs'),WWReadings:await mod('readings.mjs'),WWHistory:await mod('history.mjs')};
@@ -411,6 +411,25 @@ let ENGINES={};
     ok(/Already added/.test(d.getElementById('review').textContent) && !d.getElementById('review-add'),'statement: the same file twice is already added');
     d.getElementById('review-cancel').click(); await sleep(20);
     ok(d.getElementById('review').hidden,'statement: closed');
+    // a line read wrongly, put right; a heading read as a line, left out
+    const readers = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','..','statements','readers.js')).href);
+    w.WWStatementModules={ ...save, correctLine:readers.correctLine, leaveOutLine:readers.leaveOutLine, linesOff:readers.linesOff, correctedCount:readers.correctedCount, readDocument: async ()=>{
+      const st=made('c'.repeat(64), 95000); const acct=st.accounts[0];
+      acct.ref='SG-UOB:222'; acct.lines[0].amount=-1000; acct.lines.push({date:'2026-09-10',madeOn:null,description:'Balance carried forward',amount:5000,running:null,ref:null,foreign:null,label:'in'});
+      acct.check=readers.check(acct); return {statements:[st], problems:[]}; } };
+    Object.defineProperty(up,'files',{value:[new w.File(['wrong\n'],'oct.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+    const doc4=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='oct.csv');
+    d.querySelector(`[data-read-doc="${doc4.recordName}"]`).click(); await sleep(150);
+    const rv=()=>d.getElementById('review').textContent;
+    ok(/open its lines to put them right/.test(rv()) && !d.querySelector('[data-review-include="0:0"]').checked,'correct: a statement that does not add up, left out');
+    d.querySelector('[data-rl-open="0:0"]').click(); await sleep(20);
+    d.querySelector('[data-rl="0:0:0"]').click(); await sleep(20);
+    setVal(d,'rl-amount','-100.00'); submit2=d.querySelector('[data-rl-form="0:0:0"]'); submit2.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(30);
+    ok(/Corrected by you/.test(rv()),'correct: a line put right');
+    d.querySelector('[data-rl="0:0:2"]').click(); await sleep(20);
+    d.querySelector('[data-rl-out="0:0:2"]').click(); await sleep(30);
+    ok(/add up to the statement, with 2 changes of yours/.test(rv()) && d.querySelector('[data-review-include="0:0"]').checked,'correct: a line left out; now it adds up, and is kept: '+rv().replace(/\s+/g,' ').slice(0,200));
+    d.getElementById('review-cancel').click(); await sleep(20);
   }
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
   w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});

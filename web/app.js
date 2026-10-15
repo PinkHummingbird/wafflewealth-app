@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=22"), import("./statement-save.mjs?v=22")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=23"), import("./statement-save.mjs?v=23")]);
     return { ...read, ...save };
   }
 
@@ -650,8 +650,32 @@
     renderReview();
   }
 
+  /** The lines of one account read from a statement, each one open to putting right, as the app's review does. */
+  function reviewLines(a, si, ai) {
+    const r = state.review, key = `${si}:${ai}`;
+    if (!r.openLines || !r.openLines.has(key)) return "";
+    const marks = new Map(((a.check && a.check.messages) || []).filter((m) => m.kind === "line").map((m) => [m.index, m]));
+    const fmt = (v) => (v == null ? "" : M.format(v, a.currency));
+    return `<div class="review-lines">${a.lines.map((l, li) => {
+      const editing = r.editing === `${key}:${li}`;
+      const mark = marks.get(li);
+      return `<div class="rl${mark ? " off" : ""}"><button type="button" class="rl-main" data-rl="${key}:${li}">
+          <span class="t">${esc(l.description || "A line")}</span><span class="d">${esc(l.date ? M.dayLabel(l.date) : "")}${l.corrected ? " · Corrected by you" : ""}</span>
+          <span class="amt">${esc(M.formatSigned(l.amount, a.currency))}</span></button>
+        ${mark ? `<span class="note bad">The statement's balance after it is ${esc(fmt(mark.got))}; the lines give ${esc(fmt(mark.expected))}.</span>` : ""}
+        ${editing ? `<form class="inline-form" data-rl-form="${key}:${li}" novalidate><b>Put this line right</b>
+          <div class="field"><label for="rl-amount">Amount (${esc(a.currency)}, money out with a minus)</label><input id="rl-amount" inputmode="decimal" value="${esc(l.amount < 0 ? "-" + M.editable(l.amount, a.currency) : M.editable(l.amount, a.currency))}"><span class="err" id="rl-amount-err"></span></div>
+          <div class="field"><label for="rl-running">Balance after it (empty if none printed)</label><input id="rl-running" inputmode="decimal" value="${l.running == null ? "" : esc((l.running < 0 ? "-" : "") + M.editable(l.running, a.currency))}"><span class="err" id="rl-running-err"></span></div>
+          <button type="submit" class="btn small">Put right</button><button type="button" class="linkbtn danger" data-rl-out="${key}:${li}">Leave this line out</button><button type="button" class="linkbtn" data-rl-cancel>Cancel</button></form>` : ""}
+      </div>`;
+    }).join("")}<p class="cap">Tap a line to put right a figure read wrongly, or to leave out a row that isn't a line.</p></div>`;
+  }
+
   function checkNote(a) {
     const c = a.check || {};
+    const changes = (state.review && state.review.mods && state.review.mods.correctedCount) ? state.review.mods.correctedCount(a) : 0;
+    if (c.ok && changes) return `<span class="note good">These lines add up to the statement, with ${changes} change${changes === 1 ? "" : "s"} of yours.</span>`;
+    if (c.checked && !c.ok && !a.openingWorkedOut) return `<span class="note bad">Doesn't add up to the statement: open its lines to put them right.</span>`;
     if (a.openingWorkedOut) return `<span class="note">The bank's own figures, from its download: it carries no opening balance to check the lines against.</span>`;
     if (c.ok) return `<span class="note good">Adds up: the opening balance and every line come to the closing balance.</span>`;
     if (c.checked) return `<span class="note bad">Doesn't add up: the lines come to ${esc(M.format(c.expected, a.currency))}, the statement says ${esc(M.format(a.closing, a.currency))}. Left out unless you include it; your iPhone can read it too.</span>`;
@@ -683,12 +707,13 @@
           <div class="main">
             ${known ? `<label class="t" for="rv-${si}-${ai}">${esc(known.f.name)}</label><span class="note">Adds to this account, as last time.</span>`
               : `<div class="field"><label for="rv-name-${si}-${ai}">New account</label><input id="rv-name-${si}-${ai}" data-review-name="${si}:${ai}" maxlength="60" value="${esc(choice.name)}"></div>`}
-            <span class="note">${a.owed ? "Owed · " : ""}${a.lines.length} line${a.lines.length === 1 ? "" : "s"}</span>
+            <span class="note">${a.owed ? "Owed · " : ""}<button type="button" class="linkbtn" data-rl-open="${si}:${ai}">${a.lines.length} line${a.lines.length === 1 ? "" : "s"}${a.check && a.check.checked && !a.check.ok ? ": put them right" : ""}</button></span>
             ${checkNote(a)}
             ${a.belowZero && !a.owed ? `<span class="note bad">Below zero on this statement: the account was overdrawn.</span>
               <label class="keep"><input type="checkbox" data-review-keep="${si}:${ai}" ${choice.keepBelowZero ? "checked" : ""}> Keep it below zero</label>` : ""}
           </div>
           <div class="end"><span class="amt">${esc(closing)}</span></div>
+          ${reviewLines(a, si, ai)}
         </div>`;
       });
     });
@@ -776,7 +801,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=22");
+    return import("./projection.mjs?v=23");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1334,7 +1359,46 @@
       const [si, ai] = input.getAttribute("data-review-name").split(":").map(Number);
       state.review.choices[si][ai].name = input.value;
     });
+    // Putting a line right, or leaving one out, rechecks the account as the app does; one that now
+    // adds up is offered again as it would have been had it been read right.
+    const lineAt = (key) => { const [si, ai, li] = key.split(":").map(Number); return { si, ai, li, acct: state.review.statements[si].accounts[ai] }; };
+    const afterFix = (si, ai) => {
+      const r = state.review, acct = r.statements[si].accounts[ai];
+      if (acct.check && acct.check.ok && !r.statements[si].already) r.choices[si][ai].include = r.mods.includedByDefault(acct);
+      r.editing = null;
+      renderReview();
+    };
+    const signedAmount = (text, code) => {
+      const t = String(text).trim().replace(/^[−-]\s*/, "");
+      const negative = /^[−-]/.test(String(text).trim());
+      const a = M.parseAmount(t, code);
+      return a.ok ? { ok: true, minor: negative ? -a.minor : a.minor } : a;
+    };
+    review.addEventListener("submit", (e) => {
+      const form = e.target.closest("[data-rl-form]");
+      if (!form || !state.review) return;
+      e.preventDefault();
+      const { si, ai, li, acct } = lineAt(form.getAttribute("data-rl-form"));
+      const amount = signedAmount($("rl-amount").value, acct.currency);
+      const runningText = $("rl-running").value.trim();
+      const running = runningText ? signedAmount(runningText, acct.currency) : { ok: true, minor: null };
+      $("rl-amount-err").textContent = amount.ok ? "" : amount.reason === "empty" ? "Type the amount." : amount.reason;
+      $("rl-running-err").textContent = running.ok ? "" : running.reason;
+      if (!amount.ok || !running.ok) return;
+      state.review.mods.correctLine(acct, li, amount.minor, running.minor);
+      afterFix(si, ai);
+    });
     review.addEventListener("click", (e) => {
+      const open = e.target.closest("[data-rl-open]"), pick = e.target.closest("[data-rl]"), out = e.target.closest("[data-rl-out]");
+      if (state.review && open) {
+        const r = state.review, key = open.getAttribute("data-rl-open");
+        r.openLines = r.openLines || new Set();
+        if (r.openLines.has(key)) r.openLines.delete(key); else r.openLines.add(key);
+        return renderReview();
+      }
+      if (state.review && pick) { state.review.editing = pick.getAttribute("data-rl"); renderReview(); const i = $("rl-amount"); if (i) i.focus(); return; }
+      if (state.review && out) { const { si, ai, li, acct } = lineAt(out.getAttribute("data-rl-out")); state.review.mods.leaveOutLine(acct, li); return afterFix(si, ai); }
+      if (state.review && e.target.closest("[data-rl-cancel]")) { state.review.editing = null; return renderReview(); }
       if (e.target.closest("#review-add")) addReviewed();
       if (e.target.closest("#review-cancel")) { state.review = null; renderReview(); }
     });
@@ -1380,9 +1444,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=22"),
-        globalThis.WWReadings || import("./readings.mjs?v=22"),
-        globalThis.WWHistory || import("./history.mjs?v=22"),
+        globalThis.WWProjection || import("./projection.mjs?v=23"),
+        globalThis.WWReadings || import("./readings.mjs?v=23"),
+        globalThis.WWHistory || import("./history.mjs?v=23"),
       ]);
       return { P, R, H };
     },

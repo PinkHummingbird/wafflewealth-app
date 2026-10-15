@@ -156,3 +156,12 @@ details.more[open] > summary { margin-bottom: 12px; }
 .snap tr.grp th, .snap tr.grp td { font-weight: 600; }
 .formacts .cap { font-size: 0.85rem; color: var(--ink-2); }
 .formacts.wrap { flex-wrap: wrap; justify-content: flex-start; }
+
+/* Statement review: putting a line right */
+.review-lines { grid-column: 1 / -1; display: grid; gap: 2px; margin: 6px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--rule); }
+.rl { display: grid; gap: 4px; }
+.rl.off .rl-main { background: color-mix(in srgb, var(--alert) 10%, transparent); }
+.rl-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; align-items: baseline; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.rl-main:hover { background: var(--sunken); }
+.rl-main .t { grid-column: 1; } .rl-main .d { grid-column: 1; color: var(--ink-2); font-size: 0.8rem; } .rl-main .amt { grid-column: 2; grid-row: 1 / span 2; font-variant-numeric: tabular-nums; }
+.rl .note { padding-left: 8px; }

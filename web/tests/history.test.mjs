@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import * as H from '../history.mjs?v=22';
+import * as H from '../history.mjs?v=23';
 
 const corpus = JSON.parse(readFileSync(new URL('./history-corpus.json', import.meta.url)));
 const str = (v) => (v == null ? null : typeof v === 'bigint' ? String(v) : v);
