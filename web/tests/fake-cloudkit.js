@@ -12,7 +12,7 @@
       if(!ck.zone) return {hasErrors:true, errors:[{ckErrorCode:'ZONE_NOT_FOUND'}], records:[]};
       if(ck.failAfter!==undefined && ck.failAfter!==null){ if(ck.failAfter===0){ ck.failAfter=null; return {hasErrors:true, errors:[{ckErrorCode:'NETWORK_ERROR', reason:'x'}], records:[]}; } ck.failAfter--; }
       if(ck.failNext){ const c=ck.failNext; ck.failNext=null; return {hasErrors:true, errors:[{ckErrorCode:c, reason:'x'}], records:[]}; }
-      return {hasErrors:false, records: records.map(r=>{ ck.lastSaveTag=r.recordChangeTag||null; const copy={...r, recordChangeTag:'tag'+(++counter)};
+      return {hasErrors:false, records: records.map(r=>{ ck.lastSaveTag=r.recordChangeTag||null; (ck.sentTags=ck.sentTags||{})[r.recordName]=r.recordChangeTag||null; const copy={...r, recordChangeTag:'tag'+(++counter)};
         if(r.fields.file){ copy.fields={...r.fields, file:{value:{downloadURL:'https://cvws.example/${f}', size:r.fields.file.value.size}}}; ck.records.set(r.recordName,{...copy, fields:{...r.fields}}); }
         else ck.records.set(r.recordName, copy);
         return copy; })};

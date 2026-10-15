@@ -79,6 +79,46 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   ok(d.getElementById('n-new').textContent==='2','upload: badge 2');
   const empty=new w.File([],'empty.pdf'); Object.defineProperty(input,'files',{value:[empty],configurable:true}); input.dispatchEvent(new w.Event('change')); await sleep(50);
   ok(/empty/.test(d.getElementById('upload-problems').textContent),'upload: empty refused');
+  // plan: income and spending
+  d.getElementById('tab-plan').click(); await sleep(20);
+  ok(d.getElementById('as-income').value==='18,000.00' || d.getElementById('as-income').value==='18000.00','plan: income shown ('+d.getElementById('as-income').value+')');
+  const store=w.WWApp.state.store; const versions=()=>store.history().length;
+  const before=versions();
+  setVal(d,'as-raise','five'); submit(d,'plan-form'); await sleep(50);
+  ok(/Type a number/.test(d.getElementById('as-raise-err').textContent),'plan: a word for a percentage is refused');
+  setVal(d,'as-raise','3.50'); setVal(d,'as-income','19,000'); submit(d,'plan-form'); await sleep(80);
+  const a1=store.assumptions();
+  ok(a1.f.monthly_income_minor===1900000 && a1.f.annual_raise_pct==='3.5','plan: saved in minor units, percentage as the app writes it');
+  ok(versions()===before+1,'plan: a changed figure adds a line of history');
+  submit(d,'plan-form'); await sleep(80);
+  ok(versions()===before+1,'plan: saving the same figures adds none');
+  // plan: planned items
+  setVal(d,'pi-name','School fees'); setVal(d,'pi-amount','4,000'); setVal(d,'pi-first','2027-01-10'); setVal(d,'pi-frequency','ANNUAL');
+  d.getElementById('pi-frequency').dispatchEvent(new w.Event('change')); setVal(d,'pi-ends','2026-01-01'); submit(d,'pi-form'); await sleep(50);
+  ok(/stop before it starts/.test(d.getElementById('pi-endsOn-err').textContent),'planned: ending before it starts is refused');
+  setVal(d,'pi-ends',''); submit(d,'pi-form'); await sleep(80);
+  const fees=store.planned(false).find(p=>p.f.name==='School fees');
+  ok(fees && fees.f.amount_minor===400000 && fees.f.direction==='OUT' && fees.f.currency_code===null && fees.f.frequency==='ANNUAL' && fees.f.growth_pct==='0','planned: added in the base currency');
+  d.querySelector(`[data-planned-edit="${fees.name}"]`).click(); await sleep(20);
+  setVal(d,'pi-amount','4,500'); submit(d,'pi-form'); await sleep(80);
+  ok(store.rows.get(fees.name).f.amount_minor===450000,'planned: edited');
+  d.querySelector(`[data-planned-away="${fees.name}"]`).click(); await sleep(80);
+  ok(store.rows.get(fees.name).f.archived_at && /School fees/.test(d.getElementById('planned-away').textContent),'planned: put away');
+  w.confirm=()=>true; d.querySelector(`[data-planned-delete="${fees.name}"]`).click(); await sleep(80);
+  ok(!store.rows.has(fees.name),'planned: deleted once put away');
+  // accounts: rename, invested, put away and back
+  d.getElementById('tab-accounts').click();
+  d.querySelector('[data-account-edit="ex-current"]').click(); await sleep(20);
+  setVal(d,'acc-name',''); d.querySelector('[data-account-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(50);
+  ok(/name/.test(d.getElementById('acc-name-err').textContent),'account: empty name refused');
+  setVal(d,'acc-name','Everyday account'); d.getElementById('acc-invested').checked=true;
+  d.querySelector('[data-account-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(80);
+  ok(store.account('ex-current').f.name==='Everyday account' && store.account('ex-current').f.is_invested===1,'account: renamed and growing');
+  d.querySelector('[data-account-edit="ex-current"]').click(); await sleep(20);
+  d.querySelector('[data-account-away="ex-current"]').click(); await sleep(80);
+  ok(store.account('ex-current').f.archived_at && /Everyday account/.test(d.getElementById('accts-away').textContent),'account: put away');
+  d.querySelector('[data-account-restore="ex-current"]').click(); await sleep(80);
+  ok(!store.account('ex-current').f.archived_at,'account: put back');
   ok(errs.length===0,'example: no script errors '+errs.join(' | '));
  }
  // ---------- fake iCloud ----------
@@ -157,6 +197,31 @@ function submit(d,id){d.getElementById(id).dispatchEvent(new d.defaultView.Event
   d.querySelector('[data-balance-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(150);
   const nb=[...w.__ck.records.values()].filter(r=>r.recordType==='Balance').find(r=>r.fields.as_of_date.value==='2026-10-11');
   ok(nb && nb.fields.value_minor.value===1300000 && nb.fields.source.value==='MANUAL','icloud: balance appended');
+  // settings from the phone, edited here: types, nulls and the change tag as the app needs them
+  w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});
+  d.getElementById('refresh').click(); await sleep(150);
+  d.getElementById('tab-plan').click(); await sleep(20);
+  const asTag=w.__ck.records.get('assumptions-1').recordChangeTag;
+  setVal(d,'as-spending','23,000'); submit(d,'plan-form'); await sleep(150);
+  const as=w.__ck.records.get('assumptions-1');
+  ok(asTag && w.__ck.sentTags['assumptions-1']===asTag,'icloud: settings sent with their change tag');
+  ok(as.fields.monthly_spending_minor.value===2300000 && as.fields.monthly_spending_minor.type==='INT64' && as.fields.raise_effective_month.type==='INT64','icloud: settings amounts INT64');
+  ok(as.fields.annual_return_pct.value==='7' && as.fields.annual_return_pct.type==='STRING','icloud: percentages as plain strings');
+  ok(as.fields.nulls.value==='birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day','icloud: empty settings named as nulls');
+  ok(as.fields.updated_at.value>'2026-09-08T10:00:00.000Z','icloud: a later edit is stamped later');
+  ok(!('fx_auto_refresh' in as.fields),'icloud: the rates switch is never sent');
+  const line=[...w.__ck.records.values()].find(r=>r.recordType==='AssumptionVersion');
+  ok(line && line.fields.monthly_spending_minor.value===2300000 && line.fields.written_order.type==='INT64' && line.fields.valid_from.value===as.fields.updated_at.value,'icloud: a line of history with it');
+  // a planned item
+  setVal(d,'pi-name','Bonus'); d.getElementById('pi-in').checked=true; setVal(d,'pi-amount','10,000'); setVal(d,'pi-first','2026-12-15'); submit(d,'pi-form'); await sleep(150);
+  const pi=[...w.__ck.records.values()].find(r=>r.recordType==='PlannedItem');
+  ok(pi && pi.fields.direction.value==='IN' && pi.fields.amount_minor.value===1000000 && pi.fields.display_order.type==='INT64','icloud: planned item fields');
+  ok(pi && pi.fields.nulls.value==='archived_at,category,currency_code,ends_on','icloud: planned item nulls ('+(pi&&pi.fields.nulls.value)+')');
+  // an account renamed
+  d.getElementById('tab-accounts').click(); d.querySelector('[data-account-edit="a1"]').click(); await sleep(20);
+  setVal(d,'acc-name','Everyday AED'); d.querySelector('[data-account-form]').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(150);
+  const ac=w.__ck.records.get('a1');
+  ok(ac.fields.name.value==='Everyday AED' && ac.fields.is_invested.type==='INT64' && /archived_at/.test(ac.fields.nulls.value),'icloud: account renamed, still in use');
   // sign out
   w.__ck.signOut(); await sleep(100);
   ok(!d.getElementById('welcome').hidden && d.getElementById('workspace').hidden,'icloud: sign out returns to welcome');

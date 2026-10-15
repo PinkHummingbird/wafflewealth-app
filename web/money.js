@@ -149,7 +149,23 @@
     return null;
   }
 
+  /** A percentage as typed ("5", "3.5", "-1", "5 %") → the plain decimal string the app stores.
+      Up to four decimals, above -100 and at most 100. */
+  function parsePercent(text) {
+    const cleaned = String(text ?? "").replace(/%/g, "").replace(/\s+/g, "");
+    if (!cleaned) return { ok: true, value: "0" };
+    if (!/^-?\d{1,3}(\.\d{1,4})?$/.test(cleaned)) return { ok: false, reason: "Type a number, like 5 or 3.5." };
+    const n = Number(cleaned);
+    if (n <= -100 || n > 100) return { ok: false, reason: "Use a figure between -100 and 100." };
+    // The app's own form: no leading zeros, no trailing ones after the point.
+    let value = cleaned.replace(/^(-?)0+(\d)/, "$1$2");
+    if (value.includes(".")) value = value.replace(/0+$/, "").replace(/\.$/, "");
+    if (value === "-0") value = "0";
+    return { ok: true, value };
+  }
+
   globalThis.WWMoney = {
+    parsePercent,
     scale, currencies, currencyName, parseAmount, plain, format, formatSigned, editable,
     today, isDay, dayLabel, monthLabel, stamp, uuid, bytes, categories, categoryName,
   };

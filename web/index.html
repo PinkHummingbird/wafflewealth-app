@@ -190,6 +190,8 @@ form.f { display: flex; flex-direction: column; gap: 14px; }
 .formacts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .inline-form { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; padding: 4px 0 6px; }
 .inline-form .field { flex: 1 1 140px; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--fs-small); cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
 .totals { display: flex; flex-wrap: wrap; gap: 14px 20px; }
 .totals > div { border-top: 2px solid var(--rule); padding-top: 8px; flex: 1 1 9rem; min-width: 0; }
 .totals .v { font-family: var(--display); font-weight: 600; font-size: 1.3rem; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
@@ -261,6 +263,7 @@ footer a { color: var(--ink-2); }
       <button type="button" class="chip" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="true">Documents<span class="n" id="n-new" hidden></span></button>
       <button type="button" class="chip" role="tab" id="tab-transactions" aria-controls="panel-transactions" aria-selected="false">Transactions</button>
       <button type="button" class="chip" role="tab" id="tab-accounts" aria-controls="panel-accounts" aria-selected="false">Accounts</button>
+      <button type="button" class="chip" role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="false">Plan</button>
     </div>
     <p class="notice" id="nothing-yet" hidden><b>Nothing from your iPhone yet.</b> In WaffleWealth, open Settings and switch on “Keep a copy in iCloud”: your accounts appear here a minute later. You can upload documents already.</p>
     <p class="error" id="work-error" role="alert" hidden></p>
@@ -353,7 +356,70 @@ footer a { color: var(--ink-2); }
         <div class="head"><h2 id="h-accts">Accounts</h2><span class="label">Latest balance</span></div>
         <div class="totals" id="totals"></div>
         <div id="accts" style="margin-top:12px"></div>
-        <p class="empty">Accounts are added and changed in the app. Here you can record a new balance, which is added to the account's history like any other.</p>
+        <p class="empty">Accounts are added in the app. Here you can rename one, say whether it grows at your return rate, put it away, or record a new balance, which is added to its history like any other.</p>
+        <div id="accts-away"></div>
+      </div>
+    </div>
+
+    <!-- Plan: income and spending, and planned items -->
+    <div class="panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+      <div class="stack">
+        <div class="card">
+          <form class="f" id="plan-form" novalidate>
+            <h2>Income &amp; spending</h2>
+            <p class="cap" id="plan-base" style="font-size:0.85rem;color:var(--ink-2);margin:0"></p>
+            <div class="two">
+              <div class="field"><label for="as-income">Income a month</label><input id="as-income" inputmode="decimal" autocomplete="off"><span class="err" id="as-income-err"></span></div>
+              <div class="field"><label for="as-spending">Spending a month</label><input id="as-spending" inputmode="decimal" autocomplete="off"><span class="err" id="as-spending-err"></span></div>
+            </div>
+            <div class="two">
+              <div class="field"><label for="as-raise">Yearly pay rise (%)</label><input id="as-raise" inputmode="decimal" autocomplete="off"><span class="err" id="as-raise-err"></span></div>
+              <div class="field"><label for="as-raise-month">Rise lands in</label><select id="as-raise-month"></select><span class="err" id="as-raiseMonth-err"></span></div>
+            </div>
+            <div class="two">
+              <div class="field"><label for="as-growth">Yearly spending growth (%)</label><input id="as-growth" inputmode="decimal" autocomplete="off"><span class="err" id="as-growth-err"></span></div>
+              <div class="field"><label for="as-ret">Assumed yearly growth of investments (%)</label><input id="as-ret" inputmode="decimal" autocomplete="off"><span class="err" id="as-ret-err"></span></div>
+            </div>
+            <div class="formacts"><button type="submit" class="btn" id="plan-save">Save to iCloud</button></div>
+            <p class="ok" id="plan-ok" role="status" hidden></p>
+            <p class="error" id="plan-error" role="alert" hidden></p>
+          </form>
+          <p class="empty" id="plan-waiting" hidden>Your income and spending appear here once WaffleWealth on your iPhone has sent them: open the app with “Keep a copy in iCloud” on.</p>
+        </div>
+        <div class="card">
+          <form class="f" id="pi-form" novalidate>
+            <h2 id="pi-title">Add a planned item</h2>
+            <div class="seg" role="radiogroup" aria-label="Money in or out">
+              <input type="radio" name="pidir" id="pi-out" value="OUT" checked><label for="pi-out">Money out</label>
+              <input type="radio" name="pidir" id="pi-in" value="IN"><label for="pi-in">Money in</label>
+            </div>
+            <div class="field"><label for="pi-name">Name</label><input id="pi-name" maxlength="60" autocomplete="off" placeholder="School fees, a bonus, a car"><span class="err" id="pi-name-err"></span></div>
+            <div class="two">
+              <div class="field"><label for="pi-amount">Amount</label><input id="pi-amount" inputmode="decimal" autocomplete="off" placeholder="0.00"><span class="err" id="pi-amount-err"></span></div>
+              <div class="field"><label for="pi-currency">Currency</label><select id="pi-currency"></select></div>
+            </div>
+            <div class="two">
+              <div class="field"><label for="pi-first">First date</label><input type="date" id="pi-first"><span class="err" id="pi-firstDate-err"></span></div>
+              <div class="field"><label for="pi-frequency">How often</label><select id="pi-frequency"></select><span class="err" id="pi-frequency-err"></span></div>
+            </div>
+            <div class="two">
+              <div class="field" id="pi-ends-field"><label for="pi-ends">Stops after (optional)</label><input type="date" id="pi-ends"><span class="err" id="pi-endsOn-err"></span></div>
+              <div class="field"><label for="pi-growth">Rises each year by (%)</label><input id="pi-growth" inputmode="decimal" autocomplete="off" placeholder="0"><span class="err" id="pi-growth-err"></span></div>
+            </div>
+            <div class="field"><label for="pi-category">What it is</label><select id="pi-category"></select></div>
+            <div class="formacts">
+              <button type="submit" class="btn" id="pi-save">Save to iCloud</button>
+              <button type="button" class="linkbtn" id="pi-cancel" hidden>Cancel</button>
+            </div>
+            <p class="ok" id="pi-ok" role="status" hidden></p>
+            <p class="error" id="pi-error" role="alert" hidden></p>
+          </form>
+        </div>
+      </div>
+      <div class="card list" aria-labelledby="h-planned">
+        <div class="head"><h2 id="h-planned">Planned</h2><span class="label" id="planned-count"></span></div>
+        <div id="planned"></div>
+        <div id="planned-away"></div>
       </div>
     </div>
   </section>
@@ -367,8 +433,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=4"></script>
-<script src="cloud.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="money.js?v=5"></script>
+<script src="cloud.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

@@ -15,6 +15,8 @@
   const INTEGER = new Set([
     "amount_minor", "value_minor", "byte_count", "is_invested", "display_order",
     "income_amount_minor", "income_reinvested", "available_from_age", "parts", "part",
+    "monthly_income_minor", "monthly_spending_minor", "raise_effective_month", "horizon_months",
+    "birth_year", "birth_month", "income_day", "written_order",
   ]);
   /* Fields held as raw bytes: a piece of a document's file (see `uploadDocument`). */
   const BYTES = new Set(["data"]);
@@ -27,7 +29,15 @@
   const NULLABLE = {
     Transaction: ["account_id", "category", "note"],
     Document: ["status_note", "status_at", "note"],
+    Account: ["archived_at", "category", "income_basis", "income_rate_pct", "income_amount_minor", "income_frequency",
+      "available_from_age", "available_from_month"],
+    PlannedItem: ["ends_on", "archived_at", "currency_code", "category"],
+    Assumptions: ["birth_year", "birth_month", "income_day", "fire_interest_pct", "fire_growth_pct"],
   };
+  /* The parts of the assumptions the projection reads: a change to any of them is a new line
+     of history, exactly as the app appends one (AssumptionVersion.appendIfChanged). */
+  const ENGINE_FIELDS = ["base_currency_code", "monthly_income_minor", "monthly_spending_minor", "annual_raise_pct",
+    "raise_effective_month", "annual_spending_growth_pct", "annual_return_pct"];
 
   /** A plain record → CloudKit JS's shape. */
   function toCloud(record) {
@@ -282,10 +292,27 @@
       line("ex-l1", "ex-current", 0, -6_420, 5, "out", "Corner Grocer"),
       line("ex-l2", "ex-current", 1, -50_000, 5, "own", "To Savings (UK)"),
       line("ex-l3", "ex-current", 2, 112, 1, "interest", "Interest earned"),
+      { name: "assumptions-1", type: "Assumptions", tag: "x", file: null, f: {
+        base_currency_code: "USD", monthly_income_minor: 1_800_000, monthly_spending_minor: 1_150_000, annual_raise_pct: "3",
+        raise_effective_month: 4, annual_spending_growth_pct: "2", annual_return_pct: "5", horizon_months: 24, updated_at: at(60),
+        birth_year: null, birth_month: null, annual_withdrawal_pct: "4", income_day: 25, fire_interest_pct: null, fire_growth_pct: null } },
+      { name: "exversion1", type: "AssumptionVersion", tag: "x", file: null, f: {
+        base_currency_code: "USD", monthly_income_minor: 1_800_000, monthly_spending_minor: 1_150_000, annual_raise_pct: "3",
+        raise_effective_month: 4, annual_spending_growth_pct: "2", annual_return_pct: "5", valid_from: at(60), written_order: 1 } },
+      { name: "ex-p1", type: "PlannedItem", tag: "x", file: null, f: {
+        name: "Car insurance", direction: "OUT", amount_minor: 96_000, currency_code: null, category: "P_INSURANCE",
+        first_date: day(-40), frequency: "ANNUAL", ends_on: null, growth_pct: "0", archived_at: null, display_order: 0, created_at: at(80) } },
+      { name: "ex-p2", type: "PlannedItem", tag: "x", file: null, f: {
+        name: "Year-end bonus", direction: "IN", amount_minor: 900_000, currency_code: null, category: "P_BONUS",
+        first_date: day(-70), frequency: "ONCE", ends_on: null, growth_pct: "0", archived_at: null, display_order: 1, created_at: at(80) } },
       doc("ex-d1", "Current account, September.pdf", 184_320, 2, "NEW"),
       doc("ex-d2", "Savings statement Q3.pdf", 96_256, 12, "ADDED"),
     ];
   }
+
+  /* How often a planned item comes round, as the app names it. */
+  const FREQUENCIES = [["ONCE", "Once"], ["MONTHLY", "Every month"], ["QUARTERLY", "Every 3 months"],
+    ["SEMIANNUAL", "Every 6 months"], ["ANNUAL", "Every year"]];
 
   /* ---------- the records, read the way the app reads them ---------- */
 
@@ -469,6 +496,145 @@
       return null;
     }
 
+    // ---- income and spending (the app's assumptions) ----
+
+    /** The one row of settings, as the iPhone sent it. Null until the phone has. */
+    assumptions() { return this.rows.get("assumptions-1") || null; }
+
+    /** The currency income, spending and a planned item without its own are in. */
+    baseCurrency() {
+      const a = this.assumptions();
+      return a ? a.f.base_currency_code : this.usualCurrency();
+    }
+
+    checkAssumptions(draft) {
+      const problems = {};
+      for (const key of ["income", "spending"]) {
+        if (!draft[key].ok) problems[key] = draft[key].reason === "empty" ? "Type an amount, or 0." : draft[key].reason;
+      }
+      for (const key of ["raise", "growth", "ret"]) {
+        if (!draft[key].ok) problems[key] = draft[key].reason;
+      }
+      if (!(draft.raiseMonth >= 1 && draft.raiseMonth <= 12)) problems.raiseMonth = "Choose a month.";
+      return problems;
+    }
+
+    /** Writes the settings and, when a figure the projection reads changed, a new line of
+        history after it, as the app does. Everything else in the row is kept as it was. */
+    async saveAssumptions(draft) {
+      const existing = this.assumptions();
+      if (!existing) throw { reason: "Your iPhone hasn't sent its settings yet. Open WaffleWealth with iCloud on, then try again." };
+      const now = M.stamp();
+      const f = {
+        ...existing.f,
+        monthly_income_minor: draft.income.minor,
+        monthly_spending_minor: draft.spending.minor,
+        annual_raise_pct: draft.raise.value,
+        raise_effective_month: draft.raiseMonth,
+        annual_spending_growth_pct: draft.growth.value,
+        annual_return_pct: draft.ret.value,
+        updated_at: now,
+      };
+      const [saved] = await this.backend.save([{ name: existing.name, type: "Assumptions", tag: existing.tag, f }]);
+      this.rows.set(saved.name, saved);
+      const latest = this.history()[this.history().length - 1];
+      const changed = !latest || ENGINE_FIELDS.some((k) => String(latest.f[k]) !== String(f[k]));
+      if (changed) {
+        const line = { name: M.uuid().replace(/-/g, ""), type: "AssumptionVersion", f: { written_order: Date.now(), valid_from: now } };
+        for (const k of ENGINE_FIELDS) line.f[k] = f[k];
+        const [kept] = await this.backend.save([line]);
+        this.rows.set(kept.name, kept);
+      }
+      return saved;
+    }
+
+    /** The input history, oldest first: by when it took effect, then the order it was written. */
+    history() {
+      return this.of("AssumptionVersion").sort((a, b) =>
+        String(a.f.valid_from).localeCompare(String(b.f.valid_from)) || (Number(a.f.written_order) || 0) - (Number(b.f.written_order) || 0));
+    }
+
+    // ---- planned items ----
+
+    planned(archived) {
+      return this.of("PlannedItem")
+        .filter((p) => Boolean(p.f.archived_at) === Boolean(archived))
+        .sort((a, b) => String(a.f.first_date).localeCompare(String(b.f.first_date)) || String(a.f.created_at).localeCompare(String(b.f.created_at)));
+    }
+
+    checkPlanned(draft) {
+      const problems = {};
+      const name = (draft.name || "").trim();
+      if (name.length < 1 || name.length > 60) problems.name = "Give it a name, up to 60 characters.";
+      if (!draft.amount.ok) problems.amount = draft.amount.reason === "empty" ? "Type an amount." : draft.amount.reason;
+      if (!M.isDay(draft.firstDate)) problems.firstDate = "Choose a date.";
+      if (!FREQUENCIES.some(([k]) => k === draft.frequency)) problems.frequency = "Choose how often.";
+      if (draft.endsOn) {
+        if (!M.isDay(draft.endsOn)) problems.endsOn = "Choose a date, or leave it empty.";
+        else if (M.isDay(draft.firstDate) && draft.endsOn < draft.firstDate) problems.endsOn = "It can't stop before it starts.";
+      }
+      if (!draft.growth.ok) problems.growth = draft.growth.reason;
+      else if (Number(draft.growth.value) <= -100) problems.growth = "Use a rise above -100%.";
+      return problems;
+    }
+
+    async savePlanned(draft, existing) {
+      const list = draft.direction === "IN" ? M.categories.in : M.categories.out;
+      const base = this.baseCurrency();
+      const order = existing ? existing.f.display_order
+        : this.of("PlannedItem").reduce((m, p) => Math.max(m, Number(p.f.display_order) || 0), -1) + 1;
+      const record = {
+        name: existing ? existing.name : M.uuid(),
+        type: "PlannedItem",
+        tag: existing ? existing.tag : undefined,
+        f: {
+          ...(existing ? existing.f : {}),
+          name: draft.name.trim(),
+          direction: draft.direction,
+          amount_minor: draft.amount.minor,
+          currency_code: draft.currency && draft.currency !== base ? draft.currency : (existing && existing.f.currency_code === base ? base : null),
+          category: list.some(([k]) => k === draft.category) ? draft.category : null,
+          first_date: draft.firstDate,
+          frequency: draft.frequency,
+          ends_on: draft.frequency === "ONCE" ? null : (draft.endsOn || null),
+          growth_pct: draft.growth.value,
+          archived_at: existing ? existing.f.archived_at : null,
+          display_order: order,
+          created_at: existing ? existing.f.created_at : M.stamp(),
+        },
+      };
+      const [saved] = await this.backend.save([record]);
+      this.rows.set(saved.name, saved);
+      return saved;
+    }
+
+    /** Put away, or back in use. A planned item is deleted only once it is put away, as in the app. */
+    async setPlannedArchived(item, archived) {
+      const [saved] = await this.backend.save([{ name: item.name, type: "PlannedItem", tag: item.tag,
+        f: { ...item.f, archived_at: archived ? M.stamp() : null } }]);
+      this.rows.set(saved.name, saved);
+      return saved;
+    }
+
+    // ---- accounts ----
+
+    archivedAccounts() { return this.of("Account").filter((a) => a.f.archived_at); }
+
+    checkAccount(draft) {
+      const name = (draft.name || "").trim();
+      return name.length < 1 || name.length > 60 ? { name: "Give it a name, up to 60 characters." } : {};
+    }
+
+    /** A new name, whether it grows at the return rate, or put away. Currency and kind are
+        changed in the app, which checks them against the balances already recorded. */
+    async saveAccount(account, draft) {
+      const f = { ...account.f, name: draft.name.trim(), is_invested: draft.invested ? 1 : 0 };
+      if ("archived" in draft) f.archived_at = draft.archived ? M.stamp() : null;
+      const [saved] = await this.backend.save([{ name: account.name, type: "Account", tag: account.tag, f }]);
+      this.rows.set(saved.name, saved);
+      return saved;
+    }
+
     static pieceNames(document) {
       const count = Number(document.f.parts) || 0;
       return Array.from({ length: count }, (_, n) => `documentpart-${document.name}-${n}`);
@@ -548,5 +714,5 @@
     return bytes;
   }
 
-  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES };
+  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES, FREQUENCIES };
 })();

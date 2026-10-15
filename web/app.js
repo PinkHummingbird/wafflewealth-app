@@ -21,7 +21,8 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-  const state = { store: null, tab: "documents", editing: null, balanceFor: null };
+  const TABS = ["documents", "transactions", "accounts", "plan"];
+  const state = { store: null, tab: "documents", editing: null, balanceFor: null, accountFor: null, plannedEditing: null };
 
   /* ---------- starting ---------- */
 
@@ -107,7 +108,7 @@
 
   function choose(tab) {
     state.tab = tab;
-    for (const name of ["documents", "transactions", "accounts"]) {
+    for (const name of TABS) {
       $(`tab-${name}`).setAttribute("aria-selected", String(name === tab));
       $(`panel-${name}`).hidden = name !== tab;
     }
@@ -123,6 +124,7 @@
     renderDocuments();
     renderTransactions();
     renderAccounts();
+    renderPlan();
     fillAccountSelect();
   }
 
@@ -261,6 +263,7 @@
         const value = latest ? M.format(Number(latest.f.value_minor), a.f.currency_code) : "No balance yet";
         const asOf = latest ? `As of ${M.dayLabel(latest.f.as_of_date)}` : "";
         const open = state.balanceFor === a.name;
+        const editing = state.accountFor === a.name;
         const form = open ? `<form class="inline-form" data-balance-form="${esc(a.name)}" novalidate>
             <div class="field"><label for="bal-amount">New balance (${esc(a.f.currency_code)})</label><input id="bal-amount" inputmode="decimal" autocomplete="off" placeholder="0.00"><span class="err" id="bal-amount-err"></span></div>
             <div class="field"><label for="bal-day">As of</label><input type="date" id="bal-day" value="${esc(M.today())}"><span class="err" id="bal-day-err"></span></div>
@@ -269,15 +272,31 @@
           </form>` : "";
         return `<div class="row">
           <span class="ic" aria-hidden="true">${esc(a.f.currency_code)}</span>
-          <div class="main"><span class="t">${esc(a.f.name)}</span><span class="d">${a.f.kind === "LIABILITY" ? '<span class="pill owed">Owed</span> ' : ""}${esc(asOf)}</span>
-            ${open ? "" : `<span class="acts"><button type="button" class="linkbtn" data-balance="${esc(a.name)}">Update balance</button></span>`}</div>
+          <div class="main"><span class="t">${esc(a.f.name)}</span><span class="d">${a.f.kind === "LIABILITY" ? '<span class="pill owed">Owed</span> ' : ""}${Number(a.f.is_invested) ? "Grows at your return rate · " : ""}${esc(asOf)}</span>
+            ${open || editing ? "" : `<span class="acts"><button type="button" class="linkbtn" data-balance="${esc(a.name)}">Update balance</button><button type="button" class="linkbtn" data-account-edit="${esc(a.name)}">Edit</button></span>`}</div>
           <div class="end"><span class="amt">${esc(value)}</span></div>
-          ${form}
+          ${form}${editing ? accountForm(a) : ""}
         </div>`;
       }).join("");
     };
     $("accts").innerHTML = section("ASSET", "What you own") + section("LIABILITY", "What you owe");
+    const away = store.archivedAccounts();
+    $("accts-away").innerHTML = away.length ? `<div class="month"><h3>Put away</h3></div>` + away.map((a) => `<div class="row">
+        <span class="ic" aria-hidden="true">${esc(a.f.currency_code)}</span>
+        <div class="main"><span class="t">${esc(a.f.name)}</span><span class="acts"><button type="button" class="linkbtn" data-account-restore="${esc(a.name)}">Put back</button></span></div>
+      </div>`).join("") : "";
     if (state.balanceFor) { const input = $("bal-amount"); if (input) input.focus(); }
+    if (state.accountFor) { const input = $("acc-name"); if (input) input.focus(); }
+  }
+
+  function accountForm(a) {
+    return `<form class="inline-form" data-account-form="${esc(a.name)}" novalidate>
+      <div class="field"><label for="acc-name">Name</label><input id="acc-name" maxlength="60" autocomplete="off" value="${esc(a.f.name)}"><span class="err" id="acc-name-err"></span></div>
+      <label class="check"><input type="checkbox" id="acc-invested" ${Number(a.f.is_invested) ? "checked" : ""}> Grows at your return rate (an investment)</label>
+      <button type="submit" class="btn small">Save to iCloud</button>
+      <button type="button" class="linkbtn" data-cancel-account>Cancel</button>
+      <button type="button" class="linkbtn danger" data-account-away="${esc(a.name)}">Put away</button>
+    </form>`;
   }
 
   /* ---------- the transaction form ---------- */
@@ -502,18 +521,248 @@
     }
   }
 
+  /* ---------- plan: income and spending, planned items ---------- */
+
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  function renderPlan() {
+    const store = state.store;
+    const a = store.assumptions();
+    $("plan-form").hidden = !a;
+    $("plan-waiting").hidden = Boolean(a);
+    const base = store.baseCurrency();
+    if (a && !$("plan-form").contains(document.activeElement)) {
+      $("plan-base").textContent = `In ${base}, your base currency. The projection itself is drawn on your iPhone.`;
+      $("as-income").value = M.editable(Number(a.f.monthly_income_minor), base);
+      $("as-spending").value = M.editable(Number(a.f.monthly_spending_minor), base);
+      $("as-raise").value = a.f.annual_raise_pct;
+      $("as-growth").value = a.f.annual_spending_growth_pct;
+      $("as-ret").value = a.f.annual_return_pct;
+      if (!$("as-raise-month").options.length) $("as-raise-month").innerHTML = MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+      $("as-raise-month").value = String(a.f.raise_effective_month);
+    }
+    if (!$("pi-frequency").options.length) {
+      $("pi-frequency").innerHTML = C.FREQUENCIES.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("");
+      $("pi-currency").innerHTML = M.currencies().map((c) => `<option value="${c}">${c} · ${esc(M.currencyName(c))}</option>`).join("");
+      resetPlanned();
+    }
+    // A new item starts in the base currency, which may only be known once the phone's settings arrive.
+    if (!state.plannedEditing && !$("pi-name").value && !$("pi-amount").value) $("pi-currency").value = base;
+    const active = store.planned(false);
+    const away = store.planned(true);
+    $("planned-count").textContent = active.length ? `${active.length} planned` : "";
+    $("planned").innerHTML = active.length ? active.map((p) => plannedRow(p, base)).join("")
+      : `<p class="empty">Nothing planned yet. Add money you know is coming in or going out: a bonus, school fees, a car.</p>`;
+    $("planned-away").innerHTML = away.length ? `<div class="month"><h3>Put away</h3></div>` + away.map((p) => plannedRow(p, base, true)).join("") : "";
+  }
+
+  function plannedRow(p, base, away) {
+    const code = p.f.currency_code || base;
+    const incoming = p.f.direction === "IN";
+    const freq = (C.FREQUENCIES.find(([k]) => k === p.f.frequency) || [null, p.f.frequency])[1];
+    const detail = [freq, p.f.frequency === "ONCE" ? M.dayLabel(p.f.first_date) : `from ${M.dayLabel(p.f.first_date)}`,
+      p.f.ends_on ? `until ${M.dayLabel(p.f.ends_on)}` : "", M.categoryName(p.f.category),
+      p.f.growth_pct && p.f.growth_pct !== "0" ? `rises ${p.f.growth_pct}% a year` : ""].filter(Boolean).join(" · ");
+    const acts = away
+      ? `<button type="button" class="linkbtn" data-planned-restore="${esc(p.name)}">Put back</button><button type="button" class="linkbtn danger" data-planned-delete="${esc(p.name)}">Delete</button>`
+      : `<button type="button" class="linkbtn" data-planned-edit="${esc(p.name)}">Edit</button><button type="button" class="linkbtn" data-planned-away="${esc(p.name)}">Put away</button>`;
+    return `<div class="row${state.plannedEditing && state.plannedEditing.name === p.name ? " editing" : ""}">
+      <span class="ic" aria-hidden="true">${incoming ? "↙" : "↗"}</span>
+      <div class="main"><span class="t">${esc(p.f.name)}</span><span class="d">${esc(detail)}</span><span class="acts">${acts}</span></div>
+      <div class="end"><span class="amt${incoming ? " in" : ""}">${esc(M.formatSigned(incoming ? Number(p.f.amount_minor) : -Number(p.f.amount_minor), code))}</span></div>
+    </div>`;
+  }
+
+  const plannedDirection = () => ($("pi-in").checked ? "IN" : "OUT");
+
+  function fillPlannedCategories(selected) {
+    const list = plannedDirection() === "IN" ? M.categories.in : M.categories.out;
+    $("pi-category").innerHTML = `<option value="">Not said</option>` + list.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("");
+    $("pi-category").value = list.some(([k]) => k === selected) ? selected : "";
+  }
+
+  function showEnds() { $("pi-ends-field").hidden = $("pi-frequency").value === "ONCE"; }
+
+  function resetPlanned() {
+    state.plannedEditing = null;
+    $("pi-title").textContent = "Add a planned item";
+    $("pi-cancel").hidden = true;
+    $("pi-out").checked = true;
+    for (const id of ["pi-name", "pi-amount", "pi-ends", "pi-growth"]) $(id).value = "";
+    $("pi-first").value = M.today();
+    $("pi-frequency").value = "ONCE";
+    $("pi-currency").value = state.store ? state.store.baseCurrency() : "USD";
+    fillPlannedCategories("");
+    showEnds();
+    clearErrors("pi", ["name", "amount", "firstDate", "frequency", "endsOn", "growth"]);
+  }
+
+  function editPlanned(name) {
+    const p = state.store.rows.get(name);
+    if (!p) return;
+    state.plannedEditing = p;
+    const code = p.f.currency_code || state.store.baseCurrency();
+    $("pi-title").textContent = "Edit planned item";
+    $("pi-cancel").hidden = false;
+    $(p.f.direction === "IN" ? "pi-in" : "pi-out").checked = true;
+    $("pi-name").value = p.f.name;
+    $("pi-currency").value = code;
+    $("pi-amount").value = M.editable(Number(p.f.amount_minor), code);
+    $("pi-first").value = p.f.first_date;
+    $("pi-frequency").value = p.f.frequency;
+    $("pi-ends").value = p.f.ends_on || "";
+    $("pi-growth").value = p.f.growth_pct && p.f.growth_pct !== "0" ? p.f.growth_pct : "";
+    fillPlannedCategories(p.f.category);
+    showEnds();
+    clearErrors("pi", ["name", "amount", "firstDate", "frequency", "endsOn", "growth"]);
+    $("pi-ok").hidden = true;
+    renderPlan();
+    $("pi-name").focus();
+  }
+
+  function clearErrors(prefix, keys) {
+    for (const key of keys) { const el = $(`${prefix}-${key}-err`); if (el) el.textContent = ""; }
+    const error = $(`${prefix === "as" ? "plan" : prefix}-error`);
+    if (error) error.hidden = true;
+  }
+
+  function showProblems(prefix, problems) {
+    let first = null;
+    for (const [key, text] of Object.entries(problems)) {
+      const el = $(`${prefix}-${key}-err`);
+      if (el) { el.textContent = text; first = first || el; }
+    }
+    if (first) { const input = first.parentElement.querySelector("input, select"); if (input) input.focus(); }
+    return Boolean(first);
+  }
+
+  function savedMessage(id, text) {
+    $(id).hidden = false;
+    $(id).textContent = state.store.backend.kind === "example" ? "Saved, in this tab. With iCloud it would be on your iPhone the next time WaffleWealth opens." : text;
+  }
+
+  async function submitAssumptions(event) {
+    event.preventDefault();
+    const store = state.store;
+    const base = store.baseCurrency();
+    clearErrors("as", ["income", "spending", "raise", "raiseMonth", "growth", "ret"]);
+    $("plan-ok").hidden = true;
+    const draft = {
+      income: M.parseAmount($("as-income").value, base),
+      spending: M.parseAmount($("as-spending").value, base),
+      raise: M.parsePercent($("as-raise").value),
+      raiseMonth: Number($("as-raise-month").value),
+      growth: M.parsePercent($("as-growth").value),
+      ret: M.parsePercent($("as-ret").value),
+    };
+    if (showProblems("as", store.checkAssumptions(draft))) return;
+    $("plan-save").disabled = true;
+    try {
+      await store.saveAssumptions(draft);
+      savedMessage("plan-ok", "Saved to iCloud. Your iPhone redraws the projection with it the next time WaffleWealth opens.");
+      renderPlan();
+    } catch (error) {
+      $("plan-error").hidden = false;
+      $("plan-error").textContent = C.explain(error);
+      if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
+    } finally {
+      $("plan-save").disabled = false;
+    }
+  }
+
+  async function submitPlanned(event) {
+    event.preventDefault();
+    const store = state.store;
+    clearErrors("pi", ["name", "amount", "firstDate", "frequency", "endsOn", "growth"]);
+    $("pi-ok").hidden = true;
+    const currency = $("pi-currency").value;
+    const draft = {
+      direction: plannedDirection(),
+      name: $("pi-name").value,
+      amount: M.parseAmount($("pi-amount").value, currency),
+      currency,
+      firstDate: $("pi-first").value,
+      frequency: $("pi-frequency").value,
+      endsOn: $("pi-frequency").value === "ONCE" ? "" : $("pi-ends").value,
+      growth: M.parsePercent($("pi-growth").value),
+      category: $("pi-category").value || null,
+    };
+    if (showProblems("pi", store.checkPlanned(draft))) return;
+    $("pi-save").disabled = true;
+    try {
+      const editing = state.plannedEditing;
+      await store.savePlanned(draft, editing);
+      resetPlanned();
+      renderPlan();
+      savedMessage("pi-ok", editing ? "Changes saved to iCloud." : "Saved to iCloud. It'll be on your iPhone the next time WaffleWealth opens.");
+    } catch (error) {
+      $("pi-error").hidden = false;
+      $("pi-error").textContent = C.explain(error);
+      if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
+    } finally {
+      $("pi-save").disabled = false;
+    }
+  }
+
+  async function plannedAction(kind, name) {
+    const p = state.store.rows.get(name);
+    if (!p) return;
+    try {
+      if (kind === "edit") return editPlanned(name);
+      if (kind === "away") await state.store.setPlannedArchived(p, true);
+      if (kind === "restore") await state.store.setPlannedArchived(p, false);
+      if (kind === "delete") {
+        if (!confirm(`Delete “${p.f.name}”? It goes from your iPhone too.`)) return;
+        await state.store.deleteRecord(p);
+      }
+      if (state.plannedEditing && state.plannedEditing.name === name) resetPlanned();
+      renderPlan();
+    } catch (error) {
+      showError(C.explain(error));
+    }
+  }
+
+  async function submitAccount(form) {
+    const account = state.store.account(form.getAttribute("data-account-form"));
+    if (!account) return;
+    const draft = { name: $("acc-name").value, invested: $("acc-invested").checked };
+    const problems = state.store.checkAccount(draft);
+    $("acc-name-err").textContent = problems.name || "";
+    if (problems.name) return;
+    try {
+      await state.store.saveAccount(account, draft);
+      state.accountFor = null;
+      render();
+    } catch (error) {
+      $("acc-name-err").textContent = C.explain(error);
+    }
+  }
+
+  async function setAccountAway(name, away) {
+    const account = state.store.rows.get(name);
+    if (!account) return;
+    if (away && !confirm(`Put “${account.f.name}” away? It leaves your totals and the projection, and keeps its history. You can put it back.`)) return;
+    try {
+      await state.store.saveAccount(account, { name: account.f.name, invested: Number(account.f.is_invested) === 1, archived: away });
+      state.accountFor = null;
+      render();
+    } catch (error) {
+      showError(C.explain(error));
+    }
+  }
+
   /* ---------- wiring ---------- */
 
   function wire() {
     $("try-example").addEventListener("click", () => open(new C.MemoryBackend()));
     $("leave-example").addEventListener("click", showWelcome);
     $("refresh").addEventListener("click", () => reload(true));
-    for (const name of ["documents", "transactions", "accounts"]) {
+    for (const name of TABS) {
       $(`tab-${name}`).addEventListener("click", () => choose(name));
     }
     // Arrow keys move between the tabs, as a tab list should.
     document.querySelector(".chips").addEventListener("keydown", (e) => {
-      const order = ["documents", "transactions", "accounts"];
+      const order = TABS;
       const i = order.indexOf(state.tab);
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         const next = order[(i + (e.key === "ArrowRight" ? 1 : order.length - 1)) % order.length];
@@ -556,13 +805,38 @@
     const accts = $("accts");
     accts.addEventListener("click", (e) => {
       const open = e.target.closest("[data-balance]");
-      if (open) { state.balanceFor = open.getAttribute("data-balance"); renderAccounts(); return; }
-      if (e.target.closest("[data-cancel-balance]")) { state.balanceFor = null; renderAccounts(); }
+      if (open) { state.balanceFor = open.getAttribute("data-balance"); state.accountFor = null; renderAccounts(); return; }
+      if (e.target.closest("[data-cancel-balance]")) { state.balanceFor = null; renderAccounts(); return; }
+      const edit = e.target.closest("[data-account-edit]");
+      if (edit) { state.accountFor = edit.getAttribute("data-account-edit"); state.balanceFor = null; renderAccounts(); return; }
+      if (e.target.closest("[data-cancel-account]")) { state.accountFor = null; renderAccounts(); return; }
+      const away = e.target.closest("[data-account-away]");
+      if (away) setAccountAway(away.getAttribute("data-account-away"), true);
     });
     accts.addEventListener("submit", (e) => {
       const form = e.target.closest("[data-balance-form]");
-      if (form) { e.preventDefault(); submitBalance(form); }
+      if (form) { e.preventDefault(); submitBalance(form); return; }
+      const accountForm = e.target.closest("[data-account-form]");
+      if (accountForm) { e.preventDefault(); submitAccount(accountForm); }
     });
+    $("accts-away").addEventListener("click", (e) => {
+      const back = e.target.closest("[data-account-restore]");
+      if (back) setAccountAway(back.getAttribute("data-account-restore"), false);
+    });
+
+    $("plan-form").addEventListener("submit", submitAssumptions);
+    $("pi-form").addEventListener("submit", submitPlanned);
+    $("pi-cancel").addEventListener("click", () => { resetPlanned(); renderPlan(); });
+    for (const id of ["pi-in", "pi-out"]) $(id).addEventListener("change", () => fillPlannedCategories($("pi-category").value));
+    $("pi-frequency").addEventListener("change", showEnds);
+    for (const id of ["planned", "planned-away"]) {
+      $(id).addEventListener("click", (e) => {
+        for (const kind of ["edit", "away", "restore", "delete"]) {
+          const button = e.target.closest(`[data-planned-${kind}]`);
+          if (button) { plannedAction(kind, button.getAttribute(`data-planned-${kind}`)); return; }
+        }
+      });
+    }
 
     // Coming back to the tab is when a phone's change is most likely waiting.
     document.addEventListener("visibilitychange", () => {
