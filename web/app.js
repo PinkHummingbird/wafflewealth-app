@@ -556,7 +556,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=10"), import("./statement-save.mjs?v=10")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=11"), import("./statement-save.mjs?v=11")]);
     return { ...read, ...save };
   }
 
@@ -737,20 +737,30 @@
     $("planned-away").innerHTML = away.length ? `<div class="month"><h3>Put away</h3></div>` + away.map((p) => plannedRow(p, base, true)).join("") : "";
   }
 
+  /* A planned item as the app shows one: its name, the next date it lands on ("Completed" once
+     it has none), then its facts as tags, tinted by the side the money is on (accent in, blue
+     out), and the amount in plain ink: a payment planned is not a mistake, so it isn't coloured. */
+  const TAG_FREQUENCY = { MONTHLY: "Monthly", QUARTERLY: "Quarterly", SEMIANNUAL: "Half-yearly", ANNUAL: "Yearly" };
+
   function plannedRow(p, base, away) {
     const code = p.f.currency_code || base;
     const incoming = p.f.direction === "IN";
-    const freq = (C.FREQUENCIES.find(([k]) => k === p.f.frequency) || [null, p.f.frequency])[1];
-    const detail = [freq, p.f.frequency === "ONCE" ? M.dayLabel(p.f.first_date) : `from ${M.dayLabel(p.f.first_date)}`,
-      p.f.ends_on ? `until ${M.dayLabel(p.f.ends_on)}` : "", M.categoryName(p.f.category),
-      p.f.growth_pct && p.f.growth_pct !== "0" ? `rises ${p.f.growth_pct}% a year` : ""].filter(Boolean).join(" · ");
+    const tint = incoming ? "accent" : "owed";
+    const next = away ? null : C.nextOccurrence(p, M.today());
+    const when = away ? (p.f.frequency === "ONCE" ? M.dayLabel(p.f.first_date) : `From ${M.dayLabel(p.f.first_date)}`) : next ? M.dayLabel(next) : "Completed";
+    const tags = [
+      M.categoryName(p.f.category) ? `<span class="tag ${tint}">${esc(M.categoryName(p.f.category))}</span>` : "",
+      p.f.frequency !== "ONCE" ? `<span class="tag ${tint}"><span aria-hidden="true">↻</span> ${esc(TAG_FREQUENCY[p.f.frequency] || p.f.frequency)}</span>` : "",
+      p.f.frequency !== "ONCE" && p.f.growth_pct && Number(p.f.growth_pct) !== 0 ? `<span class="tag ${tint}"><span aria-hidden="true">↗</span> Rises ${esc(p.f.growth_pct)}%/yr</span>` : "",
+    ].join("");
+    const inBase = p.f.currency_code && p.f.currency_code !== base ? `<span class="d">in ${esc(code)}</span>` : "";
     const acts = away
       ? `<button type="button" class="linkbtn" data-planned-restore="${esc(p.name)}">Put back</button><button type="button" class="linkbtn danger" data-planned-delete="${esc(p.name)}">Delete</button>`
       : `<button type="button" class="linkbtn" data-planned-edit="${esc(p.name)}">Edit</button><button type="button" class="linkbtn" data-planned-away="${esc(p.name)}">Put away</button>`;
-    return `<div class="row${state.plannedEditing && state.plannedEditing.name === p.name ? " editing" : ""}">
-      <span class="ic" aria-hidden="true">${incoming ? "↙" : "↗"}</span>
-      <div class="main"><span class="t">${esc(p.f.name)}</span><span class="d">${esc(detail)}</span><span class="acts">${acts}</span></div>
-      <div class="end"><span class="amt${incoming ? " in" : ""}">${esc(M.formatSigned(incoming ? Number(p.f.amount_minor) : -Number(p.f.amount_minor), code))}</span></div>
+    return `<div class="row plain${state.plannedEditing && state.plannedEditing.name === p.name ? " editing" : ""}">
+      <div class="main"><span class="t">${esc(p.f.name)}</span><span class="d">${esc(when)}</span>
+        ${tags ? `<span class="tags">${tags}</span>` : ""}<span class="acts">${acts}</span></div>
+      <div class="end"><span class="amt">${esc(M.formatSigned(incoming ? Number(p.f.amount_minor) : -Number(p.f.amount_minor), code))}</span>${inBase}</div>
     </div>`;
   }
 

@@ -197,6 +197,13 @@ form.f { display: flex; flex-direction: column; gap: 14px; }
 .inline-form .field { flex: 1 1 140px; }
 .check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--fs-small); cursor: pointer; }
 .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+/* Tags, as the app draws them: a word (and a glyph) in the tint of the side the money is on, on
+   a faint wash of the same, never a block of colour. */
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; color: var(--ink-2); background: var(--sunken); }
+.tag.accent { color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.tag.owed { color: var(--owed); background: color-mix(in srgb, var(--owed) 11%, transparent); }
+.row.plain { grid-template-columns: minmax(0, 1fr) auto; }
 .ic.chev svg { display: block; transition: transform 0.15s ease; }
 .ic.chev.open svg { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .ic.chev svg { transition: none; } }
@@ -455,8 +462,8 @@ footer a { color: var(--ink-2); }
 </footer>
 
 <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js" async id="cloudkit-js"></script>
-<script src="money.js?v=10"></script>
-<script src="cloud.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="money.js?v=11"></script>
+<script src="cloud.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

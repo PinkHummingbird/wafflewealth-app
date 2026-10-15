@@ -388,6 +388,33 @@
     },
   };
 
+  /* A planned item's next date after today, as the app works it out (PlannedItem.nextOccurrence):
+     stepped from its first date, the day kept where the month has it, within ten years. */
+  const MONTH_STEP = { ONCE: 0, MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, ANNUAL: 12 };
+  function addMonths(day, count) {
+    const [y, m, d] = day.split("-").map(Number);
+    const total = y * 12 + (m - 1) + count;
+    const ty = Math.floor(total / 12), tm = total % 12 + 1;
+    const length = new Date(Date.UTC(ty, tm, 0)).getUTCDate();
+    return `${String(ty).padStart(4, "0")}-${String(tm).padStart(2, "0")}-${String(Math.min(d, length)).padStart(2, "0")}`;
+  }
+  function nextOccurrence(item, today) {
+    const first = item.f.first_date;
+    const last = addMonths(today, 120).slice(0, 7);
+    const step = MONTH_STEP[item.f.frequency] || 0;
+    if (!step) return first > today && first.slice(0, 7) <= last ? first : null;
+    const months = (d) => { const [y, m] = d.split("-").map(Number); return y * 12 + m; };
+    const behind = months(today) - months(first);
+    let index = behind > 0 ? Math.floor(behind / step) : 0;
+    for (;;) {
+      const date = addMonths(first, index * step);
+      if (date.slice(0, 7) > last) return null;
+      if (item.f.ends_on && date > item.f.ends_on) return null;
+      if (date > today) return date;
+      index += 1;
+    }
+  }
+
   /* How often a planned item comes round, as the app names it. */
   const FREQUENCIES = [["ONCE", "Once"], ["MONTHLY", "Every month"], ["QUARTERLY", "Every 3 months"],
     ["SEMIANNUAL", "Every 6 months"], ["ANNUAL", "Every year"]];
@@ -634,10 +661,21 @@
 
     // ---- planned items ----
 
-    planned(archived) {
-      return this.of("PlannedItem")
-        .filter((p) => Boolean(p.f.archived_at) === Boolean(archived))
-        .sort((a, b) => String(a.f.first_date).localeCompare(String(b.f.first_date)) || String(a.f.created_at).localeCompare(String(b.f.created_at)));
+    /** In use: by the next date each lands on, then by name, finished ones last (the app's
+        order). Put away: by first date. */
+    planned(archived, today = M.today()) {
+      const list = this.of("PlannedItem").filter((p) => Boolean(p.f.archived_at) === Boolean(archived));
+      if (archived) {
+        return list.sort((a, b) => String(a.f.first_date).localeCompare(String(b.f.first_date)) || String(a.f.created_at).localeCompare(String(b.f.created_at)));
+      }
+      const next = new Map(list.map((p) => [p.name, nextOccurrence(p, today)]));
+      return list.sort((a, b) => {
+        const na = next.get(a.name), nb = next.get(b.name);
+        if (na && nb) return na === nb ? String(a.f.name).localeCompare(String(b.f.name)) : (na < nb ? -1 : 1);
+        if (!na && nb) return 1;
+        if (na && !nb) return -1;
+        return String(a.f.name).localeCompare(String(b.f.name));
+      });
     }
 
     checkPlanned(draft) {
@@ -839,5 +877,5 @@
     return bytes;
   }
 
-  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES, FREQUENCIES, Groups };
+  globalThis.WWCloud = { CloudBackend, MemoryBackend, Store, explain, toCloud, fromCloud, ZONE, toBase64, fromBase64, PIECE_BYTES, FREQUENCIES, Groups, nextOccurrence };
 })();

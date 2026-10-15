@@ -54,3 +54,16 @@ test('an account not in the order comes after the ones that are', () => {
   const more = [...entries, e('old', '2026-10-03', -500, 'archived-1')].sort((a, b) => (a.day < b.day ? 1 : -1));
   assert.deepEqual(Groups.byMonth(more, ['current', 'card'])[0].movements.map((m) => m.account), ['current', 'card', 'archived-1', null]);
 });
+
+// A planned item's next date, as the app's PlannedItem.nextOccurrence works it out.
+const { nextOccurrence } = globalThis.WWCloud;
+const item = (first_date, frequency, ends_on = null) => ({ f: { first_date, frequency, ends_on } });
+test('next date: stepped from the first, the 31st kept where the month has one, ends and once respected', () => {
+  assert.equal(nextOccurrence(item('2025-12-30', 'SEMIANNUAL'), '2026-10-15'), '2026-12-30');
+  assert.equal(nextOccurrence(item('2026-01-31', 'MONTHLY'), '2026-02-10'), '2026-02-28');
+  assert.equal(nextOccurrence(item('2026-01-31', 'MONTHLY'), '2026-02-28'), '2026-03-31');
+  assert.equal(nextOccurrence(item('2026-03-29', 'SEMIANNUAL', '2026-09-30'), '2026-10-15'), null, 'past its end: completed');
+  assert.equal(nextOccurrence(item('2027-03-31', 'ONCE'), '2026-10-15'), '2027-03-31');
+  assert.equal(nextOccurrence(item('2026-03-31', 'ONCE'), '2026-10-15'), null);
+  assert.equal(nextOccurrence(item('2026-10-15', 'ANNUAL'), '2026-10-15'), '2027-10-15', 'today has landed already');
+});
