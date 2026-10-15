@@ -558,7 +558,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=12"), import("./statement-save.mjs?v=12")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=13"), import("./statement-save.mjs?v=13")]);
     return { ...read, ...save };
   }
 
@@ -708,7 +708,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=12");
+    return import("./projection.mjs?v=13");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -845,6 +845,7 @@
       ${hasLocked ? `<path class="avail" d="${path("av")}"/>` : ""}
       <path class="line" d="${path("nw")}"/>
       <line class="cross" id="proj-cross" y1="${pad.t}" y2="${H - pad.b}" visibility="hidden"/>
+      ${hasLocked ? `<circle class="dot dot-avail" id="proj-dot-av" r="4.5" visibility="hidden"/>` : ""}
       <circle class="dot" id="proj-dot" r="4.5" visibility="hidden"/>
       <rect id="proj-hit" x="${pad.l}" y="0" width="${W - pad.l - pad.r}" height="${H}" fill="transparent"/>
     </svg><div class="tip" id="proj-tip" hidden></div>`;
@@ -858,13 +859,15 @@
       const cross = box.querySelector("#proj-cross"), dot = box.querySelector("#proj-dot"), tip = box.querySelector("#proj-tip");
       cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
       dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(m.nw)); dot.setAttribute("visibility", "visible");
+      const dotAv = box.querySelector("#proj-dot-av");
+      if (dotAv) { dotAv.setAttribute("cx", x(i)); dotAv.setAttribute("cy", y(m.av)); dotAv.setAttribute("visibility", "visible"); }
       tip.hidden = false;
       tip.innerHTML = `${esc(M.monthLabel(m.month))}<br>Net worth <b>${esc(M.format(m.nw, base))}</b>${hasLocked ? `<br>Available <b>${esc(M.format(m.av, base))}</b>` : ""}`;
       tip.style.left = `${(x(i) / W) * 100}%`;
       tip.style.top = `${(y(m.nw) / H) * (rect.height || H)}px`;
     };
     const hide = () => {
-      for (const id of ["proj-cross", "proj-dot"]) box.querySelector(`#${id}`).setAttribute("visibility", "hidden");
+      for (const id of ["proj-cross", "proj-dot", "proj-dot-av"]) box.querySelector(`#${id}`)?.setAttribute("visibility", "hidden");
       box.querySelector("#proj-tip").hidden = true;
     };
     const hit = box.querySelector("#proj-hit");
