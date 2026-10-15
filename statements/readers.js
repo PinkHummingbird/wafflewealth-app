@@ -511,6 +511,57 @@ const HEADER = {
   balance: /^(balance|running balance)(?: \(?[A-Z]{3}\)?)?$/i,
 };
 
+/**
+ * The bank's name, from the print above the table: the first run of words, eight at most, that
+ * says it is a bank, without its legal ending ("plc", "N.A."). A name printed in capitals is given
+ * ordinary capitals; a short word that isn't an ordinary one stays as printed ("UOB", "HSBC").
+ */
+export function bankName(top) {
+  const says = /\b(bank|banque|banco|bancorp|credit union|building society|savings and loan|trust company)\b/i;
+  const not = /statement|details|summary|transfer|your |page|branch|sort code|account|www\.|@|\d/i;
+  for (const cell of top.flatMap((r) => r.cells)) {
+    const s = cell.s.trim();
+    if (!says.test(s) || not.test(s) || s.split(/\s+/).length > 8) continue;
+    const words = s.split(/\s+/);
+    while (words.length > 1 && /^(plc|ltd\.?|limited|inc\.?|llc|n\.?a\.?|ag|s\.?a\.?|pjsc|psc|berhad|bhd|card|cards|,)$/i.test(words[words.length - 1])) words.pop();
+    let name = words.join(' ').replace(/^[ ,]+|[ ,]+$/g, '');
+    if (name === name.toUpperCase()) {
+      name = name.split(' ').map((w, i) => {
+        if (i > 0 && ['OF', 'THE', 'AND', 'DE', 'DU'].includes(w)) return w.toLowerCase();
+        if (w.length <= 4 && !['BANK', 'CITY', 'FIRST', 'STATE', 'TRUST', 'WEST', 'EAST'].includes(w)) return w;
+        return titleCase(w);
+      }).join(' ');
+    }
+    return name;
+  }
+  return null;
+}
+
+/**
+ * The account or card number above the table: digits in groups ("0000 4471", "1234-5678-9012"),
+ * or masked ("XXXX XXXX XXXX 1234"). One labelled as the account's or card's comes first; a sort
+ * code, a phone number or a date never counts.
+ */
+export function accountNumber(top) {
+  const number = /(?:[Xx*•]{2,}[ -]?)*\d[\d -]{2,}\d/g;
+  const never = /sort code|routing|swift|bic|tel|phone|fax|call|page|statement|period/i;
+  const label = /account|a\/c|card|iban|number|no\./i;
+  const found = [];
+  for (const row of top) {
+    for (const cell of row.cells) {
+      if (never.test(cell.s)) continue;
+      const labelled = label.test(cell.s) || row.cells.some((o) => o.x2 <= cell.x && label.test(o.s) && !never.test(o.s));
+      for (const match of cell.s.match(number) ?? []) {
+        const digits = match.replace(/\D/g, '');
+        const masked = /[Xx*•]/.test(match);
+        if (!(digits.length >= 6 || (masked && digits.length >= 4)) || parseDate(match)) continue;
+        found.push({ labelled, number: match.trim() });
+      }
+    }
+  }
+  return (found.find((f) => f.labelled) ?? found[0])?.number ?? null;
+}
+
 const GeneralTable = {
   id: 'General',
   institution: null,
@@ -537,6 +588,7 @@ const GeneralTable = {
     let closingStated = null;
     const lines = [];
     let headerUntil = -1;
+    let firstHeader = null;
     rows.forEach((row, index) => {
       const c = row.cells;
       // A header can stand on two or three rows ("Amount" over "(Incl. VAT)" beside "Date"):
@@ -548,6 +600,7 @@ const GeneralTable = {
       }
       if (found.date && found.description && (found.amount || found.out || found.in)) {
         columns = found;
+        if (firstHeader == null) firstHeader = Math.min(...near.map((r) => rows.indexOf(r)));
         headerUntil = Math.max(...near.map((r) => rows.indexOf(r)));
         return;
       }
@@ -607,12 +660,21 @@ const GeneralTable = {
     });
     const closing = closingStated ?? (lines.length ? lines[lines.length - 1].running : null);
     if (opening == null && lines[0]?.running != null) opening = lines[0].running - (owed ? -lines[0].amount : lines[0].amount);
+    // Named from what sits above the table: the bank and the number's last four (owner's ruling,
+    // 15 October 2026), so next month's statement from the same account finds it again.
+    const top = rows.slice(0, firstHeader ?? 15);
+    const bank = bankName(top);
+    const number = accountNumber(top);
+    const named = bank ? (owed ? `${bank} card` : bank) : (owed ? 'Card' : 'Account');
     const acct = account({
-      ref: null, name: owed ? 'Card' : 'Account', type: owed ? 'card' : 'current', owed, currency, opening, closing, lines,
+      ref: bank && number ? `General:${bank.toLowerCase()}:${last4(number)}` : null,
+      number, numbers: number ? [number] : [],
+      name: number ? `${named} ·· ${last4(number)}` : named,
+      type: owed ? 'card' : 'current', owed, currency, opening, closing, lines,
       notes: ['read as a plain table: check each line'],
     });
     const from = [dates[0], lines[0]?.date].filter(Boolean).sort()[0] ?? null;
-    return { holder: null, period: { from, to }, accounts: lines.length ? [acct] : [] };
+    return { holder: null, period: { from, to }, accounts: lines.length ? [acct] : [], institution: bank };
   },
 };
 
@@ -630,7 +692,7 @@ export function readStatement(pages, { fileName = null } = {}) {
   const read = reader.read(pages);
   for (const a of read.accounts) a.check = check(a);
   return {
-    reader: reader.id, institution: reader.institution, country: reader.country, general: reader === GeneralTable,
+    reader: reader.id, institution: read.institution ?? reader.institution, country: reader.country, general: reader === GeneralTable,
     fileName, holder: read.holder, period: read.period, accounts: read.accounts,
   };
 }

@@ -251,6 +251,39 @@ test('any other bank: a plain table, read by its columns and checked by its bala
   assert.deepEqual(a.lines.map((l) => l.amount), [-15000, 100000]);
   assert.equal(a.lines[0].description, 'Rent · Flat 2');
   assert.ok(a.check.ok);
+  assert.equal(s.institution, 'Made Up Bank', "the bank's name, without its legal ending");
+  assert.equal(a.name, 'Made Up Bank', 'no number printed: the bank alone');
+  assert.equal(a.ref, null, 'without a number, nothing to find it by next month');
+});
+
+test('any other bank: named by its bank and the last four of its number', () => {
+  const read = (top, card = false) => readStatement([page([
+    ...top,
+    [[40, 'Date'], [110, 'Details'], [330, 'Paid out'], [400, 'Paid in'], [470, 'Balance']],
+    [[40, '03/04/2026'], [110, 'Rent'], [335, '150.00'], [480, '50.00']],
+    ...(card ? [[[40, 'Minimum payment 25.00']]] : []),
+  ])]).accounts[0];
+  const saver = read([
+    [[40, 'Harbourside Example Bank']],
+    [[40, 'Sam Example'], [380, 'Statement 1 April 2026 to 30 April 2026']],
+    [[40, 'Everyday Saver 0000 4471'], [380, 'Currency GBP']],
+  ]);
+  assert.equal(saver.name, 'Harbourside Example Bank ·· 4471');
+  assert.equal(saver.ref, 'General:harbourside example bank:4471');
+  assert.deepEqual(saver.numbers, ['0000 4471']);
+  // In capitals, with its legal ending; a sort code and a phone number beside the number that is
+  // labelled as the account's.
+  const labelled = read([
+    [[40, 'NORTHWIND SAVINGS BANK OF THE WEST N.A.'], [380, 'Call us 0800 123 4567']],
+    [[40, 'Sort code 12-34-56'], [300, 'Account number 87654321']],
+  ]);
+  assert.equal(labelled.name, 'Northwind Savings Bank of the West ·· 4321');
+  const card = read([
+    [[40, 'Harbourside Example Bank card'], [380, 'Credit limit 5,000.00']],
+    [[40, 'Card XXXX XXXX XXXX 9012']],
+  ], true);
+  assert.equal(card.name, 'Harbourside Example Bank card ·· 9012');
+  assert.equal(read([[[40, 'Sam Example']]]).name, 'Account');
 });
 
 test('a statement that is only a picture says so', () => {

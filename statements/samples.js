@@ -28,6 +28,7 @@ const card = [
   page([
     [[40, 'Harbourside Example Bank card'], [380, 'Credit limit 5,000.00']],
     [[40, 'Sam Example'], [380, 'Statement date 25 May 2026']],
+    [[40, 'Card XXXX XXXX XXXX 2210']],
     [[40, 'Date'], [110, 'Description'], [470, 'Amount (GBP)']],
     [[40, '26 Apr'], [110, 'Previous balance'], [478, '412.35']],
     [[40, '29 Apr'], [110, 'Station Coffee'], [482, '3.40']],
