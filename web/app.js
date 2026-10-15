@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=23"), import("./statement-save.mjs?v=23")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=24"), import("./statement-save.mjs?v=24")]);
     return { ...read, ...save };
   }
 
@@ -640,7 +640,7 @@
         statements: statements.map((st) => ({ ...st, already: store.statementRead(st.sha256) })),
       };
       state.review.choices = state.review.statements.map((st) => st.accounts.map((a) => ({
-        include: !st.already && mods.includedByDefault(a) && !(a.check && a.check.checked && !a.check.ok),
+        include: !st.already && mods.includedByDefault(a),
         name: a.name,
         keepBelowZero: false,
       })));
@@ -678,7 +678,6 @@
     if (c.checked && !c.ok && !a.openingWorkedOut) return `<span class="note bad">Doesn't add up to the statement: open its lines to put them right.</span>`;
     if (a.openingWorkedOut) return `<span class="note">The bank's own figures, from its download: it carries no opening balance to check the lines against.</span>`;
     if (c.ok) return `<span class="note good">Adds up: the opening balance and every line come to the closing balance.</span>`;
-    if (c.checked) return `<span class="note bad">Doesn't add up: the lines come to ${esc(M.format(c.expected, a.currency))}, the statement says ${esc(M.format(a.closing, a.currency))}. Left out unless you include it; your iPhone can read it too.</span>`;
     return `<span class="note">No opening balance printed, so there's nothing to check the lines against.</span>`;
   }
 
@@ -801,7 +800,7 @@
 
   async function projectionModule() {
     if (globalThis.WWProjection) return globalThis.WWProjection;
-    return import("./projection.mjs?v=23");
+    return import("./projection.mjs?v=24");
   }
 
   /** What the app's engine reads, from iCloud's records. Nil until the phone has sent its settings. */
@@ -1359,12 +1358,12 @@
       const [si, ai] = input.getAttribute("data-review-name").split(":").map(Number);
       state.review.choices[si][ai].name = input.value;
     });
-    // Putting a line right, or leaving one out, rechecks the account as the app does; one that now
-    // adds up is offered again as it would have been had it been read right.
+    // Putting a line right, or leaving one out, rechecks the account as the app does. The tick stays
+    // what the user made it; whether the account goes below zero is worked out again, as the app's is.
     const lineAt = (key) => { const [si, ai, li] = key.split(":").map(Number); return { si, ai, li, acct: state.review.statements[si].accounts[ai] }; };
     const afterFix = (si, ai) => {
       const r = state.review, acct = r.statements[si].accounts[ai];
-      if (acct.check && acct.check.ok && !r.statements[si].already) r.choices[si][ai].include = r.mods.includedByDefault(acct);
+      acct.belowZero = !acct.owed && [acct.opening, acct.closing, ...acct.lines.map((l) => l.running)].some((v) => v != null && v < 0);
       r.editing = null;
       renderReview();
     };
@@ -1444,9 +1443,9 @@
     projectionContext: (store) => projectionContext(store),
     engines: async () => {
       const [P, R, H] = await Promise.all([
-        globalThis.WWProjection || import("./projection.mjs?v=23"),
-        globalThis.WWReadings || import("./readings.mjs?v=23"),
-        globalThis.WWHistory || import("./history.mjs?v=23"),
+        globalThis.WWProjection || import("./projection.mjs?v=24"),
+        globalThis.WWReadings || import("./readings.mjs?v=24"),
+        globalThis.WWHistory || import("./history.mjs?v=24"),
       ]);
       return { P, R, H };
     },

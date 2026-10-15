@@ -421,14 +421,15 @@ let ENGINES={}; let submit2;
     const doc4=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='oct.csv');
     d.querySelector(`[data-read-doc="${doc4.recordName}"]`).click(); await sleep(150);
     const rv=()=>d.getElementById('review').textContent;
-    ok(/open its lines to put them right/.test(rv()) && !d.querySelector('[data-review-include="0:0"]').checked,'correct: a statement that does not add up, left out');
+    ok(/open its lines to put them right/.test(rv()) && d.querySelector('[data-review-include="0:0"]').checked,'correct: a statement that does not add up is still ticked, as in the app');
+    d.querySelector('[data-review-include="0:0"]').click(); await sleep(20);
     d.querySelector('[data-rl-open="0:0"]').click(); await sleep(20);
     d.querySelector('[data-rl="0:0:0"]').click(); await sleep(20);
     setVal(d,'rl-amount','-100.00'); submit2=d.querySelector('[data-rl-form="0:0:0"]'); submit2.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(30);
     ok(/Corrected by you/.test(rv()),'correct: a line put right');
     d.querySelector('[data-rl="0:0:2"]').click(); await sleep(20);
     d.querySelector('[data-rl-out="0:0:2"]').click(); await sleep(30);
-    ok(/add up to the statement, with 2 changes of yours/.test(rv()) && d.querySelector('[data-review-include="0:0"]').checked,'correct: a line left out; now it adds up, and is kept: '+rv().replace(/\s+/g,' ').slice(0,200));
+    ok(/add up to the statement, with 2 changes of yours/.test(rv()) && !d.querySelector('[data-review-include="0:0"]').checked,'correct: a line left out; it adds up, and the untick is kept: '+rv().replace(/\s+/g,' ').slice(0,200));
     d.getElementById('review-cancel').click(); await sleep(20);
   }
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
