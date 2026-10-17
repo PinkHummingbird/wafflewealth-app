@@ -117,3 +117,36 @@ test('below zero: clamped to nothing unless confirmed, refused unconfirmed, a ca
   const card = { owed: true, opening: 5_000, closing: -300, lines: [line('2026-08-28', 1_000), line('2026-09-02', 4_300)] };
   assert.deepEqual(balancePoints(card, '2026-09-10', true).map((p) => p.value), [4_000, 0]);
 });
+
+test('the first statement goes into an account made by hand, and links it', () => {
+  const mine = { name: 'acc-9', type: 'Account', f: { name: 'UOB savings' } };
+  const statement = { reader: 'SG-UOB', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [current()] };
+  const saved = run(statement, [{ include: true, name: 'ignored', accountId: 'acc-9' }], { choosable: () => [mine] });
+  assert.ok(!saved.records.some((r) => r.type === 'Account'), 'no second account');
+  const link = saved.records.find((r) => r.type === 'StatementAccount');
+  assert.equal(link.name, 'statement-account-acc-9');
+  assert.equal(link.f.ref, 'SG-UOB:1234567890');
+  assert.ok(saved.records.filter((r) => r.type === 'Balance' || r.type === 'StatementLine').every((r) => r.f.account_id === 'acc-9'));
+  assert.deepEqual(saved.updated, ['UOB savings']);
+  // Without a bank reference it still goes there, but nothing is linked.
+  const noRef = { ...current(), ref: null };
+  const plain = run({ ...statement, accounts: [noRef] }, [{ include: true, name: 'x', accountId: 'acc-9' }], { choosable: () => [mine] });
+  assert.ok(!plain.records.some((r) => r.type === 'StatementAccount' || r.type === 'Account'));
+});
+
+test('a linked bank reference wins over the account chosen', () => {
+  const linked = { name: 'acc-1', type: 'Account', f: { name: 'My UOB' } };
+  const statement = { reader: 'SG-UOB', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [current()] };
+  const saved = run(statement, [{ include: true, name: 'x', accountId: 'acc-9' }], { accountByRef: () => linked, choosable: () => [] });
+  assert.deepEqual(saved.updated, ['My UOB']);
+  assert.ok(!saved.records.some((r) => r.type === 'StatementAccount'));
+});
+
+test('only an account that can be chosen, and each once', () => {
+  const statement = { reader: 'SG-UOB', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [current(), { ...current(), ref: 'SG-UOB:2' }] };
+  assert.throws(() => run(statement, [{ include: true, name: 'x', accountId: 'acc-9' }, { include: false }], { choosable: () => [] }),
+    (e) => e.code === 'accountNotChoosable');
+  const mine = { name: 'acc-9', type: 'Account', f: { name: 'UOB savings' } };
+  assert.throws(() => run(statement, [{ include: true, name: 'x', accountId: 'acc-9' }, { include: true, name: 'y', accountId: 'acc-9' }], { choosable: () => [mine] }),
+    (e) => e.code === 'sameAccountTwice');
+});

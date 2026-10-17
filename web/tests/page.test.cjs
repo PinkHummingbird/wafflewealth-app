@@ -411,6 +411,37 @@ let ENGINES={}; let submit2;
     ok(/Already added/.test(d.getElementById('review').textContent) && !d.getElementById('review-add'),'statement: the same file twice is already added');
     d.getElementById('review-cancel').click(); await sleep(20);
     ok(d.getElementById('review').hidden,'statement: closed');
+    // a statement for an account made by hand: guessed, open to change, and linked once added
+    {
+      const match = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','account-match.mjs')).href);
+      const mine = await w.WW.state.store.createAccount({ name:'UOB savings ··0333', kind:'ASSET', currency:'SGD', invested:false, category:null, income:null, availability:{mode:'now'}, balance:{minor:1} });
+      next=made('d'.repeat(64), 95000); next.accounts[0].ref='SG-UOB:3330333'; next.accounts[0].number='333-0333';
+      w.WWStatementModules={ ...save, match, readDocument: async ()=>({statements:[next], problems:[]}) };
+      Object.defineProperty(up,'files',{value:[new w.File(['mine\n'],'mine.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+      const doc4=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='mine.csv');
+      d.querySelector(`[data-read-doc="${doc4.recordName}"]`).click(); await sleep(150);
+      const pick=()=>d.getElementById('rv-to-0-0');
+      const text=()=>d.getElementById('review').textContent.replace(/\s+/g,' ');
+      ok(pick() && pick().value===mine.name && !d.getElementById('rv-name-0-0'),'match: the hand-made account chosen for you: '+text().slice(0,200));
+      ok(/Ends in 0333 · Your only SGD account/.test(text()) && /Next time it goes here by itself/.test(text()),'match: and why');
+      ok([...pick().options].map(o=>o.textContent).join('|')==='UOB savings ··0333|New account','match: a linked account is not offered');
+      pick().value=''; pick().dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+      ok(d.getElementById('rv-name-0-0') && !/Ends in/.test(text()),'match: New account asks for a name');
+      pick().value=mine.name; pick().dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+      const before=[...w.__ck.records.values()].filter(r=>r.recordType==='Account').length;
+      d.getElementById('review-add').click(); await sleep(200);
+      const all=[...w.__ck.records.values()];
+      ok(all.filter(r=>r.recordType==='Account').length===before,'match: no second account');
+      ok(all.filter(r=>r.recordType==='Balance'&&r.fields.account_id.value===mine.name&&r.fields.source.value==='STATEMENT').length===2,'match: the statement\'s balances on it');
+      ok(w.__ck.records.get(`statement-account-${mine.name}`).fields.ref.value==='SG-UOB:3330333','match: linked, so the next one finds it');
+      ok(/UOB savings ··0333 brought up to date/.test(d.getElementById('upload-ok').textContent),'match: said so: '+d.getElementById('upload-ok').textContent);
+      next=made('e'.repeat(64), 96000); next.accounts[0].ref='SG-UOB:3330333';
+      Object.defineProperty(up,'files',{value:[new w.File(['nov\n'],'nov.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+      const doc5=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='nov.csv');
+      d.querySelector(`[data-read-doc="${doc5.recordName}"]`).click(); await sleep(150);
+      ok(/UOB savings ··0333/.test(text()) && /Adds to this account, as last time/.test(text()) && !pick(),'match: the next statement goes there by itself');
+      d.getElementById('review-cancel').click(); await sleep(20);
+    }
     // a line read wrongly, put right; a heading read as a line, left out
     const readers = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','..','statements','readers.js')).href);
     w.WWStatementModules={ ...save, correctLine:readers.correctLine, leaveOutLine:readers.leaveOutLine, linesOff:readers.linesOff, correctedCount:readers.correctedCount, readDocument: async ()=>{

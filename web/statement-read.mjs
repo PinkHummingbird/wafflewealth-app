@@ -5,7 +5,7 @@
    is sent anywhere to be read. Loaded only when someone asks to read a document. */
 import * as pdfjs from '../statements/vendor/pdfjs/pdf.min.mjs';
 import { pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, ofxText, isOfxName, looksLikeOfx, unzip, labelLines } from '../statements/readers.js';
-import { fingerprint } from './statement-save.mjs?v=24';
+import { fingerprint } from './statement-save.mjs?v=25';
 
 // Putting a reading right, as the app does: the same functions the statements page uses.
 export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js';

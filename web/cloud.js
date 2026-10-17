@@ -998,6 +998,17 @@
       return this.account(link.name.replace(/^statement-account-/, ""));
     }
 
+    /** Every account as the guess of which one a statement goes into reads it (account-match.mjs). */
+    matchAccounts() {
+      const linked = new Set(this.of("StatementAccount").map((l) => l.name.replace(/^statement-account-/, "")));
+      return this.of("Account").map((a) => {
+        const latest = this.latest(a.name);
+        return { id: a.name, name: a.f.name, kind: a.f.kind, currency: a.f.currency_code, displayOrder: Number(a.f.display_order) || 0,
+          archived: Boolean(a.f.archived_at), linked: linked.has(a.name),
+          latest: latest ? { value: String(latest.f.value_minor), date: String(latest.f.as_of_date) } : null };
+      });
+    }
+
     nextDisplayOrder() { return this.of("Account").reduce((m, a) => Math.max(m, Number(a.f.display_order) || 0), -1) + 1; }
 
     /** Keeps a statement's records and marks its document added. **All or nothing where iCloud

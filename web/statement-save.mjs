@@ -72,7 +72,10 @@ function availableFromMonth(account, today) {
  * - `statement`: as readers.js returns it, its lines labelled (labelLines).
  * - `choices`: one per account, `{ include, name, keepBelowZero }`, in the statement's order.
  * - `sha256`: the file's fingerprint, made as the app makes it.
+ * - `choices[i].accountId`: an account already in iCloud to add it to, when its bank reference
+ *   isn't linked yet; it must be one `known.choosable(account)` offers. Null makes a new account.
  * - `known`: what's already in iCloud: `accountByRef(ref)` → an Account record or null,
+ *   `choosable(account)` → the Account records it may go into (account-match.mjs),
  *   `nextDisplayOrder` → the number after the highest account's.
  * - `uuid()`, `now` (ISO timestamp), `today` (YYYY-MM-DD).
  *
@@ -86,6 +89,10 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
     file_sha256: sha256, period_from: statement.period?.from ?? null, period_to: statement.period?.to ?? null, read_at: now,
   } });
   const result = { records, created: [], updated: [], balances: 0, lines: 0 };
+  const chosen = statement.accounts.map((_, i) => choices[i]).filter((c) => c && c.include && c.accountId).map((c) => c.accountId);
+  if (new Set(chosen).size !== chosen.length) {
+    throw { code: 'sameAccountTwice', reason: 'Two accounts on this statement are going into the same account: choose another for one of them.' };
+  }
   let order = known.nextDisplayOrder;
   statement.accounts.forEach((account, index) => {
     const choice = choices[index];
@@ -100,7 +107,15 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
     if (!account.currency || !asOf) return;
     const points = balancePoints(account, asOf, keepBelowZero);
     if (!points.length) return;
-    const existing = account.ref ? known.accountByRef(account.ref) : null;
+    // Found by its bank reference, as last time; failing that, the account you chose to add it to.
+    let existing = account.ref ? known.accountByRef(account.ref) : null;
+    if (!existing && choice.accountId) {
+      existing = (known.choosable ? known.choosable(account) : []).find((a) => a.name === choice.accountId) || null;
+      if (!existing) throw { code: 'accountNotChoosable', reason: `${account.name} can't go into that account: it's in another currency, archived, or already has a statement. Choose another, or a new account.` };
+      if (account.ref) {
+        records.push({ name: `statement-account-${existing.name}`, type: 'StatementAccount', f: { ref: account.ref, created_at: now } });
+      }
+    }
     const balance = (accountId, point) => ({ name: uuid(), type: 'Balance', f: {
       account_id: accountId, value_minor: point.value, as_of_date: point.date, source: 'STATEMENT', created_at: now,
     } });

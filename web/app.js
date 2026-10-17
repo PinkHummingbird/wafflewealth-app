@@ -620,8 +620,15 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=24"), import("./statement-save.mjs?v=24")]);
-    return { ...read, ...save };
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=25"), import("./statement-save.mjs?v=25")]);
+    const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
+    return { ...read, ...save, match };
+  }
+
+  /** The accounts made by hand a statement account could go into, best first (account-match.mjs). */
+  function matchCandidates(mods, store, a, st) {
+    if (!mods.match || (a.ref && store.accountByRef(a.ref))) return [];
+    return mods.match.candidates(a, st, store.matchAccounts());
   }
 
   async function readHere(name) {
@@ -643,7 +650,13 @@
         include: !st.already && mods.includedByDefault(a),
         name: a.name,
         keepBelowZero: false,
+        accountId: null,
       })));
+      state.review.candidates = state.review.statements.map((st) => st.accounts.map((a) => (st.already ? [] : matchCandidates(mods, store, a, st))));
+      state.review.candidates.forEach((lists, si) => {
+        if (!mods.match) return;
+        mods.match.preselectedFor(lists).forEach((id, ai) => { state.review.choices[si][ai].accountId = id; });
+      });
     } catch (error) {
       state.review = { doc, reading: false, statements: [], choices: [], problems: [C.explain(error)] };
     }
@@ -681,6 +694,21 @@
     return `<span class="note">No opening balance printed, so there's nothing to check the lines against.</span>`;
   }
 
+  /** Where an account not seen before goes: one made by hand, guessed and open to change, or a new one. */
+  function reviewTarget(a, si, ai, choice) {
+    const list = (state.review.candidates && state.review.candidates[si] && state.review.candidates[si][ai]) || [];
+    const nameField = `<div class="field"><label for="rv-name-${si}-${ai}">New account</label><input id="rv-name-${si}-${ai}" data-review-name="${si}:${ai}" maxlength="60" value="${esc(choice.name)}"></div>`;
+    if (!list.length) return nameField;
+    const mods = state.review.mods;
+    const picked = list.find((c) => c.account.id === choice.accountId);
+    const select = `<div class="field"><label for="rv-to-${si}-${ai}">Add to</label><select id="rv-to-${si}-${ai}" data-review-target="${si}:${ai}">
+      ${list.map((c) => `<option value="${esc(c.account.id)}" ${picked === c ? "selected" : ""}>${esc(c.account.name)}</option>`).join("")}
+      <option value="" ${picked ? "" : "selected"}>New account</option></select></div>`;
+    if (!picked) return select + nameField;
+    const why = picked.reasons.map((r) => mods.match.reasonText(r)).join(" · ");
+    return select + (why ? `<span class="note">${esc(why)}</span>` : "") + (a.ref ? `<span class="note">Next time it goes here by itself.</span>` : "");
+  }
+
   function renderReview() {
     const box = $("review");
     const r = state.review;
@@ -705,7 +733,7 @@
           <input type="checkbox" id="rv-${si}-${ai}" data-review-include="${si}:${ai}" ${choice.include ? "checked" : ""} aria-label="Add ${esc(a.name)}">
           <div class="main">
             ${known ? `<label class="t" for="rv-${si}-${ai}">${esc(known.f.name)}</label><span class="note">Adds to this account, as last time.</span>`
-              : `<div class="field"><label for="rv-name-${si}-${ai}">New account</label><input id="rv-name-${si}-${ai}" data-review-name="${si}:${ai}" maxlength="60" value="${esc(choice.name)}"></div>`}
+              : reviewTarget(a, si, ai, choice)}
             <span class="note">${a.owed ? "Owed · " : ""}<button type="button" class="linkbtn" data-rl-open="${si}:${ai}">${a.lines.length} line${a.lines.length === 1 ? "" : "s"}${a.check && a.check.checked && !a.check.ok ? ": put them right" : ""}</button></span>
             ${checkNote(a)}
             ${a.belowZero && !a.owed ? `<span class="note bad">Below zero on this statement: the account was overdrawn.</span>
@@ -732,7 +760,7 @@
       for (const [ai, choice] of list.entries()) {
         const known = r.statements[si].accounts[ai].ref && store.accountByRef(r.statements[si].accounts[ai].ref);
         const name = (choice.name || "").trim();
-        if (choice.include && !known && (name.length < 1 || name.length > 60)) {
+        if (choice.include && !known && !choice.accountId && (name.length < 1 || name.length > 60)) {
           $("review-error").hidden = false;
           $("review-error").textContent = "Give each new account a name, up to 60 characters.";
           return;
@@ -748,7 +776,10 @@
         if (st.already) return;
         const out = r.mods.recordsForStatement({
           statement: st, choices: r.choices[si], sha256: st.sha256,
-          known: { accountByRef: (ref) => store.accountByRef(ref), nextDisplayOrder: order },
+          known: {
+            accountByRef: (ref) => store.accountByRef(ref), nextDisplayOrder: order,
+            choosable: (a) => (r.mods.match ? r.mods.match.choosable(a, store.matchAccounts()).map((x) => store.account(x.id)) : []),
+          },
           uuid: M.uuid, now: M.stamp(), today: M.today(),
         });
         order += out.created.length;
@@ -766,7 +797,7 @@
       $("upload-ok").textContent = `Added to your money: ${parts.join(", ")}.` + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Your iPhone has them the next time WaffleWealth opens.");
     } catch (error) {
       $("review-error").hidden = false;
-      $("review-error").textContent = error && error.code === "belowZeroNotConfirmed" ? error.reason : C.explain(error);
+      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable"].includes(error.code) ? error.reason : C.explain(error);
       $("review-add").disabled = false;
       if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
     }
@@ -1343,6 +1374,13 @@
       if (keep && state.review) {
         const [si, ai] = keep.getAttribute("data-review-keep").split(":").map(Number);
         state.review.choices[si][ai].keepBelowZero = keep.checked;
+        renderReview();
+        return;
+      }
+      const target = e.target.closest("[data-review-target]");
+      if (target && state.review) {
+        const [si, ai] = target.getAttribute("data-review-target").split(":").map(Number);
+        state.review.choices[si][ai].accountId = target.value || null;
         renderReview();
         return;
       }
