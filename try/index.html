@@ -11,7 +11,11 @@
 <link rel="canonical" href="https://pinkhummingbird.github.io/wafflewealth-app/try/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://pinkhummingbird.github.io/wafflewealth-app/try/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://pinkhummingbird.github.io/wafflewealth-app/assets/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="WaffleWealth: free net worth and FIRE calculator, with a line rising to its FIRE date">
+<meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"WaffleWealth net worth and FIRE calculator",
  "url":"https://pinkhummingbird.github.io/wafflewealth-app/try/","applicationCategory":"FinanceApplication","operatingSystem":"Any (runs in a web browser)",
@@ -267,6 +271,11 @@ details.adv > summary:hover .disc { text-decoration: underline; text-underline-o
 .detail .v { text-align: right; color: var(--ink); }
 .example { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; background: var(--sunken); border-radius: var(--r-md); padding: 10px 14px; font-size: var(--fs-small); color: var(--ink-2); }
 .example strong { color: var(--ink); font-weight: 600; }
+.share { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.share-btn { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--raised); color: var(--ink); font-family: var(--display); font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+.share-btn:hover { background: color-mix(in srgb, var(--honey) 18%, var(--raised)); }
+.share-msg { font-size: var(--fs-small); color: var(--ink-2); }
+.share-note { flex-basis: 100%; margin: 0; font-size: var(--fs-small); color: var(--ink-2); }
 @media (max-width: 480px) { .panel { padding: 16px; } .card { padding: 14px; } }
 
 /* ---- footer ---- */
@@ -428,7 +437,12 @@ footer a { color: var(--ink-2); }
         <div class="detail" id="detail">
           <div class="t"><strong>Monthly detail</strong><span id="d-when">In 24 months</span></div>
         </div>
-        <p class="example"><strong>Example numbers, not yours.</strong> The position the app opens with. Change any of them, or <button type="button" class="linkbtn quiet" id="reset">start again</button>.</p>
+        <p class="example"><strong id="example-head">Example numbers, not yours.</strong> <span id="example-text">The position the app opens with. Change any of them, or</span> <button type="button" class="linkbtn quiet" id="reset">start again</button>.</p>
+        <div class="share">
+          <button type="button" class="share-btn" id="share">Share these numbers</button>
+          <span class="share-msg" id="share-msg" role="status"></span>
+          <p class="share-note">The link carries the numbers on this page, so anyone you send it to sees them. They aren't stored anywhere else.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -476,6 +490,58 @@ let state = exampleState();
 let nextId = 4;
 let nextPlannedId = 2;
 let horizon = 24;
+
+/* ---------- share links ----------
+   The numbers ride in the link itself, after the #, which a browser never sends to a server:
+   GitHub, the visit counter and everyone else see only /try/. Opening a link rebuilds the
+   numbers here; anything odd in it falls back to the example's value. */
+const SHARE_KEYS = ["income", "spending", "returnPct", "raisePct", "raiseMonth", "spendingGrowthPct", "age", "target", "withdrawalPct"];
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const num = (v, d = 0) => (v !== null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
+const text = (v) => String(v ?? "").slice(0, 60);
+function sharedState(o) {
+  if (!o || typeof o !== "object" || o.v !== 1) return null;
+  const s = exampleState();
+  for (const k of SHARE_KEYS) if (k in o) s[k] = num(o[k], s[k]);
+  if (typeof o.currency === "string") s.currency = o.currency.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || s.currency;
+  if (Array.isArray(o.accounts)) s.accounts = o.accounts.slice(0, 40).map((a, i) => {
+    const owed = a.kind === "liability", pays = a.pays && typeof a.pays === "object" ? a.pays : null;
+    return { id: i + 1, name: text(a.name), kind: owed ? "liability" : "asset", value: num(a.value), invested: !owed && Boolean(a.invested),
+      pays: pays ? { basis: pays.basis === "amount" ? "amount" : "rate", ratePct: num(pays.ratePct), amount: num(pays.amount),
+        frequency: ["monthly", "quarterly", "yearly"].includes(pays.frequency) ? pays.frequency : "monthly", reinvested: Boolean(pays.reinvested) } : null,
+      availableFromAge: owed || a.availableFromAge == null ? null : num(a.availableFromAge, null) };
+  });
+  if (Array.isArray(o.planned)) s.planned = o.planned.slice(0, 40).map((x, i) => ({
+    id: i + 1, name: text(x.name), direction: x.direction === "in" ? "in" : "out", amount: num(x.amount),
+    first: DAY.test(x.first) ? x.first : isoDay(today), frequency: ["once", "monthly", "quarterly", "halfyearly", "yearly"].includes(x.frequency) ? x.frequency : "once",
+    endsOn: DAY.test(x.endsOn || "") ? x.endsOn : null, risePct: num(x.risePct),
+  }));
+  return s;
+}
+function shareLink() {
+  const o = { v: 1, currency: state.currency, h: horizon };
+  for (const k of SHARE_KEYS) o[k] = state[k];
+  o.accounts = state.accounts.map(({ id, ...a }) => a);
+  o.planned = state.planned.map(({ id, ...x }) => x);
+  const bytes = new TextEncoder().encode(JSON.stringify(o));
+  let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+  return location.origin + location.pathname + "#s=" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function readShareLink() {
+  const m = /[#&]s=([A-Za-z0-9_-]+)/.exec(location.hash);
+  if (!m) return false;
+  try {
+    const bin = atob(m[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const o = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    const s = sharedState(o);
+    if (!s) return false;
+    state = s;
+    nextId = s.accounts.length + 1; nextPlannedId = s.planned.length + 1;
+    if ([12, 24, 60, 120].includes(o.h)) horizon = o.h;
+    return true;
+  } catch (e) { return false; }
+}
+const fromLink = readShareLink();
 
 /* ---------- formatting ---------- */
 let money;
@@ -633,7 +699,30 @@ $("add-account").addEventListener("click", () => {
   renderAccounts(); draw(false);
   const last = $("accounts").lastElementChild; if (last) { last.scrollIntoView({ block: "nearest", behavior: "smooth" }); const n = last.querySelector("input.name"); if (n) { n.focus(); n.select(); } }
 });
-$("reset").addEventListener("click", () => { state = exampleState(); nextId = 4; nextPlannedId = 2; setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in USD"; renderAccounts(); renderPlanned(); draw(true); });
+$("share").addEventListener("click", async () => {
+  const url = shareLink();
+  history.replaceState(null, "", url);
+  const msg = $("share-msg");
+  try {
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      await navigator.share({ title: "My net worth line and FIRE date", url });
+      msg.textContent = "";
+    } else {
+      await navigator.clipboard.writeText(url);
+      msg.textContent = "Link copied.";
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    msg.textContent = "Copy the link from the address bar.";
+  }
+});
+function showSource() {
+  $("example-head").textContent = fromLink ? "Numbers from a shared link." : "Example numbers, not yours.";
+  $("example-text").textContent = fromLink ? "Someone sent you these. Change any of them, or" : "The position the app opens with. Change any of them, or";
+}
+showSource();
+document.querySelectorAll(".panel .seg button").forEach((b) => b.setAttribute("aria-pressed", Number(b.dataset.h) === horizon ? "true" : "false"));
+$("reset").addEventListener("click", () => { history.replaceState(null, "", location.pathname); $("example-head").textContent = "Example numbers, not yours."; $("example-text").textContent = "The position the app opens with. Change any of them, or"; state = exampleState(); nextId = 4; nextPlannedId = 2; setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in USD"; renderAccounts(); renderPlanned(); draw(true); });
 
 /* ---------- forms: planned ---------- */
 const REPEATS = [["once", "Once"], ["monthly", "Monthly"], ["quarterly", "Quarterly"], ["halfyearly", "Half-yearly"], ["yearly", "Yearly"]];
@@ -877,7 +966,7 @@ new MutationObserver(countTabs).observe($("planned"), { childList: true });
 countTabs();
 
 /* ---------- go ---------- */
-setFormatter(); fillAssumptions(); renderAccounts(); renderPlanned(); sizeChart(); draw(true);
+setFormatter(); fillAssumptions(); $("in-currency-note").textContent = "Every amount in " + (state.currency || "—"); renderAccounts(); renderPlanned(); sizeChart(); draw(true);
 let resizeTimer = 0; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { sizeChart(); draw(false); }, 120); });
 })();
 
