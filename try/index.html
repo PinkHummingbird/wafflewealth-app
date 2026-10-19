@@ -75,15 +75,19 @@ p { margin: 0; }
 .fig { font-variant-numeric: tabular-nums lining-nums; }
 
 /* ---- header ---- */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
-.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
-.brand .mark { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; flex: none; }
-.nav { display: flex; align-items: center; gap: 20px; font-size: var(--fs-small); }
+/* The site's header, the same on every page: the links, then the App Store. On a phone only the App Store stays. */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px; }
+.nav { display: flex; align-items: center; gap: 24px; font-size: var(--fs-small); }
 .nav a { color: var(--ink-2); text-decoration: none; }
-.nav a:hover { color: var(--ink); text-decoration: underline; }
-.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); font-size: var(--fs-small); white-space: nowrap; }
-@media (max-width: 520px) { .nav .pill { display: none; } } /* the heading already says it's a demo */
-.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
+.nav a:hover, .nav a[aria-current="page"] { color: var(--ink); }
+.nav a:hover { text-decoration: underline; }
+.nav .store { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); white-space: nowrap; }
+.nav .store::before { content: ""; margin-right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
+.nav .store:hover { color: var(--ink); border-color: var(--honey); text-decoration: none; }
+@media (max-width: 760px) { .nav a:not(.store) { display: none; } }
+@media (max-width: 400px) { .nav .store .long { display: none; } }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; }
+.brand .mark { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; flex: none; }
 
 /* ---- intro ---- */
 .intro { display: flex; flex-direction: column; gap: 12px; max-width: 46rem; padding-block: 8px 28px; }
@@ -276,7 +280,7 @@ footer a { color: var(--ink-2); }
 <header class="wrap top">
   <a class="brand" href="../" aria-label="WaffleWealth home">
     <span class="mark" aria-hidden="true">
-      <svg viewBox="0 0 1024 1024" width="32" height="32" role="img" aria-label="WaffleWealth icon">
+      <svg viewBox="0 0 1024 1024" width="36" height="36" role="img" aria-label="WaffleWealth icon">
         <rect width="1024" height="1024" fill="#E9A33C"/>
         <g>
           <rect x="88"  y="88"  width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="88"  width="184" height="184" rx="40" fill="#D08A2C"/><rect x="520" y="88"  width="184" height="184" rx="40" fill="#D08A2C"/><rect x="736" y="88"  width="184" height="184" rx="40" fill="#2A1D0E"/>
@@ -288,10 +292,13 @@ footer a { color: var(--ink-2); }
     </span>
     WaffleWealth
   </a>
-  <nav class="nav" aria-label="Page">
-    <a href="../">The app</a>
-    <a href="../privacy">Privacy</a>
-    <span class="pill">Demo in your browser</span>
+  <nav class="nav" aria-label="Site">
+    <a href="../#features">Features</a>
+    <a href="../#privacy">Privacy</a>
+    <a href="../#faq">FAQ</a>
+    <a href="../try/" aria-current="page">Try it</a>
+    <a href="../web/">On the web</a>
+    <a class="store" href="https://apps.apple.com/us/app/wafflewealth/id6811611595"><span class="long">Get it on the&nbsp;</span>App Store</a>
   </nav>
 </header>
 

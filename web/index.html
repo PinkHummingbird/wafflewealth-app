@@ -62,14 +62,21 @@ p { margin: 0; }
 .fig { font-variant-numeric: tabular-nums lining-nums; }
 
 /* ---- header ---- */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
-.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
-.brand .mark { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; flex: none; }
+/* The site's header, the same on every page: the links, then the App Store. On a phone only the App Store stays. */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px; }
+.nav { display: flex; align-items: center; gap: 24px; font-size: var(--fs-small); }
+.nav a { color: var(--ink-2); text-decoration: none; }
+.nav a:hover, .nav a[aria-current="page"] { color: var(--ink); }
+.nav a:hover { text-decoration: underline; }
+.nav .store { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); white-space: nowrap; }
+.nav .store::before { content: ""; margin-right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
+.nav .store:hover { color: var(--ink); border-color: var(--honey); text-decoration: none; }
+@media (max-width: 760px) { .nav a:not(.store) { display: none; } }
+@media (max-width: 400px) { .nav .store .long { display: none; } }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; }
+.brand .mark { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; flex: none; }
 .brand small { font-family: var(--body); font-weight: 500; font-size: var(--fs-small); color: var(--ink-2); white-space: nowrap; }
 @media (max-width: 520px) { .brand small { display: none; } .nav { gap: 12px; } }
-.nav { display: flex; align-items: center; gap: 18px; font-size: var(--fs-small); }
-.nav a { color: var(--ink-2); text-decoration: none; }
-.nav a:hover { color: var(--ink); text-decoration: underline; }
 @media (max-width: 520px) { .nav .wide { display: none; } }
 
 /* ---- buttons ---- */
@@ -265,12 +272,16 @@ footer a { color: var(--ink-2); }
 <body>
 <header class="wrap top">
   <a class="brand" href="../" aria-label="WaffleWealth home">
-    <span class="mark" aria-hidden="true"><img src="../assets/icon.png" alt="" width="32" height="32"></span>
+    <span class="mark" aria-hidden="true"><img src="../assets/icon.png" alt="" width="36" height="36"></span>
     WaffleWealth <small>on the web</small>
   </a>
-  <nav class="nav" aria-label="Page">
-    <a class="wide" href="../">The app</a>
-    <a href="../privacy">Privacy</a>
+  <nav class="nav" aria-label="Site">
+    <a href="../#features">Features</a>
+    <a href="../#privacy">Privacy</a>
+    <a href="../#faq">FAQ</a>
+    <a href="../try/">Try it</a>
+    <a href="../web/" aria-current="page">On the web</a>
+    <a class="store" href="https://apps.apple.com/us/app/wafflewealth/id6811611595"><span class="long">Get it on the&nbsp;</span>App Store</a>
     <div id="apple-sign-out-button" hidden></div>
     <button type="button" class="linkbtn" id="leave-example" hidden>Leave the example</button>
   </nav>

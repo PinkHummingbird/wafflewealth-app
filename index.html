@@ -102,15 +102,19 @@ p { margin: 0; }
 .muted { color: var(--ink-2); }
 
 /* ---- header ---- */
+/* The site's header, the same on every page: the links, then the App Store. On a phone only the App Store stays. */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px; }
-.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; }
-.brand .mark { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; flex: none; }
 .nav { display: flex; align-items: center; gap: 24px; font-size: var(--fs-small); }
 .nav a { color: var(--ink-2); text-decoration: none; }
-.nav a:hover { color: var(--ink); text-decoration: underline; }
-.pill { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); font-size: var(--fs-small); white-space: nowrap; }
-.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
-@media (max-width: 640px) { .nav a { display: none; } .pill { display: none; } }
+.nav a:hover, .nav a[aria-current="page"] { color: var(--ink); }
+.nav a:hover { text-decoration: underline; }
+.nav .store { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); white-space: nowrap; }
+.nav .store::before { content: ""; margin-right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
+.nav .store:hover { color: var(--ink); border-color: var(--honey); text-decoration: none; }
+@media (max-width: 760px) { .nav a:not(.store) { display: none; } }
+@media (max-width: 400px) { .nav .store .long { display: none; } }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; }
+.brand .mark { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; flex: none; }
 
 /* ---- hero ---- */
 .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 5vw, 64px); align-items: start; padding-block: clamp(24px, 5vw, 56px) clamp(40px, 6vw, 72px); }
@@ -379,13 +383,13 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
     </span>
     WaffleWealth
   </a>
-  <nav class="nav" aria-label="Page">
+  <nav class="nav" aria-label="Site">
     <a href="#features">Features</a>
     <a href="#privacy">Privacy</a>
     <a href="#faq">FAQ</a>
     <a href="try/">Try it</a>
     <a href="web/">On the web</a>
-    <a class="pill" id="status-pill" href="https://apps.apple.com/us/app/wafflewealth/id6811611595">Get it on the App Store</a>
+    <a class="store" href="https://apps.apple.com/us/app/wafflewealth/id6811611595"><span class="long">Get it on the&nbsp;</span>App Store</a>
   </nav>
 </header>
 
@@ -893,7 +897,6 @@ if (APP_STORE_URL) {
   for (const id of ["store-link", "store-link-2"]) document.getElementById(id).href = APP_STORE_URL;
   document.getElementById("store-cta-2").hidden = false;
   document.getElementById("waitlist").hidden = true;
-  document.getElementById("status-pill").textContent = "Get it on the App Store";
 }
 
 /* support address: copy, with a selection fallback */

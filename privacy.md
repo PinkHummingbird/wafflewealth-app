@@ -1,5 +1,7 @@
 # WaffleWealth — Privacy Policy
 
+[WaffleWealth home](./) · [Try the free calculator](try/) · [Get it on the App Store](https://apps.apple.com/us/app/wafflewealth/id6811611595)
+
 _Last updated: 15 October 2026 (the copy in iCloud now covers every input)_
 
 **Contact: wafflewealth.app.support@gmail.com**

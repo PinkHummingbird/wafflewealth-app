@@ -1,5 +1,7 @@
 # WaffleWealth — Support
 
+[WaffleWealth home](./) · [Try the free calculator](try/) · [Get it on the App Store](https://apps.apple.com/us/app/wafflewealth/id6811611595)
+
 Questions, bug reports, or feedback: **wafflewealth.app.support@gmail.com**
 
 WaffleWealth is a net worth projection app for iPhone. You tell it what you have, what you earn and what you spend, and it draws your net worth forward month by month. There are no bank connections and no account to create. You can add bank statements and note transactions, and from version 1.1 keep a copy in your own iCloud to upload statements from a computer at [WaffleWealth on the web](web/).
