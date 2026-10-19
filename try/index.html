@@ -165,8 +165,11 @@ select { padding-right: 8px; }
 [hidden] { display: none !important; }
 .money-tabs { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .money-tabs .title { font-family: var(--display); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
-.money-tabs .pair { display: flex; gap: 10px; }
-.money-tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border: 1px solid var(--rule); background: var(--sunken); color: var(--ink-2); border-radius: 999px; padding: 0 18px; cursor: pointer; font-family: var(--display); font-size: 1.1rem; font-weight: 600; transition: background 120ms, border-color 120ms; }
+/* Two rows: what you have (All, Accounts, Planned), then what you are aiming for (Target, FIRE). */
+.money-tabs .pair { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.money-tabs .pair button { grid-column: span 2; }
+.money-tabs .pair #tab-target, .money-tabs .pair #tab-fire { grid-column: span 3; }
+.money-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border: 1px solid var(--rule); background: var(--sunken); color: var(--ink-2); border-radius: 999px; padding: 0 18px; cursor: pointer; font-family: var(--display); font-size: 1.1rem; font-weight: 600; transition: background 120ms, border-color 120ms; }
 .money-tabs button:hover { color: var(--ink); }
 .money-tabs button[aria-selected="true"] { background: var(--raised); color: var(--ink); border: 2px solid var(--accent); box-shadow: var(--shadow); }
 .money-tabs .n { min-width: 1.6em; padding: 1px 7px; border-radius: 999px; background: var(--rule); color: var(--ink-2); font-family: var(--mono); font-size: 0.78rem; font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -343,11 +346,13 @@ footer a { color: var(--ink-2); }
       </section>
 
       <div class="money-tabs">
-        <h2 class="title" id="h-money">Your money</h2>
+        <h2 class="title" id="h-money">Your money and goals</h2>
         <div class="pair" role="tablist" aria-labelledby="h-money">
-        <button type="button" role="tab" id="tab-all" aria-controls="card-accounts card-planned" aria-selected="true">All<span class="n" id="tab-all-n"></span></button>
+        <button type="button" role="tab" id="tab-all" aria-controls="card-accounts card-planned card-target card-fire" aria-selected="true">All<span class="n" id="tab-all-n"></span></button>
         <button type="button" role="tab" id="tab-accounts" aria-controls="card-accounts" aria-selected="false">Accounts<span class="n" id="tab-accounts-n"></span></button>
         <button type="button" role="tab" id="tab-planned" aria-controls="card-planned" aria-selected="false">Planned<span class="n" id="tab-planned-n"></span></button>
+        <button type="button" role="tab" id="tab-target" aria-controls="card-target" aria-selected="false">Target</button>
+        <button type="button" role="tab" id="tab-fire" aria-controls="card-fire" aria-selected="false">FIRE</button>
         </div>
       </div>
 
@@ -365,7 +370,7 @@ footer a { color: var(--ink-2); }
         <p class="foot" id="planned-foot">Money that arrives or leaves on a date rather than every month: a bonus, a school fee, flights home. It lands as cash in the month it falls in and earns nothing.</p>
       </section>
 
-      <section class="card" aria-labelledby="h-target">
+      <section class="card" id="card-target" role="tabpanel" aria-labelledby="h-target">
         <div class="card-head"><h2 id="h-target">Target</h2></div>
         <div class="row first">
           <label for="f-target">Reach a net worth of</label>
@@ -374,7 +379,7 @@ footer a { color: var(--ink-2); }
         <p class="foot">The reading reports the first month the line crosses it. It does not tell you what to do to get there.</p>
       </section>
 
-      <section class="card" aria-labelledby="h-fire">
+      <section class="card" id="card-fire" role="tabpanel" aria-labelledby="h-fire">
         <div class="card-head"><h2 id="h-fire">Enough to live on (FIRE)</h2></div>
         <div class="row first">
           <label for="f-withdrawal">Withdrawal rate<span class="cap">How much of the money you could reach you'd take out each year.</span></label>
@@ -843,16 +848,17 @@ document.querySelectorAll(".panel .seg button").forEach((b) => b.addEventListene
 
 /* ---------- Accounts / Planned chips ---------- */
 function showMoney(which) {
-  // All is the default and shows both cards; Accounts or Planned shows only its own.
-  for (const [id, key] of [["tab-all", "all"], ["tab-accounts", "accounts"], ["tab-planned", "planned"]]) {
-    $(id).setAttribute("aria-selected", which === key ? "true" : "false");
+  // All is the default and shows every card; any other button shows only its own.
+  for (const key of ["all", "accounts", "planned", "target", "fire"]) {
+    $("tab-" + key).setAttribute("aria-selected", which === key ? "true" : "false");
+    if (key !== "all") $("card-" + key).hidden = which !== "all" && which !== key;
   }
-  $("card-accounts").hidden = which === "planned";
-  $("card-planned").hidden = which === "accounts";
 }
 $("tab-all").addEventListener("click", () => showMoney("all"));
 $("tab-accounts").addEventListener("click", () => showMoney("accounts"));
 $("tab-planned").addEventListener("click", () => showMoney("planned"));
+$("tab-target").addEventListener("click", () => showMoney("target"));
+$("tab-fire").addEventListener("click", () => showMoney("fire"));
 // The counts on the chips follow the lists, so a reader can see Planned has something in it.
 function countTabs() {
   $("tab-accounts-n").textContent = state.accounts.length;
