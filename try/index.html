@@ -95,6 +95,11 @@ p { margin: 0; }
 
 /* ---- intro ---- */
 .intro { display: flex; flex-direction: column; gap: 12px; max-width: 46rem; padding-block: 8px 28px; }
+/* The two calculators, one switch: the same place on both pages. */
+.calc-switch { align-self: flex-start; display: inline-flex; gap: 4px; padding: 4px; margin-top: 4px; border: 1px solid var(--rule); border-radius: 999px; background: var(--sunken); }
+.calc-switch a { padding: 8px 16px; border-radius: 999px; color: var(--ink-2); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 0.95rem; white-space: nowrap; }
+.calc-switch a:hover { color: var(--ink); }
+.calc-switch a[aria-current="page"] { background: var(--raised); color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--accent); }
 .intro h1 { font-size: var(--fs-h1); letter-spacing: -0.025em; }
 .intro h1 .honey { color: var(--accent); }
 .intro p { color: var(--ink-2); }
@@ -317,6 +322,7 @@ footer a { color: var(--ink-2); }
   <div class="lab">
     <div class="left">
     <div class="intro">
+  <nav class="calc-switch" aria-label="Calculators"><a href="../try/" aria-current="page" id="sw-try">Net worth &amp; FIRE</a><a href="../coast-fire-calculator/" id="sw-coast">Coast FIRE</a></nav>
       <h1>Free net worth and <span class="honey">FIRE calculator.</span></h1>
       <p>See where your net worth is heading, month by month, and your FIRE date. Change any figure and the line redraws. <strong>Nothing you type leaves this page</strong>, and a reload starts over.</p>
       <p>The iPhone app does the same, exact to the cent, with everything kept on your phone.</p>
@@ -402,7 +408,7 @@ footer a { color: var(--ink-2); }
           <label for="f-withdrawal">Withdrawal rate<span class="cap">How much of the money you could reach you'd take out each year.</span></label>
           <div class="ctl"><input class="pct" type="number" id="f-withdrawal" inputmode="decimal" min="0" step="0.25"><span class="unit">%</span></div>
         </div>
-        <p class="foot">The reading is the first month the money you could reach covers the next twelve months of spending at this rate, as the app works it out. Money you can only use from an age doesn't count until then. For when growth alone would get you there, try the <a href="../coast-fire-calculator/">Coast FIRE calculator</a>.</p>
+        <p class="foot">The reading is the first month the money you could reach covers the next twelve months of spending at this rate, as the app works it out. Money you can only use from an age doesn't count until then. For when growth alone would get you there, try the <a href="../coast-fire-calculator/" id="fire-coast">Coast FIRE calculator</a> with these numbers.</p>
       </section>
     </div>
     </div>
@@ -853,12 +859,22 @@ function draw(animate) {
   $("r-horizon-k").textContent = horizonLabel();
   readings();
 }
+/* The Coast FIRE calculator opens with these numbers: invested accounts, what's left of income
+   after spending, a year's spending, the return and the withdrawal rate. Carried after the #,
+   so they never reach a server. */
+function coastLinks() {
+  const invested = state.accounts.filter((a) => a.kind === "asset" && a.invested && !a.pays).reduce((t, a) => t + (Number(a.value) || 0), 0);
+  const q = new URLSearchParams({ currency: state.currency || "USD", age: state.age || 0, invested, monthly: Math.max(0, (state.income || 0) - (state.spending || 0)),
+    spend: (state.spending || 0) * 12, returnPct: state.returnPct || 0, rate: state.withdrawalPct ?? 4 });
+  for (const id of ["sw-coast", "fire-coast"]) $(id).href = "../coast-fire-calculator/#" + q.toString();
+}
 function readings() {
   const hit = E.reaches(state, today);
   $("r-target").textContent = state.target > 0 ? (hit ? (hit.i === 0 ? "Already there" : monthLong(hit.date)) : "Not within 50 years") : "—";
   $("r-target-k").textContent = state.target > 0 ? "Reaches " + fmt(state.target) : "No target set";
   const rw = E.runway(state, today);
   $("r-runway").textContent = rw == null ? "50 years or more" : rw === 0 ? "Already short" : rw + (rw === 1 ? " month" : " months");
+  coastLinks();
   const fire = E.enough(state, today, state.withdrawalPct ?? 4);
   $("r-fire").textContent = { already: "Already enough", reached: fire.point ? monthLong(fire.point.date) : "", beyondCap: "Not within 50 years",
     notClosing: "Not on these numbers", noSpending: "No spending set" }[fire.kind];

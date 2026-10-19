@@ -95,6 +95,11 @@ p { margin: 0; }
 
 /* ---- intro ---- */
 .intro { display: flex; flex-direction: column; gap: 12px; max-width: 46rem; padding-block: 8px 28px; }
+/* The two calculators, one switch: the same place on both pages. */
+.calc-switch { align-self: flex-start; display: inline-flex; gap: 4px; padding: 4px; margin-top: 4px; border: 1px solid var(--rule); border-radius: 999px; background: var(--sunken); }
+.calc-switch a { padding: 8px 16px; border-radius: 999px; color: var(--ink-2); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 0.95rem; white-space: nowrap; }
+.calc-switch a:hover { color: var(--ink); }
+.calc-switch a[aria-current="page"] { background: var(--raised); color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--accent); }
 .intro h1 { font-size: var(--fs-h1); letter-spacing: -0.025em; }
 .intro h1 .honey { color: var(--accent); }
 .intro p { color: var(--ink-2); }
@@ -338,12 +343,13 @@ input.cur { width: 5.5em; text-transform: uppercase; }
 </header>
 
 <main class="wrap">
-  <div class="intro">
-      <h1>Coast FIRE <span class="honey">calculator.</span></h1>
-      <p>Coast FIRE is the point where the money you've already invested would grow to your FIRE number by retirement, even if you never added another cent. See your Coast FIRE number and when you'd reach it. <strong>Nothing you type leaves this page.</strong></p>
-    </div>
   <div class="lab">
     <div class="left">
+    <div class="intro">
+  <nav class="calc-switch" aria-label="Calculators"><a href="../try/" id="sw-try">Net worth &amp; FIRE</a><a href="../coast-fire-calculator/" aria-current="page" id="sw-coast">Coast FIRE</a></nav>
+      <h1>Coast FIRE <span class="honey">calculator.</span></h1>
+      <p>Coast FIRE is when the money you've already invested would grow to your FIRE number by retirement with nothing more added. See your number and when you'd reach it. <strong>Nothing you type leaves this page.</strong></p>
+    </div>
     <div class="forms">
       <section class="card" aria-labelledby="h-you">
         <div class="card-head"><h2 id="h-you">Your numbers</h2><span class="label" id="cur-note">Every amount in USD</span></div>
@@ -372,7 +378,7 @@ input.cur { width: 5.5em; text-transform: uppercase; }
         <div><span class="v fig" id="o-stop">—</span><span class="k" id="o-stop-k">If you stopped adding today</span></div>
         <div><span class="v fig" id="o-gap">—</span><span class="k" id="o-gap-k">Still to go</span></div>
       </div>
-      <p class="example"><strong>Example numbers, not yours.</strong> Change any of them, or <button type="button" class="linkbtn quiet" id="c-reset">start again</button>.</p>
+      <p class="example"><strong id="c-src">Example numbers, not yours.</strong> <span id="c-src-text">Change any of them, or</span> <button type="button" class="linkbtn quiet" id="c-reset">start again</button>.</p>
     </div>
   </div>
 
@@ -403,6 +409,23 @@ input.cur { width: 5.5em; text-transform: uppercase; }
   const EXAMPLE = { currency: "USD", age: 32, retire: 60, invested: 85000, monthly: 2000, spend: 48000, returnPct: 5, rate: 4 };
   const FIELDS = { currency: "c-currency", age: "c-age", retire: "c-retire", invested: "c-invested", monthly: "c-monthly", spend: "c-spend", returnPct: "c-return", rate: "c-rate" };
   let s = { ...EXAMPLE };
+  /* Numbers brought from the net worth calculator ride after the #; anything odd keeps the example's. */
+  const brought = (() => {
+    const q = new URLSearchParams(location.hash.slice(1));
+    if (!q.has("age")) return false;
+    for (const k of ["age", "invested", "monthly", "spend", "returnPct", "rate"]) {
+      const v = Number(q.get(k));
+      if (q.has(k) && q.get(k) !== "" && Number.isFinite(v)) s[k] = v;
+    }
+    const cur = (q.get("currency") || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+    if (cur) s.currency = cur;
+    if (s.retire <= s.age) s.retire = Math.min(100, Math.floor(s.age) + 10);
+    return true;
+  })();
+  if (brought) {
+    $("c-src").textContent = "Your numbers from the net worth calculator.";
+    $("c-src-text").textContent = "Its return isn't adjusted for inflation; this page's is, so check it. Change any of them, or";
+  }
   let fmt, compact;
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const today = new Date();
@@ -503,7 +526,7 @@ input.cur { width: 5.5em; text-transform: uppercase; }
       draw();
     });
   }
-  $("c-reset").addEventListener("click", () => { s = { ...EXAMPLE }; fill(); setFormatter(); draw(); });
+  $("c-reset").addEventListener("click", () => { history.replaceState(null, "", location.pathname); $("c-src").textContent = "Example numbers, not yours."; $("c-src-text").textContent = "Change any of them, or"; s = { ...EXAMPLE }; fill(); setFormatter(); draw(); });
   fill(); setFormatter(); draw();
 })();
 </script>
