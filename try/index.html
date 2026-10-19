@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Try WaffleWealth in your browser</title>
-<meta name="description" content="A working demo of WaffleWealth: change the income, spending, accounts, planned money and assumptions and watch the net worth line redraw. Nothing you type leaves this page.">
-<meta property="og:title" content="Try WaffleWealth in your browser">
-<meta property="og:description" content="Change the numbers, watch the line. Nothing you type leaves this page.">
+<title>Free Net Worth &amp; FIRE Calculator | WaffleWealth</title>
+<meta name="description" content="A free net worth calculator that draws your net worth forward month by month and shows when you would have enough to live on (FIRE). Type your income, spending, accounts and plans; nothing you type leaves the page. No sign-up, no spreadsheet.">
+<meta property="og:title" content="Free Net Worth &amp; FIRE Calculator | WaffleWealth">
+<meta property="og:description" content="See where your net worth is heading and the month you would have enough to live on. Free, in your browser, and nothing you type leaves the page.">
 <meta name="robots" content="index,follow">
+<link rel="canonical" href="https://pinkhummingbird.github.io/wafflewealth-app/try/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pinkhummingbird.github.io/wafflewealth-app/try/">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"WaffleWealth net worth and FIRE calculator",
+ "url":"https://pinkhummingbird.github.io/wafflewealth-app/try/","applicationCategory":"FinanceApplication","operatingSystem":"Any (runs in a web browser)",
+ "offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
+ "description":"Draws your net worth forward month by month from your income, spending, accounts and planned money, and shows the month you would have enough to live on (FIRE) at a withdrawal rate you choose. Runs in the browser; nothing typed is sent anywhere."}
+</script>
 <meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#14100A" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="../assets/icon.png">
@@ -238,7 +248,7 @@ details.adv > summary:hover .disc { text-decoration: underline; text-underline-o
 .legend span::before { content: ""; display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--accent); vertical-align: middle; margin-right: 6px; }
 .legend span.r::before { border-top: 2px dashed var(--ink-2); }
 .hint { font-size: var(--fs-small); color: var(--faint); text-align: center; }
-.readings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.readings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .readings > div { border-top: 2px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .readings .v { font-family: var(--display); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .readings .k { font-size: var(--fs-small); color: var(--ink-2); }
@@ -250,7 +260,7 @@ details.adv > summary:hover .disc { text-decoration: underline; text-underline-o
 .detail .v { text-align: right; color: var(--ink); }
 .example { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; background: var(--sunken); border-radius: var(--r-md); padding: 10px 14px; font-size: var(--fs-small); color: var(--ink-2); }
 .example strong { color: var(--ink); font-weight: 600; }
-@media (max-width: 480px) { .readings { grid-template-columns: 1fr 1fr; } .readings > div:last-child { grid-column: 1 / -1; } .panel { padding: 16px; } .card { padding: 14px; } }
+@media (max-width: 480px) { .panel { padding: 16px; } .card { padding: 14px; } }
 
 /* ---- footer ---- */
 footer { border-top: 1px solid var(--rule); padding-block: 24px 40px; font-size: var(--fs-small); color: var(--ink-2); }
@@ -287,8 +297,8 @@ footer a { color: var(--ink-2); }
   <div class="lab">
     <div class="left">
     <div class="intro">
-      <h1>Try it with <span class="honey">your numbers.</span></h1>
-      <p>A working demo of the app. Every figure below is editable, and the line redraws as you type. <strong>Nothing you type leaves this page</strong>: there is no server behind it and nothing is stored, so a reload starts you over with the example.</p>
+      <h1>Free net worth and <span class="honey">FIRE calculator.</span></h1>
+      <p>See where your net worth is heading, month by month, and when you would have enough to live on. It is a working demo of the WaffleWealth app: every figure below is editable, and the line redraws as you type. <strong>Nothing you type leaves this page</strong>: there is no server behind it and nothing is stored, so a reload starts you over with the example.</p>
       <p>The app itself runs on your iPhone, keeps everything there, and is exact to the cent. This demo is the same arithmetic in a browser, close enough to show you what it does.</p>
     </div>
     <div class="forms" id="forms">
@@ -363,6 +373,15 @@ footer a { color: var(--ink-2); }
         </div>
         <p class="foot">The reading reports the first month the line crosses it. It does not tell you what to do to get there.</p>
       </section>
+
+      <section class="card" aria-labelledby="h-fire">
+        <div class="card-head"><h2 id="h-fire">Enough to live on (FIRE)</h2></div>
+        <div class="row first">
+          <label for="f-withdrawal">Withdrawal rate<span class="cap">How much of the money you could reach you'd take out each year.</span></label>
+          <div class="ctl"><input class="pct" type="number" id="f-withdrawal" inputmode="decimal" min="0" step="0.25"><span class="unit">%</span></div>
+        </div>
+        <p class="foot">The reading is the first month the money you could reach covers the next twelve months of spending at this rate, as the app works it out. Money you can only use from an age doesn't count until then.</p>
+      </section>
     </div>
     </div>
 
@@ -392,6 +411,7 @@ footer a { color: var(--ink-2); }
           <div><span class="v fig" id="r-horizon">—</span><span class="k" id="r-horizon-k">In 24 months</span></div>
           <div><span class="v fig" id="r-target">—</span><span class="k" id="r-target-k">Reaches the target</span></div>
           <div><span class="v fig" id="r-runway">—</span><span class="k">If income stopped</span></div>
+          <div><span class="v fig" id="r-fire">—</span><span class="k" id="r-fire-k">Enough to live on (FIRE)</span></div>
         </div>
         <div class="detail" id="detail">
           <div class="t"><strong>Monthly detail</strong><span id="d-when">In 24 months</span></div>
@@ -409,7 +429,7 @@ footer a { color: var(--ink-2); }
   </div>
 </footer>
 
-<script src="engine.js?v=2"></script>
+<script src="engine.js?v=3"></script>
 <script>
 (function () {
 "use strict";
@@ -428,6 +448,7 @@ function exampleState() {
     returnPct: 6, raisePct: 4, raiseMonth: 4, spendingGrowthPct: 2,
     age: 36,
     target: 250000,
+    withdrawalPct: 4,
     accounts: [
       { id: 1, name: "Current account", kind: "asset", value: 48000, invested: false, pays: null, availableFromAge: null },
       { id: 2, name: "State pension", kind: "asset", value: 64000, invested: true, pays: null, availableFromAge: 60 },
@@ -471,7 +492,7 @@ function niceTicks(lo, hi) {
 
 /* ---------- forms: assumptions ---------- */
 const $ = (id) => document.getElementById(id);
-const fields = { currency: "f-currency", income: "f-income", spending: "f-spending", returnPct: "f-return", raisePct: "f-raise", raiseMonth: "f-raise-month", spendingGrowthPct: "f-growth", age: "f-age", target: "f-target" };
+const fields = { currency: "f-currency", income: "f-income", spending: "f-spending", returnPct: "f-return", raisePct: "f-raise", raiseMonth: "f-raise-month", spendingGrowthPct: "f-growth", age: "f-age", target: "f-target", withdrawalPct: "f-withdrawal" };
 (function buildMonths() { const s = $("f-raise-month"); MONTHS.forEach((m, i) => { const o = document.createElement("option"); o.value = i + 1; o.textContent = m; s.appendChild(o); }); })();
 function fillAssumptions() { for (const k in fields) $(fields[k]).value = state[k]; }
 for (const k in fields) {
@@ -736,6 +757,10 @@ function readings() {
   $("r-target-k").textContent = state.target > 0 ? "Reaches " + fmt(state.target) : "No target set";
   const rw = E.runway(state, today);
   $("r-runway").textContent = rw == null ? "50 years or more" : rw === 0 ? "Already short" : rw + (rw === 1 ? " month" : " months");
+  const fire = E.enough(state, today, state.withdrawalPct ?? 4);
+  $("r-fire").textContent = { already: "Already enough", reached: fire.point ? monthLong(fire.point.date) : "", beyondCap: "Not within 50 years",
+    notClosing: "Not on these numbers", noSpending: "No spending set" }[fire.kind];
+  $("r-fire-k").textContent = "Enough to live on (FIRE), at " + (state.withdrawalPct ?? 4) + "% a year";
 }
 /* The monthly detail. Each total opens with its ">" to show what it is made of: money in and
    money out by where the money came from, the rest by account. Everything starts closed. A row

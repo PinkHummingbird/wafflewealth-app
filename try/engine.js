@@ -177,7 +177,28 @@
     return null;
   }
 
-  const Engine = { project, runway, reaches, monthsUntilAvailable, occurrences, nextDate };
+  /* FIRE, as the app reckons it: the first month the money you could reach covers the next
+     twelve months' spending at the withdrawal rate (spending × 100 ÷ rate). Month 0 means it
+     already does; null past 50 years, with `closing` saying whether the gap is still shrinking. */
+  function enough(state, start, withdrawalPct = 4) {
+    if (!(withdrawalPct > 0)) return { kind: "notClosing" };
+    const pts = project(state, 600, start);
+    const spend = pts.map((p) => p.parts.spending || 0);
+    if (!spend.some((v) => v > 0)) return { kind: "noSpending" };
+    const last = pts.length - 1;
+    const need = pts.map((_, i) => {
+      let year = 0;
+      for (let step = 1; step <= 12; step++) year += spend[Math.min(i + step, last)];
+      return (year * 100) / withdrawalPct;
+    });
+    for (let i = 0; i < pts.length; i++) {
+      if (pts[i].available >= need[i]) return i === 0 ? { kind: "already", need: need[0] } : { kind: "reached", point: pts[i], need: need[i] };
+    }
+    const gap = (i) => need[i] - pts[i].available;
+    return { kind: gap(last) < gap(Math.max(0, last - 12)) ? "beyondCap" : "notClosing" };
+  }
+
+  const Engine = { project, runway, reaches, enough, monthsUntilAvailable, occurrences, nextDate };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   else root.WWEngine = Engine;
 })(typeof window !== "undefined" ? window : globalThis);
