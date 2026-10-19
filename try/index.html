@@ -135,6 +135,7 @@ p { margin: 0; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .card-head h2 { font-size: 1.2rem; }
 .card .foot { font-size: var(--fs-small); color: var(--ink-2); padding-top: 8px; }
+.card .foot a { color: var(--accent); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding-block: 6px; border-top: 1px solid var(--rule); }
 .row:first-of-type, .row.first { border-top: 0; }
 .row > label, .row > .k { color: var(--ink); flex: 1 1 auto; min-width: 0; }
@@ -401,7 +402,7 @@ footer a { color: var(--ink-2); }
           <label for="f-withdrawal">Withdrawal rate<span class="cap">How much of the money you could reach you'd take out each year.</span></label>
           <div class="ctl"><input class="pct" type="number" id="f-withdrawal" inputmode="decimal" min="0" step="0.25"><span class="unit">%</span></div>
         </div>
-        <p class="foot">The reading is the first month the money you could reach covers the next twelve months of spending at this rate, as the app works it out. Money you can only use from an age doesn't count until then.</p>
+        <p class="foot">The reading is the first month the money you could reach covers the next twelve months of spending at this rate, as the app works it out. Money you can only use from an age doesn't count until then. For when growth alone would get you there, try the <a href="../coast-fire-calculator/">Coast FIRE calculator</a>.</p>
       </section>
     </div>
     </div>
@@ -451,7 +452,7 @@ footer a { color: var(--ink-2); }
 <footer>
   <div class="wrap">
     <span>WaffleWealth reports figures and does not advise. Nothing here is a recommendation to save, spend, borrow or invest.</span>
-    <span><a href="../">The app</a> · <a href="../privacy">Privacy</a> · <a href="../support">Support</a></span>
+    <span><a href="../">The app</a> · <a href="../try/">Net worth and FIRE calculator</a> · <a href="../coast-fire-calculator/">Coast FIRE calculator</a> · <a href="../privacy">Privacy</a> · <a href="../support">Support</a></span>
   </div>
 </footer>
 

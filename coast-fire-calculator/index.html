@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coast FIRE Calculator: When Can You Stop Saving? | WaffleWealth</title>
+<meta name="description" content="Free Coast FIRE calculator: see the amount you need invested today for growth alone to reach your FIRE number by retirement, and when you would get there. Runs in your browser; nothing you type leaves the page.">
+<meta property="og:title" content="Coast FIRE Calculator | WaffleWealth">
+<meta property="og:description" content="Your Coast FIRE number and the month you would reach it. Free, in your browser, and nothing you type leaves the page.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://pinkhummingbird.github.io/wafflewealth-app/coast-fire-calculator/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pinkhummingbird.github.io/wafflewealth-app/coast-fire-calculator/">
+<meta property="og:image" content="https://pinkhummingbird.github.io/wafflewealth-app/assets/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="WaffleWealth: free net worth and FIRE calculator, with a line rising to its FIRE date">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"WaffleWealth Coast FIRE calculator",
+ "url":"https://pinkhummingbird.github.io/wafflewealth-app/coast-fire-calculator/","applicationCategory":"FinanceApplication","operatingSystem":"Any (runs in a web browser)",
+ "offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
+ "description":"Works out the Coast FIRE number, the amount invested today that would grow to your FIRE number by retirement with nothing more added, and when you would reach it. Runs in the browser; nothing typed is sent anywhere."}
+</script>
+<meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14100A" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/icon.png">
+<link rel="apple-touch-icon" href="../assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* The landing page's tokens, which are the app's own. */
+:root {
+  --ground: #FBF7F0; --raised: #FFFDF8; --sunken: #F2ECE1;
+  --ink: #2A1D0E; --ink-2: #6E5C43; --faint: #9C8B72;
+  --accent: #A96A11; --honey: #E9A33C; --on-accent: #FFFDF8;
+  --owed: #3E5C8C; --alert: #B3261E; --rule: #E7DECF;
+  --shadow: 0 1px 0 rgba(42, 29, 14, 0.04), 0 12px 32px -16px rgba(42, 29, 14, 0.25);
+  --display: "Familjen Grotesk", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+  --body: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-h1: clamp(1.9rem, 1.2rem + 2.6vw, 2.9rem);
+  --fs-h3: 1.1rem; --fs-body: 1rem; --fs-small: 0.875rem; --fs-label: 0.72rem;
+  --r-sm: 4px; --r-md: 14px; --r-lg: 20px;
+  --gutter: clamp(16px, 4vw, 32px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #14100A; --raised: #201911; --sunken: #0C0906;
+    --ink: #F4ECDF; --ink-2: #B0A08A; --faint: #7C6E5C;
+    --accent: #E9A33C; --honey: #E9A33C; --on-accent: #14100A;
+    --owed: #9FB8DE; --alert: #F2837B; --rule: #2E2519;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 16px 40px -18px rgba(0,0,0,0.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #14100A; --raised: #201911; --sunken: #0C0906;
+  --ink: #F4ECDF; --ink-2: #B0A08A; --faint: #7C6E5C;
+  --accent: #E9A33C; --honey: #E9A33C; --on-accent: #14100A;
+  --owed: #9FB8DE; --alert: #F2837B; --rule: #2E2519;
+  --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 16px 40px -18px rgba(0,0,0,0.7);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; overflow-x: clip; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: var(--fs-body); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+svg { max-width: 100%; display: block; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.15em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+button, input, select { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.015em; line-height: 1.1; margin: 0; }
+p { margin: 0; }
+.wrap { max-width: 1120px; margin-inline: auto; padding-inline: var(--gutter); }
+.label { font-family: var(--mono); font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+.fig { font-variant-numeric: tabular-nums lining-nums; }
+
+/* ---- header ---- */
+/* The site's header, the same on every page: the links, then the App Store. On a phone only the App Store stays. */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px; }
+.nav { display: flex; align-items: center; gap: 24px; font-size: var(--fs-small); }
+.nav a { color: var(--ink-2); text-decoration: none; }
+.nav a:hover, .nav a[aria-current="page"] { color: var(--ink); }
+.nav a:hover { text-decoration: underline; }
+.nav .store { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--raised); color: var(--ink-2); white-space: nowrap; }
+.nav .store::before { content: ""; margin-right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--honey); }
+.nav .store:hover { color: var(--ink); border-color: var(--honey); text-decoration: none; }
+@media (max-width: 760px) { .nav a:not(.store) { display: none; } }
+@media (max-width: 400px) { .nav .store .long { display: none; } }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; }
+.brand .mark { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; flex: none; }
+
+/* ---- intro ---- */
+.intro { display: flex; flex-direction: column; gap: 12px; max-width: 46rem; padding-block: 8px 28px; }
+.intro h1 { font-size: var(--fs-h1); letter-spacing: -0.025em; }
+.intro h1 .honey { color: var(--accent); }
+.intro p { color: var(--ink-2); }
+.intro p strong { color: var(--ink); font-weight: 600; }
+
+/* ---- layout ---- */
+.lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(20px, 3vw, 40px); align-items: start; padding-bottom: 56px; }
+.left { min-width: 0; }
+.forms { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 900px) {
+  /* One column: the intro, then the line, then the forms. */
+  .lab { grid-template-columns: 1fr; }
+  .left { display: contents; }
+  .lab .intro { order: -2; padding-bottom: 0; }
+  .lab > .instrument { order: -1; }
+}
+/* **Wide screens: two panes that scroll on their own.** The header and the footer line stay put
+   and the page itself does not scroll, so moving through the forms never moves the line and
+   reading the detail never moves the forms. A window too short for that falls back to one
+   ordinary scrolling page. */
+@media (min-width: 901px) and (min-height: 560px) {
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  body > header, body > footer { flex: none; width: 100%; }
+  main.wrap { flex: 1 1 auto; min-height: 0; width: 100%; }
+  .lab { height: 100%; padding-bottom: 0; align-items: stretch; }
+  .lab > .left, .lab > .instrument {
+    min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    /* Room inside the scroller for the cards' shadows, taken back from the layout outside. */
+    padding: 4px 14px 32px; margin-inline: -14px;
+    scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+  }
+  footer { padding-block: 12px 14px; }
+}
+
+/* ---- cards and rows (the app's grouped rows) ---- */
+.card { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.card-head h2 { font-size: 1.2rem; }
+.card .foot { font-size: var(--fs-small); color: var(--ink-2); padding-top: 8px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding-block: 6px; border-top: 1px solid var(--rule); }
+.row:first-of-type, .row.first { border-top: 0; }
+.row > label, .row > .k { color: var(--ink); flex: 1 1 auto; min-width: 0; }
+.row .cap { display: block; font-size: var(--fs-small); color: var(--ink-2); }
+.row .ctl { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.row .unit { color: var(--ink-2); font-size: var(--fs-small); }
+input[type="text"], input[type="number"], input[type="date"], select {
+  height: 38px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--sunken); color: var(--ink);
+  font-variant-numeric: tabular-nums; min-width: 0;
+}
+input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+input.amt { width: 9.5em; text-align: right; }
+input.pct { width: 5em; text-align: right; }
+input.yrs { width: 4.5em; text-align: right; }
+input.day { width: 10.5em; font-family: var(--body); }
+input.code { width: 5em; text-transform: uppercase; font-family: var(--mono); }
+input.name { width: 100%; height: 40px; background: var(--raised); }
+input::placeholder { color: var(--faint); }
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+select { padding-right: 8px; }
+
+/* switch */
+.sw { position: relative; width: 48px; height: 28px; flex: none; }
+.sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--sunken); border: 1px solid var(--rule); transition: background 120ms; }
+.sw span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--raised); box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 120ms; }
+.sw input:checked + span { background: var(--accent); border-color: var(--accent); }
+.sw input:checked + span::after { transform: translateX(20px); }
+.sw input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* **Accounts and Planned, one at a time, like the app.** Two chips over one card: the chosen
+   one is lighter with an accent rim, the other sinks into the ground, which is the app's own
+   rule. Planned was a card at the foot of a long column, where nobody reached it. */
+/* A hidden element stays hidden whatever display its class gives it: .card sets flex, which
+   beat the browser's own [hidden] rule and left both cards showing. */
+[hidden] { display: none !important; }
+.money-tabs { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.money-tabs .title { font-family: var(--display); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+/* Two rows: what you have (All, Accounts, Planned), then what you are aiming for (Target, FIRE). */
+.money-tabs .pair { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.money-tabs .pair button { grid-column: span 2; }
+.money-tabs .pair #tab-target, .money-tabs .pair #tab-fire { grid-column: span 3; }
+.money-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border: 1px solid var(--rule); background: var(--sunken); color: var(--ink-2); border-radius: 999px; padding: 0 18px; cursor: pointer; font-family: var(--display); font-size: 1.1rem; font-weight: 600; transition: background 120ms, border-color 120ms; }
+.money-tabs button:hover { color: var(--ink); }
+.money-tabs button[aria-selected="true"] { background: var(--raised); color: var(--ink); border: 2px solid var(--accent); box-shadow: var(--shadow); }
+.money-tabs .n { min-width: 1.6em; padding: 1px 7px; border-radius: 999px; background: var(--rule); color: var(--ink-2); font-family: var(--mono); font-size: 0.78rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.money-tabs button[aria-selected="true"] .n { background: var(--accent); color: var(--on-accent); }
+
+/* segmented */
+.seg { display: inline-flex; background: var(--sunken); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-family: var(--mono); font-size: 0.78rem; color: var(--ink-2); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.seg.wide { display: flex; } .seg.wide button { flex: 1; }
+
+/* accounts */
+.acct { border: 1px solid var(--rule); border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; background: color-mix(in srgb, var(--sunken) 45%, var(--raised)); }
+.acct + .acct { margin-top: 10px; }
+.acct .head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+.acct .head .seg { flex: none; }
+.acct .sub { display: flex; flex-direction: column; margin-left: 12px; padding-left: 12px; border-left: 2px solid var(--rule); }
+.tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 0.74rem; font-weight: 600; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tag.owed { background: color-mix(in srgb, var(--owed) 14%, transparent); color: var(--owed); }
+.tag.plain { background: color-mix(in srgb, var(--ink-2) 12%, transparent); color: var(--ink-2); }
+@media (max-width: 520px) { .acct .head.stack { flex-wrap: wrap; } .acct .head.stack .seg { flex: 1 1 100%; } .acct .head.stack .seg button { flex: 1; } }
+.choice { display: flex; flex-direction: column; gap: 8px; padding-block: 10px 6px; border-top: 1px solid var(--rule); }
+.choice .cap { font-size: var(--fs-small); color: var(--ink-2); }
+.detail .k.sub, .detail .v.sub { font-size: 0.82rem; }
+.detail .k.sub { color: var(--faint); padding-left: 14px; }
+.detail .v.sub { color: var(--ink-2); }
+.detail .k.lead { color: var(--ink); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.detail .v.lead { display: flex; align-items: center; justify-content: flex-end; }
+.detail .k.sub { padding-left: 20px; }
+.detail .k.lead > .chev { flex: none; width: 14px; display: inline-flex; justify-content: center; color: var(--faint); transition: transform 120ms; }
+.detail .k.lead[aria-expanded="true"] > .chev { transform: rotate(90deg); }
+.detail button.k.lead { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; font-weight: 600; color: var(--ink); }
+.detail button.k.lead.gap { padding: 6px 16px 0 0; border-top: 1px solid var(--rule); }
+.detail button.k.lead:hover > .chev { color: var(--accent); }
+.detail .v.lead { font-weight: 600; }
+.detail .k.gap, .detail .v.gap { border-top: 1px solid var(--rule); padding-top: 6px; }
+.detail .k.gap { margin-right: -16px; padding-right: 16px; } /* one unbroken rule across the column gap */
+.acct .say { font-size: var(--fs-small); color: var(--ink-2); padding: 8px 0 2px; border-top: 1px solid var(--rule); }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 18px 12px 8px; color: var(--ink-2); font-size: var(--fs-small); }
+.empty strong { font-family: var(--display); font-size: 1rem; color: var(--ink); font-weight: 600; }
+.empty svg { width: 56px; height: 56px; margin-bottom: 6px; }
+.linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 6px 0; font-weight: 600; }
+.linkbtn.quiet { color: var(--ink-2); font-weight: 500; font-size: var(--fs-small); }
+.linkbtn.quiet:hover { color: var(--alert); }
+.add { height: 44px; margin-top: 10px; border: 1px dashed var(--rule); border-radius: var(--r-md); background: transparent; color: var(--accent); font-weight: 600; cursor: pointer; width: 100%; }
+.add:hover { background: var(--sunken); }
+/* **The whole row is the control, and it says so.** A "›" pressed up against "Advanced" read as
+   punctuation, not as something to tap. Now the row runs the card's width like every other row,
+   and its trailing edge says "Show" or "Hide" beside a chevron that turns, as the app does. */
+details.adv > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding-block: 6px; border-top: 1px solid var(--rule); color: var(--ink); }
+details.adv > summary::-webkit-details-marker { display: none; }
+details.adv > summary .cap { display: block; font-size: var(--fs-small); color: var(--ink-2); font-weight: 400; }
+details.adv > summary .disc { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 600; font-size: var(--fs-small); }
+details.adv > summary .disc::before { content: "Show"; }
+details.adv[open] > summary .disc::before { content: "Hide"; }
+details.adv > summary .disc::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 150ms; margin-right: 4px; }
+details.adv[open] > summary .disc::after { transform: rotate(45deg); }
+details.adv > summary:hover .disc { text-decoration: underline; text-underline-offset: 0.2em; }
+
+/* ---- the instrument ---- */
+.panel { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.panel-head .now .label { margin-bottom: 4px; }
+.panel-head .now .big { font-family: var(--display); font-weight: 600; font-size: 2rem; letter-spacing: -0.02em; line-height: 1; }
+.readout { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 10px; border-block: 1px solid var(--rule); }
+.readout .when { color: var(--ink-2); font-size: var(--fs-small); }
+.readout .val { font-family: var(--display); font-weight: 600; font-size: 1.35rem; letter-spacing: -0.01em; }
+.chart { width: 100%; height: auto; touch-action: pan-y; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+.chart .grid line { stroke: var(--rule); stroke-width: 1; }
+.chart .axis text { fill: var(--faint); font-family: var(--mono); font-size: 11px; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .reach { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .reach[hidden] { display: none; }
+.chart .zero { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 4; }
+.chart .cross line { stroke: var(--rule); stroke-width: 1; }
+.chart .cross circle { fill: var(--accent); stroke: var(--raised); stroke-width: 2; }
+.chart .cross[hidden] { display: none; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: var(--fs-small); color: var(--ink-2); }
+.legend span::before { content: ""; display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--accent); vertical-align: middle; margin-right: 6px; }
+.legend span.r::before { border-top: 2px dashed var(--ink-2); }
+.hint { font-size: var(--fs-small); color: var(--faint); text-align: center; }
+.readings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.readings > div { border-top: 2px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.readings .v { font-family: var(--display); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.readings .k { font-size: var(--fs-small); color: var(--ink-2); }
+.detail { border-top: 1px solid var(--rule); padding-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; font-size: var(--fs-small); }
+.detail .t { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 2px; }
+.detail .t strong { font-family: var(--display); font-size: 1rem; color: var(--ink); }
+.detail .t span { color: var(--faint); }
+.detail .k { color: var(--ink-2); }
+.detail .v { text-align: right; color: var(--ink); }
+.example { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; background: var(--sunken); border-radius: var(--r-md); padding: 10px 14px; font-size: var(--fs-small); color: var(--ink-2); }
+.example strong { color: var(--ink); font-weight: 600; }
+.share { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.share-btn { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--raised); color: var(--ink); font-family: var(--display); font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+.share-btn:hover { background: color-mix(in srgb, var(--honey) 18%, var(--raised)); }
+.share-msg { font-size: var(--fs-small); color: var(--ink-2); }
+.share-note { flex-basis: 100%; margin: 0; font-size: var(--fs-small); color: var(--ink-2); }
+@media (max-width: 480px) { .panel { padding: 16px; } .card { padding: 14px; } }
+
+/* ---- footer ---- */
+footer { border-top: 1px solid var(--rule); padding-block: 24px 40px; font-size: var(--fs-small); color: var(--ink-2); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+footer a { color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .chart .line { transition: none !important; } .sw span, .sw span::after { transition: none; } }
+
+/* Coast FIRE */
+.hero { display: flex; flex-direction: column; gap: 4px; padding-block: 4px 12px; }
+.hero .v { font-family: var(--display); font-weight: 600; font-size: clamp(1.8rem, 4vw, 2.4rem); letter-spacing: -0.02em; }
+.hero .k { color: var(--ink-2); font-size: var(--fs-small); }
+.chart .hit { fill: var(--raised); stroke: var(--accent); stroke-width: 3; }
+.chart .cross line { stroke: var(--ink-2); stroke-width: 1; }
+.chart .cross circle { fill: var(--raised); stroke: var(--accent); stroke-width: 2.5; }
+.chart .cross circle.d2 { stroke: var(--ink-2); }
+input.cur { width: 5.5em; text-transform: uppercase; }
+.explain { max-width: 46rem; padding-block: 8px 48px; display: flex; flex-direction: column; gap: 12px; }
+.explain h2 { font-size: 1.35rem; }
+.explain p { color: var(--ink-2); }
+.explain p strong { color: var(--ink); }
+.explain a { color: var(--accent); }
+#c-chart .axis text { font-size: 13px; }
+@media (max-width: 900px) { .lab > .panel { order: -1; } }
+
+@media (max-width: 600px) { #c-chart .axis text { font-size: 19px; } }
+/* This page scrolls as one, unlike the demo's two panes: the explanation sits below. */
+@media (min-width: 901px) and (min-height: 560px) {
+  html, body { height: auto; }
+  body { display: block; overflow: visible; }
+  .lab { height: auto; padding-bottom: 40px; align-items: start; }
+  .lab > .left { overflow: visible; padding: 0; margin: 0; }
+}
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="../" aria-label="WaffleWealth home">
+    <span class="mark" aria-hidden="true">
+      <svg viewBox="0 0 1024 1024" width="36" height="36" role="img" aria-label="WaffleWealth icon">
+        <rect width="1024" height="1024" fill="#E9A33C"/>
+        <g>
+          <rect x="88"  y="88"  width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="88"  width="184" height="184" rx="40" fill="#D08A2C"/><rect x="520" y="88"  width="184" height="184" rx="40" fill="#D08A2C"/><rect x="736" y="88"  width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="88"  y="304" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="304" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="520" y="304" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="736" y="304" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="88"  y="520" width="184" height="184" rx="40" fill="#D08A2C"/><rect x="304" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="520" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="736" y="520" width="184" height="184" rx="40" fill="#2A1D0E"/>
+          <rect x="88"  y="736" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="304" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="520" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/><rect x="736" y="736" width="184" height="184" rx="40" fill="#2A1D0E"/>
+        </g>
+      </svg>
+    </span>
+    WaffleWealth
+  </a>
+  <nav class="nav" aria-label="Site">
+    <a href="../#features">Features</a>
+    <a href="../#privacy">Privacy</a>
+    <a href="../#faq">FAQ</a>
+    <a href="../try/">Try it</a>
+    <a href="../web/">On the web</a>
+    <a class="store" href="https://apps.apple.com/us/app/wafflewealth/id6811611595"><span class="long">Get it on the&nbsp;</span>App Store</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="intro">
+      <h1>Coast FIRE <span class="honey">calculator.</span></h1>
+      <p>Coast FIRE is the point where the money you've already invested would grow to your FIRE number by retirement, even if you never added another cent. See your Coast FIRE number and when you'd reach it. <strong>Nothing you type leaves this page.</strong></p>
+    </div>
+  <div class="lab">
+    <div class="left">
+    <div class="forms">
+      <section class="card" aria-labelledby="h-you">
+        <div class="card-head"><h2 id="h-you">Your numbers</h2><span class="label" id="cur-note">Every amount in USD</span></div>
+        <div class="row first"><label for="c-currency">Currency</label><div class="ctl"><input class="cur" type="text" id="c-currency" maxlength="3" autocomplete="off" spellcheck="false"></div></div>
+        <div class="row"><label for="c-age">Your age</label><div class="ctl"><input class="pct" type="number" id="c-age" inputmode="numeric" min="14" max="99"><span class="unit">yrs</span></div></div>
+        <div class="row"><label for="c-retire">Retire at<span class="cap">The age you'd start living on your money.</span></label><div class="ctl"><input class="pct" type="number" id="c-retire" inputmode="numeric" min="15" max="100"><span class="unit">yrs</span></div></div>
+        <div class="row"><label for="c-invested">Invested now<span class="cap">Money that grows at the return below: funds, shares, pension.</span></label><div class="ctl"><input class="amt" type="number" id="c-invested" inputmode="decimal" min="0" step="1000"></div></div>
+        <div class="row"><label for="c-monthly">Added each month<span class="cap">Until you reach Coast FIRE. Zero is fine.</span></label><div class="ctl"><input class="amt" type="number" id="c-monthly" inputmode="decimal" min="0" step="100"></div></div>
+        <div class="row"><label for="c-spend">Yearly spending in retirement<span class="cap">In today's money.</span></label><div class="ctl"><input class="amt" type="number" id="c-spend" inputmode="decimal" min="0" step="1000"></div></div>
+        <div class="row"><label for="c-return">Annual return after inflation<span class="cap">Real return: what's left once prices have risen.</span></label><div class="ctl"><input class="pct" type="number" id="c-return" inputmode="decimal" step="0.5"><span class="unit">%</span></div></div>
+        <div class="row"><label for="c-rate">Withdrawal rate<span class="cap">How much of your money you'd take out each year.</span></label><div class="ctl"><input class="pct" type="number" id="c-rate" inputmode="decimal" min="0" step="0.25"><span class="unit">%</span></div></div>
+        <p class="foot">Amounts are in today's money because the return is after inflation. The return is a guess, and the answer leans on it.</p>
+      </section>
+    </div>
+    </div>
+
+    <div class="panel" aria-labelledby="h-result">
+      <h2 class="label" id="h-result">Coast FIRE</h2>
+      <div class="hero"><span class="v fig" id="o-when">—</span><span class="k" id="o-when-k"></span></div>
+      <svg class="chart" id="c-chart" viewBox="0 0 600 300" role="img" aria-labelledby="c-chart-t"><title id="c-chart-t">Your invested money against the Coast FIRE number, by age</title></svg>
+      <div class="legend" id="c-legend"><span>Your invested money</span><span class="r">Coast FIRE number</span></div>
+      <p class="hint" id="c-read">Touch the chart for any age</p>
+      <div class="readings">
+        <div><span class="v fig" id="o-coast">—</span><span class="k">Coast FIRE number today</span></div>
+        <div><span class="v fig" id="o-fire">—</span><span class="k" id="o-fire-k">FIRE number</span></div>
+        <div><span class="v fig" id="o-stop">—</span><span class="k" id="o-stop-k">If you stopped adding today</span></div>
+        <div><span class="v fig" id="o-gap">—</span><span class="k" id="o-gap-k">Still to go</span></div>
+      </div>
+      <p class="example"><strong>Example numbers, not yours.</strong> Change any of them, or <button type="button" class="linkbtn quiet" id="c-reset">start again</button>.</p>
+    </div>
+  </div>
+
+  <section class="explain" aria-labelledby="h-what">
+    <h2 id="h-what">How the Coast FIRE number is worked out</h2>
+    <p><strong>FIRE number</strong> = yearly spending × 100 ÷ withdrawal rate. At 4%, that's 25 times what you spend in a year.</p>
+    <p><strong>Coast FIRE number</strong> = FIRE number ÷ (1 + return)<sup>years to retirement</sup>. It's what you'd need invested today for growth alone to reach your FIRE number on time. It falls every year you're younger than your retirement age, so the line it draws slopes up towards your FIRE number.</p>
+    <p>Once your invested money is above that line, saving more brings retirement earlier but isn't needed to retire on time. This page works out the arithmetic; it doesn't tell you what to do.</p>
+    <p>Want the whole picture, with income, spending, debts and money you can't touch until a pension age? <a href="../try/">Try the full net worth and FIRE calculator</a>, or <a href="https://apps.apple.com/us/app/wafflewealth/id6811611595">get WaffleWealth for iPhone</a>.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WaffleWealth reports figures and does not advise. Nothing here is a recommendation to save, spend, borrow or invest.</span>
+    <span><a href="../">The app</a> · <a href="../try/">Net worth and FIRE calculator</a> · <a href="../coast-fire-calculator/">Coast FIRE calculator</a> · <a href="../privacy">Privacy</a> · <a href="../support">Support</a></span>
+  </div>
+</footer>
+<script>
+/* Coast FIRE, worked out here in the browser. Nothing is sent or stored.
+   FIRE number = yearly spending × 100 ÷ withdrawal rate. The Coast FIRE number at a month is
+   the FIRE number discounted back from retirement at the real return: what, invested then,
+   would grow to it on time with nothing more added. Money grows monthly at (1 + return)^(1/12);
+   what's added each month stops once it is reached. */
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const EXAMPLE = { currency: "USD", age: 32, retire: 60, invested: 85000, monthly: 2000, spend: 48000, returnPct: 5, rate: 4 };
+  const FIELDS = { currency: "c-currency", age: "c-age", retire: "c-retire", invested: "c-invested", monthly: "c-monthly", spend: "c-spend", returnPct: "c-return", rate: "c-rate" };
+  let s = { ...EXAMPLE };
+  let fmt, compact;
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const today = new Date();
+  const monthLabel = (m) => { const i = today.getFullYear() * 12 + today.getMonth() + m; return MONTHS[i % 12] + " " + Math.floor(i / 12); };
+
+  function setFormatter() {
+    const code = /^[A-Z]{3}$/.test(s.currency) ? s.currency : "USD";
+    try { fmt = new Intl.NumberFormat(undefined, { style: "currency", currency: code, maximumFractionDigits: 0 }); compact = new Intl.NumberFormat(undefined, { style: "currency", currency: code, notation: "compact", maximumFractionDigits: 1 }); }
+    catch (e) { fmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }); compact = fmt; }
+    $("cur-note").textContent = "Every amount in " + code;
+  }
+
+  function coast(v) {
+    const r = v.returnPct / 100, months = Math.max(0, Math.round((v.retire - v.age) * 12));
+    const fire = v.rate > 0 ? (v.spend * 100) / v.rate : null;
+    if (fire == null || r <= -1) return { fire, months };
+    const g = Math.pow(1 + r, 1 / 12);
+    const needAt = (m) => fire / Math.pow(1 + r, (months - m) / 12);
+    let bal = v.invested, reached = bal >= needAt(0) ? 0 : null;
+    const mine = [bal], need = [needAt(0)];
+    for (let m = 1; m <= months; m++) {
+      bal = bal * g + (reached == null ? v.monthly : 0);
+      mine.push(bal); need.push(needAt(m));
+      if (reached == null && bal >= need[m]) reached = m;
+    }
+    return { fire, months, mine, need, reached, coastNow: need[0], stopNow: v.invested * Math.pow(1 + r, months / 12) };
+  }
+
+  function draw() {
+    const c = coast(s);
+    $("o-fire-k").textContent = "FIRE number, at " + (s.rate || 0) + "% a year";
+    $("o-stop-k").textContent = "At " + s.retire + " if you stopped adding today";
+    if (c.fire == null) {
+      $("o-when").textContent = "Set a withdrawal rate"; $("o-when-k").textContent = "";
+      for (const id of ["o-coast", "o-fire", "o-stop", "o-gap"]) $(id).textContent = "—";
+      $("c-chart").innerHTML = ""; return;
+    }
+    const ageAt = (m) => Math.floor(s.age + m / 12);
+    if (c.reached === 0) { $("o-when").textContent = "You're there"; $("o-when-k").textContent = "Your invested money already covers it"; }
+    else if (c.reached != null) { $("o-when").textContent = monthLabel(c.reached); $("o-when-k").textContent = "When you'd reach Coast FIRE, at age " + ageAt(c.reached); }
+    else { $("o-when").textContent = "Not before " + s.retire; $("o-when-k").textContent = "At these numbers"; }
+    $("o-coast").textContent = fmt.format(c.coastNow);
+    $("o-fire").textContent = fmt.format(c.fire);
+    $("o-stop").textContent = fmt.format(c.stopNow);
+    const gap = c.coastNow - s.invested;
+    $("o-gap").textContent = gap > 0 ? fmt.format(gap) : "Nothing";
+    $("o-gap-k").textContent = gap > 0 ? "Still to go, today" : "Still to go: you're past it";
+    chart(c);
+  }
+
+  /* Two lines by age: your invested money (solid) and the Coast FIRE number (dashed). */
+  let last = null;
+  function chart(c) {
+    const svg = $("c-chart"), W = 600, H = 300, L = 72, R = 12, T = 12, B = 28;
+    const n = Math.max(1, c.months);
+    // Round steps for the money axis: 1, 2, 2.5 or 5 times a power of ten.
+    const peak = Math.max(1, ...c.mine, ...c.need), raw = peak / 4, p10 = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((k) => k * p10).find((v) => v >= raw), ticks = Math.ceil(peak / step), top = step * ticks;
+    const x = (m) => L + ((W - L - R) * m) / n, y = (v) => T + (H - T - B) * (1 - v / top);
+    const path = (arr) => arr.map((v, m) => (m ? "L" : "M") + x(m).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+    let g = '<g class="grid">';
+    for (let i = 0; i <= ticks; i++) { const yy = y(step * i).toFixed(1); g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>`; }
+    g += '</g><g class="axis">';
+    for (let i = 0; i <= ticks; i++) g += `<text x="${L - 8}" y="${(y(step * i) + 4).toFixed(1)}" text-anchor="end">${compact.format(step * i)}</text>`;
+    const years = n / 12, every = years > 30 ? 10 : years > 12 ? 5 : years > 5 ? 2 : 1;
+    for (let a = Math.ceil(s.age / every) * every; a <= s.retire; a += every) { const m = (a - s.age) * 12; if (m >= 0 && m <= n) g += `<text x="${x(m).toFixed(1)}" y="${H - 8}" text-anchor="middle">${a}</text>`; }
+    g += "</g>";
+    g += `<path class="reach" d="${path(c.need)}"/><path class="line" d="${path(c.mine)}"/>`;
+    if (c.reached != null) g += `<circle class="hit" r="6" cx="${x(c.reached).toFixed(1)}" cy="${y(c.mine[c.reached]).toFixed(1)}"/>`;
+    g += '<g class="cross" id="c-cross" style="display:none"><line id="c-cl" y1="' + T + '" y2="' + (H - B) + '"/><circle id="c-d1" r="5"/><circle id="c-d2" class="d2" r="5"/></g>';
+    svg.innerHTML = g;
+    last = { c, x, y, n, L, W, R };
+  }
+
+  function readAt(evt) {
+    if (!last) return;
+    const svg = $("c-chart"), box = svg.getBoundingClientRect();
+    const px = ((evt.clientX - box.left) / box.width) * 600;
+    const m = Math.max(0, Math.min(last.n, Math.round(((px - last.L) / (last.W - last.L - last.R)) * last.n)));
+    const { c, x, y } = last;
+    if (!c.mine || m > c.months) return;
+    $("c-cross").style.display = "";
+    $("c-cl").setAttribute("x1", x(m)); $("c-cl").setAttribute("x2", x(m));
+    $("c-d1").setAttribute("cx", x(m)); $("c-d1").setAttribute("cy", y(c.mine[m]));
+    $("c-d2").setAttribute("cx", x(m)); $("c-d2").setAttribute("cy", y(c.need[m]));
+    $("c-read").textContent = monthLabel(m) + ", age " + Math.floor(s.age + m / 12) + ": yours " + fmt.format(c.mine[m]) + " · Coast FIRE number " + fmt.format(c.need[m]);
+  }
+  $("c-chart").addEventListener("pointermove", readAt);
+  $("c-chart").addEventListener("pointerdown", readAt);
+  $("c-chart").addEventListener("pointerleave", () => { const cr = $("c-cross"); if (cr) cr.style.display = "none"; $("c-read").textContent = "Touch the chart for any age"; });
+
+  function fill() { for (const k in FIELDS) $(FIELDS[k]).value = s[k]; }
+  for (const k in FIELDS) {
+    $(FIELDS[k]).addEventListener("input", (e) => {
+      const raw = e.target.value;
+      if (k === "currency") { s.currency = raw.toUpperCase().slice(0, 3); setFormatter(); }
+      else s[k] = raw === "" ? 0 : Number(raw);
+      draw();
+    });
+  }
+  $("c-reset").addEventListener("click", () => { s = { ...EXAMPLE }; fill(); setFormatter(); draw(); });
+  fill(); setFormatter(); draw();
+})();
+</script>
+<script data-goatcounter="https://pinkhummingbird.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
