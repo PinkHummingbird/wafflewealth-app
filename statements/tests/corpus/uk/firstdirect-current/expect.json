@@ -1,0 +1,56 @@
+{
+  "bank": "first direct",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "20260930_12345678.csv",
+  "layout_sources": [
+    "https://github.com/egh/ledger-autosync/issues/45 (first direct CSV: Date,Description,Amount,Balance; quoted padded descriptions; newest first; GBP never stated)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf ([UK first direct checking]: file 20123456_12345678.csv, columns Date, Payee, signed amount, balance)"
+  ],
+  "layout_confidence": 65,
+  "notes": "Newest first, DD/MM/YYYY, description quoted with the payee padded to 19 characters before the reference, one signed Amount, running Balance, no thousands mark, no currency. Documented in 2018; that it is unchanged is assumed. Line endings unknown (LF here). ASCII.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 230115,
+        "closing": 325943,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-23",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": 87,
+            "text": "gross interest"
+          }
+        ]
+      }
+    ]
+  }
+}

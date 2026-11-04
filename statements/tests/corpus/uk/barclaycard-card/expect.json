@@ -1,0 +1,57 @@
+{
+  "bank": "Barclaycard",
+  "country": "GB",
+  "product": "credit card",
+  "format": "csv",
+  "file": "barclaycard.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/gb/barclaycard/default.json (no header row, date \"d M y\", 7 columns: date, description, -, -, category, credit column, debit column)",
+    "https://github.com/callummarshall9/BankingSimulation/blob/master/BankingSimulation.BarclaysCard/Models/BarclaysCardTransactionEntry.cs (headerless fields Date, Description, Card, Cardholder, Type, Amount, Amount2; example row: 1 May 24,\" Foo \",n/a,TEST CARD HOLDER,,-1.00,)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf ([UK Barclaycard credit card]: Header Rows = 0, %d %b %y, an older 8-column variant)"
+  ],
+  "layout_confidence": 45,
+  "notes": "No header row. Date \"DD Mon YY\"; description quoted with a space at each end; a card field (\"n/a\" in the one published row); cardholder; a category (may be empty); then two amount fields: spending written negative in the first, payments and refunds positive in the second (which of the two holds which is the least certain part: the one published row has a negative purchase in the first and the second empty). No balance, no currency. Order and line endings unknown (newest first, LF here).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-29",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-24",
+            "amount": 125000,
+            "text": "payment"
+          },
+          {
+            "date": "2026-09-19",
+            "amount": -3870,
+            "text": "example rail"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 1599,
+            "text": "example books"
+          },
+          {
+            "date": "2026-09-11",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-03",
+            "amount": -31280,
+            "text": "example airways"
+          }
+        ]
+      }
+    ]
+  }
+}

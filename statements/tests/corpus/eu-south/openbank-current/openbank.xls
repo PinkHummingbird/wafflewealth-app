@@ -1,0 +1,18 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/vnd.ms-excel">
+</head>
+<body>
+<table border="1">
+<tr><td>&nbsp;</td><td><b>Extracto</b></td></tr>
+<tr><td>Cuenta</td><td>ES80 0073 0100 5101 2345 6789</td></tr>
+<tr><td>Periodo</td><td>01/05/2026 - 31/05/2026</td></tr>
+<tr><td><b>Fecha Operación</b></td><td><b>Fecha Valor</b></td><td><b>Concepto</b></td><td><b>Importe</b></td><td><b>Saldo</b></td></tr>
+<tr><td>27/05/2026</td><td>27/05/2026</td><td>COMPRA EN LIBRERÍA EJEMPLO, CON LA TARJETA : 5489XXXXXXXX1234 EL 2026-05-26</td><td>-23,90</td><td>3.456,78</td></tr>
+<tr><td>18/05/2026</td><td>18/05/2026</td><td>TRANSFERENCIA A FAVOR DE COMUNIDAD PROPIETARIOS EJEMPLO</td><td>-1.600,00</td><td>3.480,68</td></tr>
+<tr><td>12/05/2026</td><td>12/05/2026</td><td>RECIBO TELEFONÍA EJEMPLO SA</td><td>-45,00</td><td>5.080,68</td></tr>
+<tr><td>04/05/2026</td><td>04/05/2026</td><td>TRANSFERENCIA DE EMPRESA EJEMPLO SA, NÓMINA MAYO</td><td>2.210,35</td><td>5.125,68</td></tr>
+<tr><td>01/05/2026</td><td>01/05/2026</td><td>BIZUM A FAVOR DE AMIGO EJEMPLO</td><td>-15,00</td><td>2.915,33</td></tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{
+  "bank": "Santander UK",
+  "country": "GB",
+  "product": "current account",
+  "format": "txt",
+  "file": "santander.txt",
+  "layout_sources": [
+    "https://ro-che.info/articles/2018-03-04-santander-export-transactions (the TXT download: Latin-1, non-breaking spaces as separators, some records carry a currency)",
+    "https://github.com/splogdes/monzo-grafana/blob/main/monzo_grafana/santander/parser.py (From:/Account: header lines, 4-line Date/Description/Amount/Balance blocks, U+00A0 after each label, single-byte encoding, newest first)",
+    "https://github.com/splogdes/monzo-grafana/blob/main/tests/test_santander_parser.py (sample: \"Amount:\\xa020.00\\t\", \"&amp;\" entities in descriptions)",
+    "https://github.com/PurpleBooth/santander-txt-to-csv/blob/master/txt-to-csv.php (separator lines of 7 tabs after the date range and 6 tabs between blocks; \":\\xA0\" between key and value)",
+    "https://github.com/saul/finance/blob/master/statementimport/santander.py (reads cp1252, html.unescape, skips to \"Account:\")",
+    "https://business.santander.co.uk/Estatico/ALP_SBBI_Templates/Html/help50000048.html (download formats: Excel, Quicken, Acrobat, Microsoft Money, TXT)"
+  ],
+  "layout_confidence": 65,
+  "notes": "Not a table: \"From: <dd/mm/yyyy> to <dd/mm/yyyy>\", a line of 7 tabs, \"Account: XXXX XXXX XXXX 1234\", then one block per line (Date, Description, Amount, Balance), each label followed by a non-breaking space (byte A0), blocks separated by a line of 6 tabs; the Amount line ends with a tab. Newest first, DD/MM/YYYY, signed Amount, Balance after each line, HTML entities left in descriptions (\"MARKS&amp;SPENCER\"). Windows-1252 single-byte text; CRLF assumed (not confirmed). Some files add the currency after an amount; not shown here.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 64518,
+        "closing": 153839,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-07",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 205000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-17",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-24",
+            "amount": -1260,
+            "text": "spencer plc"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": 2500,
+            "text": "a friend"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "bank": "Lloyds",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "lloyds.csv",
+  "layout_sources": [
+    "https://github.com/Metasaura/ofxstatement-lloyds/blob/main/tests/sample-statement.csv (2023-24 layout: header with trailing comma, rows without, '99-88-74 sort code, newest first, \"2000\" with no decimals)",
+    "https://github.com/adept/full-fledged-hledger/blob/master/08-mortgage/import/lloyds/in/99966633_20171224_2041.csv (same header and row shape)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/gb/lloyds/default.json (9 columns: the header's trailing comma, d/m/Y)",
+    "https://pypi.org/project/ofxstatement-lloyds/ (columns; reverse-chronological; balance after each line)",
+    "https://github.com/ggirtsou/lloyds (header with the trailing comma)"
+  ],
+  "layout_confidence": 82,
+  "notes": "Newest first, DD/MM/YYYY. Header ends with a comma (9 fields), data rows do not (8). Sort code written '30-12-34 (leading apostrophe so spreadsheets keep it as text). Separate Debit Amount / Credit Amount (positive), running Balance, no thousands mark, no currency. Whole-pound amounts are sometimes written without decimals (\"500\"), as in published samples. Type codes DEB, FPI, FPO, DD, BGC. LF line endings as in the samples (not certain). ASCII.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 102134,
+        "closing": 247875,
+        "lines": [
+          {
+            "date": "2026-10-05",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": 50000,
+            "text": "a friend"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-26",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

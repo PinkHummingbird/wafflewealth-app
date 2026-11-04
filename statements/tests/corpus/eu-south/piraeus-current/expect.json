@@ -1,0 +1,47 @@
+{
+  "bank": "Piraeus Bank",
+  "country": "GR",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "piraeus.xlsx",
+  "layout_sources": [
+    "https://github.com/spyridwngeorgiou/la-budgeting/blob/HEAD/backoffice/src/lib/ingest/profiles/piraeusXlsx.test.ts",
+    "https://github.com/spyridwngeorgiou/la-budgeting/blob/HEAD/backoffice/src/lib/ingest/profiles/presets.ts",
+    "https://github.com/gliaropoulos-ai/csv_processing/blob/HEAD/csv_preprocessing_functions.py"
+  ],
+  "layout_confidence": 75,
+  "notes": "Piraeus e-banking .xlsx, laid out from a real export as la-budgeting documents it (its only preset marked verified): sheet \"Κινήσεις Λογαριασμών\", bank name A1, title A2, account and spaced IBAN A4, period A5, header row 7: Κατηγορία | Περιγραφή Συναλλαγής | Ημ/νία Συναλλαγής | Σχόλια / Κωδικός Αναφοράς | Ποσό | Νόμισμα | Προοδευτικό Λογιστικό Υπόλοιπο | Νόμισμα (Νόμισμα twice). Κατηγορία is Χρέωση/Πίστωση, the description is space-padded, Σχόλια is multi-line (CR LF stored as _x000D_), dates TEXT dd/mm/yyyy, Ποσό a signed number, a running balance, newest first, and \"Ημερομηνία Ενημέρωσης:\" with a timestamp two rows under the table.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 122831,
+        "closing": 203411,
+        "lines": [
+          {
+            "date": "2026-02-04",
+            "amount": 132050,
+            "text": "ΜΕΤΑΦΟΡΑ ΑΠΟ ΛΟΓΑΡΙΑΣΜΟ"
+          },
+          {
+            "date": "2026-02-13",
+            "amount": -48000,
+            "text": "ΜΕΤΑΦΟΡΑ ΣΕ ΛΟΓΑΡΙΑΣΜΟ"
+          },
+          {
+            "date": "2026-02-18",
+            "amount": -2990,
+            "text": "ΠΛΗΡΩΜΗ ΛΟΓΑΡΙΑΣΜΟΥ"
+          },
+          {
+            "date": "2026-02-26",
+            "amount": -480,
+            "text": "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ"
+          }
+        ]
+      }
+    ]
+  }
+}

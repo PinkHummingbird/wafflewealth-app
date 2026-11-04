@@ -1,0 +1,7 @@
+Transaction ID,Date,Time,Type,Name,Emoji,Category,Amount,Currency,Local amount,Local currency,Notes and #tags,Address,Receipt,Description,Category split,Money Out,Money In
+tx_0000B3a1Qx7Lm2Pz9Kd4Vb,01/09/2026,08:14:22,Direct Debit,Northwind Energy,,Bills,-64.99,GBP,-64.99,GBP,,,,NORTHWIND ENERGY,,-64.99,
+tx_0000B3bN4rT8wYc1Hs6Ue2,04/09/2026,13:02:51,Card payment,Corner Grocer,🍏,Groceries,-23.40,GBP,-23.40,GBP,,1 Market Street,,CORNER GROCER          LEEDS         GBR,,-23.40,
+tx_0000B3dK9pS2fGh5Jw7Xa3,12/09/2026,19:45:10,Card payment,Le Petit Café,☕,Eating out,-8.61,GBP,-10.00,EUR,,12 Rue de Rivoli,,LE PETIT CAFE          PARIS         FRA,,-8.61,
+tx_0000B3eL2mQ6vBn8Rt1Yc4,15/09/2026,07:01:33,Faster payment,Example Studio Ltd,,Income,2150.00,GBP,2150.00,GBP,SALARY SEP,,,SALARY SEP,,,2150.00
+tx_0000B3eZ5nW1xCk3Pd9Ud5,16/09/2026,09:30:04,Faster payment,J Smith,,Bills,-1100.00,GBP,-1100.00,GBP,RENT SEPT,,,RENT SEPT,,-1100.00,
+tx_0000B3hR7tY4zDm6Qf2Ve6,27/09/2026,11:12:45,Card payment,Ana’s Bakery,🥐,Eating out,-4.20,GBP,-4.20,GBP,,4 Kirkgate,,ANAS BAKERY            LEEDS         GBR,,-4.20,

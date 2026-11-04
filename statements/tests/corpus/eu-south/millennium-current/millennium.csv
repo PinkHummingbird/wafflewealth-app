@@ -1,0 +1,16 @@
+Moeda base:;EUR
+Saldo contabilístico:;3842.55
+Saldo disponível:;3842.55
+Saldo autorizado:;3842.55
+Saldo valor:;3842.55
+Data de:;01-09-2026
+Data até:;30-09-2026
+
+Data lançamento;Data valor;Descrição;Montante;Tipo;Saldo
+29-09-2026;29-09-2026;COMPRA 1234 SUPERMERCADO EXEMPLO LISBOA;-28.74;Débito;3842.55
+22-09-2026;22-09-2026;MB WAY P/ 912XXX345;-15.00;Débito;3871.29
+15-09-2026;15-09-2026;DD PT12345678 ELECTRICIDADE EXEMPLO 0012345678;-47.80;Débito;3886.29
+08-09-2026;08-09-2026;TRF P/ SENHORIO EXEMPLO RENDA SET;-650.00;Débito;3934.09
+01-09-2026;01-09-2026;TRF DE EMPRESA EXEMPLO LDA SALARIO;1450.00;Crédito;4584.09
+O millenniumbcp.pt é um serviço do Banco Comercial Português S.A.
+

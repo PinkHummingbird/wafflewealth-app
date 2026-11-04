@@ -1,0 +1,33 @@
+{
+  "bank": "ABN AMRO",
+  "country": "NL",
+  "product": "betaalrekening (current account)",
+  "format": "tab",
+  "file": "TXT261104101530.TAB",
+  "layout_sources": [
+    "https://github.com/denilsonsa/abn-amro-statement-parser/blob/master/TXT_SAMPLE.TAB (8 tab-separated columns, no header, file name TXT<yymmddHHMMSS>.TAB, BEA/SEPA/slash-style descriptions)",
+    "https://github.com/deepakg/beancount-abnamro/blob/main/TXT231209180908.TAB (a real-shaped download with CRLF line ends)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/nl/abnamro/default.json (tab, no header, date Ymd)",
+    "https://github.com/reubano/csv2ofx/blob/master/csv2ofx/mappings/abnamro.py (no header, tab; field_2 date, field_6 amount, field_7 description)"
+  ],
+  "layout_confidence": 85,
+  "notes": "Internet Bankieren \"Mutaties downloaden\" in the TXT format: a .TAB file, tab-separated, no header row. Columns: rekeningnummer, muntsoort, transactiedatum (YYYYMMDD), beginsaldo, eindsaldo, rentedatum (YYYYMMDD), transactiebedrag, omschrijving. Comma decimal, no thousands mark, a leading minus for money out. Every line carries the balance before and after it, so the opening is the first line's beginsaldo and the closing the last line's eindsaldo. Oldest first, CRLF. Card lines are fixed 32-character segments padded with spaces; SEPA lines use the /TRTP/.../NAME/.../REMI/ form. Encoding unconfirmed (content kept ASCII).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 164025,
+        "closing": 293360,
+        "lines": [
+          {"date": "2026-10-01", "amount": -125000, "text": "verhuurder voorbeeld"},
+          {"date": "2026-10-06", "amount": -1840, "text": "bakkerij voorbeeld"},
+          {"date": "2026-10-15", "amount": -4560, "text": "telecom voorbeeld"},
+          {"date": "2026-10-24", "amount": 261530, "text": "voorbeeld techniek"},
+          {"date": "2026-10-28", "amount": -795, "text": "kiosk voorbeeld"}
+        ]
+      }
+    ]
+  }
+}

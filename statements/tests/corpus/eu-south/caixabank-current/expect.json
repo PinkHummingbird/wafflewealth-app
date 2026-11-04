@@ -1,0 +1,55 @@
+{
+  "bank": "CaixaBank",
+  "country": "ES",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "caixabank.xlsx",
+  "layout_sources": [
+    "https://github.com/gutisg/despeses/blob/HEAD/backend/app/parsers/caixabank_xls.py",
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/tests/caixabank-import.test.ts",
+    "https://github.com/administracion-blip/IGP-2.0/blob/HEAD/api/tests/bancaCaixaXlsx.test.mjs",
+    "https://github.com/ferraroroberto/family-accounting/blob/HEAD/src/parsers/caixabank.py",
+    "https://github.com/biggfit/Bigg-finance/blob/HEAD/src/numbers/parsers/caixa.js",
+    "https://github.com/firefly-iii/import-configurations/blob/main/es/caixabank/default.json"
+  ],
+  "layout_confidence": 65,
+  "notes": "CaixaBank (CaixaBankNow) gives movements as Excel, no CSV for personal accounts. The real download is an old binary .xls; written as .xlsx with the same cells. Row 1 \"Movimientos de la cuenta <IBAN>\", row 2 \"Importes expresados en euros\" (KashaFlow puts it over the Importe column; IGP-2.0 in column A), header row 3: Fecha | Fecha valor | Movimiento | Más datos | Importe | Saldo. Dates TEXT dd/mm/yyyy (most widely reported; some parsers also accept date cells), signed numeric Importe, running Saldo, newest first. The counterparty is in Movimiento or in Más datos, so a reading should join both. A wider 23-column \"full detail\" export (F. Operación, F. Valor, Ingreso (+), Gasto (-), Concepto complementario 1-10) also exists and is not this file. Currency taken from \"Importes expresados en euros\".",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 186480,
+        "closing": 312040,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -3120,
+            "text": "recibo agua"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": 198055,
+            "text": "nomina empresa ejemplo"
+          },
+          {
+            "date": "2026-10-17",
+            "amount": -2500,
+            "text": "bizum enviado"
+          },
+          {
+            "date": "2026-10-26",
+            "amount": -65000,
+            "text": "inmobiliaria ejemplo"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -1875,
+            "text": "farmacia ejemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

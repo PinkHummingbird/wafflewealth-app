@@ -1,0 +1,53 @@
+{
+  "bank": "Bankinter",
+  "country": "ES",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "bankinter.xlsx",
+  "layout_sources": [
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/tests/bankinter-import.test.ts",
+    "https://github.com/pcanadas/cuadra-finances/blob/HEAD/src/utils/importParsers.js",
+    "https://github.com/DSDPowerBiTutorials/automacao-dados-financeiros/blob/HEAD/docs/PRODUCT-MANUAL.md",
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/src/lib/bank-detector/fingerprints.ts"
+  ],
+  "layout_confidence": 65,
+  "notes": "Bankinter movements download is .xlsx (no CSV). Above the table: \"MOVIMIENTOS DE LA CUENTA <IBAN>\", \"MOVIMIENTOS\", then the search filters as label/value rows (Concepto, Fecha \"01/06/2026 - 30/06/2026\", Tipo de movimiento, Importe \"Desde 0,00 hasta -\"); header on row 9: Fecha contable | Fecha valor | Descripción | Importe | Saldo | Divisa. Dates TEXT dd/mm/yyyy, signed numeric Importe, running Saldo, Divisa \"EUR\", newest first. When there are pending card movements a second 4-column block (Fecha, Descripción, Importe, Divisa) appears above the main table (pcanadas reports ~19 metadata rows); this file has none. Note the filter rows reuse the words Fecha and Importe.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 283286,
+        "closing": 421862,
+        "lines": [
+          {
+            "date": "2026-06-01",
+            "amount": 321,
+            "text": "liq. propia cta"
+          },
+          {
+            "date": "2026-06-05",
+            "amount": 238000,
+            "text": "empresa ejemplo"
+          },
+          {
+            "date": "2026-06-16",
+            "amount": -4215,
+            "text": "seguros ejemplo"
+          },
+          {
+            "date": "2026-06-22",
+            "amount": -90000,
+            "text": "inmobiliaria ejemplo"
+          },
+          {
+            "date": "2026-06-29",
+            "amount": -5530,
+            "text": "gasolinera ejemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

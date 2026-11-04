@@ -1,0 +1,48 @@
+{
+  "bank": "Alpha Bank",
+  "country": "GR",
+  "product": "current account",
+  "format": "csv",
+  "file": "alpha.csv",
+  "layout_sources": [
+    "https://github.com/lpatouchas/cashflow-report/blob/HEAD/README.md",
+    "https://github.com/lpatouchas/cashflow-report/blob/HEAD/internal/infra/csv/repository.go",
+    "https://github.com/firefly-iii/import-configurations/blob/main/gr/alpha/README.md",
+    "https://github.com/firefly-iii/import-configurations/blob/main/gr/alpha/default.json"
+  ],
+  "layout_confidence": 55,
+  "notes": "Alpha Bank (myAlpha Web) account movements CSV: UTF-8 WITH BOM (cashflow-report: real exports start EF BB BF), \";\" separator and a trailing \";\" on every line, Greek headers: Α/Α;Ημερομηνία;Αιτιολογία;Κατάστημα;Τοκισμός από;Αρ. συναλλαγής;Ποσό;Πρόσημο ποσού;. Text fields are written as Excel formulas =\"…\"; dates dd/mm/yyyy but the value date (Τοκισμός από) d/m/yyyy unpadded; Ποσό is UNSIGNED Greek-format (\"1.550,00\") and the sign is the next column: Χ (debit) or Π (credit); Α/Α numbers the lines from 1 at the newest. Firefly III says the first five lines above the header must be removed; their content is not documented and the five here (account, description, from, to, blank) are placeholders. CRLF line ends assumed. No balance; currency never stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-06-05",
+            "amount": 155000,
+            "text": "ΜΙΣΘΟΔΟΣΙΑ ΠΑΡΑΔΕΙΓΜΑ"
+          },
+          {
+            "date": "2026-06-15",
+            "amount": -60000,
+            "text": "ΕΝΟΙΚΙΟ"
+          },
+          {
+            "date": "2026-06-22",
+            "amount": -41265,
+            "text": "ΠΛΗΡΩΜΗ VISA"
+          },
+          {
+            "date": "2026-06-29",
+            "amount": -3840,
+            "text": "ΣΟΥΠΕΡ ΜΑΡΚΕΤ"
+          }
+        ]
+      }
+    ]
+  }
+}

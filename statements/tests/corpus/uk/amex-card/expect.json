@@ -1,0 +1,59 @@
+{
+  "bank": "American Express UK",
+  "country": "GB",
+  "product": "credit card",
+  "format": "csv",
+  "file": "activity.csv",
+  "layout_sources": [
+    "https://github.com/jameshaworthcs/countinghouse/blob/main/tests/fixtures/amex.csv (UK header: Date,Description,Amount,Extended Details,Appears On Your Statement As,Address,Town/City,Postcode,Country,Reference,Category; DD/MM/YYYY; references in single quotes)",
+    "https://github.com/its-the-vibe/stmt2redis/blob/main/internal/parser/amex.go (same UK header)",
+    "https://github.com/ChrisMott97/budget-tracker/blob/main/sample-data/README.md (Amex UK: spending positive, payments negative, merchant padded to a fixed width before the location)",
+    "https://github.com/keatz1/budget_tracker/pull/1 (every Amex download is named activity.csv; the extended-details export adds Reference and Category)",
+    "https://github.com/jmcameron/amex2qif (Amex CSV variants with Extended Details / Appears On Your Statement As)"
+  ],
+  "layout_confidence": 72,
+  "notes": "activity.csv from the \"extended details\" download: newest first, DD/MM/YYYY, Amount from Amex's side (a charge is positive, a payment or refund negative), multi-line Extended Details in quotes for foreign spend and airline tickets, Reference wrapped in single quotes, Category \"Group-Subgroup\". No balance, no currency column (GBP never stated). For the cardholder every charge is money out, so the expected amounts are the printed ones negated. LF assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-25",
+            "amount": 125000,
+            "text": "payment received"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": -31280,
+            "text": "example airways"
+          },
+          {
+            "date": "2026-09-17",
+            "amount": -3870,
+            "text": "example rail"
+          },
+          {
+            "date": "2026-09-14",
+            "amount": -988,
+            "text": "le petit cafe"
+          },
+          {
+            "date": "2026-09-05",
+            "amount": 1599,
+            "text": "example books"
+          }
+        ]
+      }
+    ]
+  }
+}

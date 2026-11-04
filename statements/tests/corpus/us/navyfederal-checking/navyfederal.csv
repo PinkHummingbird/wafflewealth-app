@@ -1,0 +1,7 @@
+Posting Date,Transaction Date,Amount,Credit Debit Indicator,type,Type Group,Reference,Instructed Currency,Currency Exchange Rate,Instructed Amount,Description,Category,Check Serial Number,Card Ending
+09/29/2026,09/28/2026,15.49,Debit,POS,Card,24692166271100012345678,,,,EXAMPLE STREAMING CO 888-555-0123 CA,Entertainment,,1234
+09/25/2026,09/25/2026,2840.00,Credit,ACH,Deposit,REF0925A1,,,,DEPOSIT - EXAMPLE STUDIO PAYROLL,Paycheck,,
+09/18/2026,09/18/2026,1395.00,Debit,ACH,Payment,REF0918B2,,,,PAID TO - MAPLE STREET PROPERTIES,Rent,,
+09/15/2026,09/14/2026,66.73,Debit,POS,Card,24431066257100098765432,,,,CORNER GROCER SPRINGFIELD IL,Groceries,,1234
+09/09/2026,09/09/2026,120.00,Debit,Check,Check,REF0909C3,,,,CHECK 1042,Checks,1042,
+09/02/2026,09/02/2026,200.00,Credit,Transfer,Transfer,REF0902D4,,,,TRANSFER FROM SAVINGS,Transfer,,

@@ -1,0 +1,58 @@
+{
+  "bank": "Metro Bank",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "Current_Export_Sep_2026_12345678.csv",
+  "layout_sources": [
+    "https://github.com/t43itha/churchcoin-new/blob/main/public/General_Export_Jun_2025_10373247.csv (Metro Bank export, June 2025: Date,Details,Transaction Type,In,Out,Balance; LF; newest first; file name <name>_Export_<Mon>_<YYYY>_<account>.csv)",
+    "https://github.com/charrus/tra-web/blob/main/metro_export.csv (2025 export without the Balance column)",
+    "https://pypi.org/project/metroconv/ (Metro CSV: Date,Details,Transaction Type,In,Out; card purchases \"17 JAN 19 MCDONALDS SOUTHEND ON S GBR\")",
+    "https://gist.github.com/markburns/d4a0368e6400bdc852d0 (the 2014 layout, superseded: title row, Currency and Money Out/Money In columns)"
+  ],
+  "layout_confidence": 68,
+  "notes": "Newest first, DD/MM/YYYY, Details then Transaction Type, money In and Out in separate positive columns, running Balance, two decimals, no thousands mark, no quoting, no currency. Card purchases start with the card date (\"04 SEP 26 ...\"). Some exports (business, or by date range) omit Balance. LF, ASCII. The samples are business accounts; personal is assumed the same.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 98000,
+        "closing": 196241,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-05",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-28",
+            "amount": 2500,
+            "text": "a friend"
+          }
+        ]
+      }
+    ]
+  }
+}

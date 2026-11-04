@@ -1,0 +1,54 @@
+{
+  "bank": "Poste Italiane (BancoPosta)",
+  "country": "IT",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "ListaMovimenti.xlsx",
+  "layout_sources": [
+    "https://github.com/ZeeD/movs-viewer/blob/HEAD/src/movslib/listamovimentixlsx.py",
+    "https://github.com/ZeeD/movs-viewer/blob/HEAD/src/movslib/movs.py",
+    "https://github.com/magobaol/ynab-transformer/blob/HEAD/src/Transformer/Poste.php",
+    "https://github.com/GazzaBombata/portfolio/blob/HEAD/database/seeders/PersonalSetupSeeder.php",
+    "https://github.com/lorenzogiudici5/ofxstatement-bancoposta/blob/HEAD/tests/samples/bancoposta.csv"
+  ],
+  "layout_confidence": 70,
+  "notes": "BancoPosta \"ListaMovimenti.xlsx\" (Excel or PDF from the site; the semicolon CSV of ofxstatement-bancoposta is a 2018 form). Sheet \"ListaMovimenti\"; column A rows 2-10 hold \" da: (gg/mm/aaaa): …\", \" a: …\", \" Tipo(operazioni): …\", \" Conto BancoPosta n.: …\", \" Intestato a: …\", \" Saldo al: …\", \" Saldo contabile: +2.469,50 Euro\", \" Saldo disponibile: …\" (leading spaces as ZeeD writes them back); header on row 12: Data Contabile | Data Valuta | Addebiti (euro) | Accrediti (euro) | Descrizione operazioni; data from row 13. Dates are date cells; debits are POSITIVE numbers in Addebiti, credits in Accrediti. Row 1 and row 5 contents are not documented (placeholder title / blank). Order assumed newest first. Closing = Saldo contabile at \"Saldo al\"; no opening stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": 246950,
+        "lines": [
+          {
+            "date": "2026-08-03",
+            "amount": -5000,
+            "text": "prelievo postamat"
+          },
+          {
+            "date": "2026-08-07",
+            "amount": 161235,
+            "text": "esempio srl"
+          },
+          {
+            "date": "2026-08-14",
+            "amount": -855,
+            "text": "imposta di bollo"
+          },
+          {
+            "date": "2026-08-19",
+            "amount": -70000,
+            "text": "immobiliare esempio"
+          },
+          {
+            "date": "2026-08-28",
+            "amount": -3550,
+            "text": "supermercato esempio"
+          }
+        ]
+      }
+    ]
+  }
+}

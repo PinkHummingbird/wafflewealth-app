@@ -1,0 +1,54 @@
+{
+  "bank": "Santander",
+  "country": "ES",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "santander.xlsx",
+  "layout_sources": [
+    "https://github.com/sergiofdezmunguia/personal-os/blob/HEAD/src/personal_os/finance/importers/santander.py",
+    "https://github.com/sla1k/smoothment/blob/HEAD/src/smoothment/statement/parsers/santander.py",
+    "https://github.com/andreabosia/personal-finance-app/blob/HEAD/backend/ingestion/extraction.py",
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/src/lib/bank-detector/fingerprints.ts",
+    "https://www.bancosantander.es/faqs/particulares/operativa-banca-digital/como-consultar-descargar-movimientos-cuenta"
+  ],
+  "layout_confidence": 70,
+  "notes": "Santander España offers movements only as Excel or PDF (no CSV). The real download is an old binary .xls (BIFF/OLE2, sheet \"Movimientos\"); written here as .xlsx with the same cells. Info block above the table: account name (\"CUENTA ONLINE SANTANDER\") over the IBAN, \"Titular\" over the holder, and on the right \"FECHA\" over the download time and \"Saldo\" over the current balance as text (\"2.345,67 EUR\"); \"Movimientos\" on row 6; header on row 8: FECHA OPERACIÓN | FECHA VALOR | CONCEPTO | IMPORTE EUR | SALDO. Dates are TEXT dd/mm/yyyy, amounts are signed numbers, SALDO is the running balance; newest first. Exact columns of the right-hand info cells (D) are not documented; the header block content follows personal-os. Closing = balance after newest line (also the header Saldo); opening derived from the oldest line.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 146880,
+        "closing": 234567,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -4580,
+            "text": "supermercado ejemplo"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": 185000,
+            "text": "empresa ejemplo"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -6493,
+            "text": "electrica ejemplo"
+          },
+          {
+            "date": "2026-09-25",
+            "amount": -85000,
+            "text": "inmobiliaria ejemplo"
+          },
+          {
+            "date": "2026-09-28",
+            "amount": -1240,
+            "text": "panaderia la espiga"
+          }
+        ]
+      }
+    ]
+  }
+}

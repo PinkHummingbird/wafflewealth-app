@@ -1,0 +1,24 @@
+{
+  "bank": "Chase",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "chase.csv",
+  "layout_sources": ["Chase online banking 'Download account activity' CSV; widely documented in hledger/beancount importer examples"],
+  "layout_confidence": 80,
+  "notes": "Newest first, M/D/YYYY dates, signed Amount, running Balance, a trailing empty column on each row.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "closing": 195480,
+        "lines": [
+          { "date": "2026-09-01", "amount": 200000, "text": "example studio" },
+          { "date": "2026-09-02", "amount": -4520, "text": "corner grocer" }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "bank": "LCL",
+  "country": "FR",
+  "product": "compte de dépôt (current account)",
+  "format": "csv",
+  "file": "operations_04112026.csv",
+  "layout_sources": [
+    "https://statementsheet.com/how-to-convert-lcl-bank-statement-to-excel-csv/ and https://www.lido.app/fr/releve-bancaire-excel (LCL espace client, \"Mes opérations\", \"Exporter\": CSV or OFX, semicolon-separated, comma decimal)"
+  ],
+  "layout_confidence": 30,
+  "notes": "LCL \"Mes opérations\" export to CSV. No source found that shows the file itself; this is the most commonly remembered form and should be checked against a real download: no header row, semicolon-separated, one line per operation: date dd/mm/yyyy, signed amount with a comma decimal and no thousands mark, the means of payment (Carte, Virement, Prélèvement, Chèque), the cheque number, the label, an empty trailing field; newest first; a last line with no date carrying the account balance. Windows-1252 and CRLF assumed. The cheque line has no label, only its number. Closing = the balance on that last line. No currency is written.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": 217272,
+        "lines": [
+          {"date": "2026-10-01", "amount": 226500, "text": "exemple sas"},
+          {"date": "2026-10-05", "amount": -112000, "text": "sci exemple"},
+          {"date": "2026-10-14", "amount": -4500, "text": "1234567"},
+          {"date": "2026-10-23", "amount": -2735, "text": "boulangerie exemp"},
+          {"date": "2026-10-30", "amount": -999, "text": "streaming exemple"}
+        ]
+      }
+    ]
+  }
+}

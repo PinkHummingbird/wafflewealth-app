@@ -1,0 +1,33 @@
+{
+  "bank": "American Express",
+  "country": "US",
+  "product": "credit card",
+  "format": "csv",
+  "file": "activity.csv",
+  "layout_sources": [
+    "https://pkg.go.dev/git.sr.ht/~mendelmaleh/pfin/parser/amex (Date, Description, Card Member, Account #, Amount, then the additional-details columns; MM/DD/YYYY; newest first)",
+    "https://github.com/keatz1/budget_tracker/blob/main/tests/fixtures/csv/amex.csv (shaped on a real export: padded descriptions, Account # like -21005)",
+    "https://lists.gnucash.org/pipermail/gnucash-user/2025-August/117158.html (one Amount column, charges positive, payments negative)"
+  ],
+  "layout_confidence": 75,
+  "notes": "Date,Description,Card Member,Account #,Amount (ticking \"include all additional transaction details\" adds Extended Details, Appears On Your Statement As, Address, City/State, Zip Code, Country, Reference, Category, with line breaks inside quoted cells). Charges positive, payments and credits negative, as Amex sees the account. Descriptions unquoted and padded with runs of spaces; Account # is a minus sign and the last five digits. Newest first, MM/DD/YYYY, no thousands separator, LF assumed. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-28", "amount": -6418, "text": "corner grocer"},
+          {"date": "2026-09-23", "amount": -126840, "text": "skyline airways"},
+          {"date": "2026-09-20", "amount": 150000, "text": "autopay payment - thank you"},
+          {"date": "2026-09-16", "amount": -2275, "text": "blue door cafe"},
+          {"date": "2026-09-12", "amount": 5499, "text": "gadgethaus"},
+          {"date": "2026-09-05", "amount": -1549, "text": "example streaming"}
+        ]
+      }
+    ]
+  }
+}

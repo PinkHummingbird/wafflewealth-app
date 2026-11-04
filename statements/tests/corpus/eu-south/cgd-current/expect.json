@@ -1,0 +1,54 @@
+{
+  "bank": "Caixa Geral de Depósitos",
+  "country": "PT",
+  "product": "current account",
+  "format": "csv",
+  "file": "cgd.csv",
+  "layout_sources": [
+    "https://github.com/devgabrielpanta/disklead-frontend/blob/HEAD/.sample/extrato_CGD_2026-03.csv",
+    "https://github.com/naps62/bills/blob/HEAD/test/fixtures/cgd.csv",
+    "https://github.com/FACorreiaa/echo-api/blob/HEAD/internal/domain/import/sniffer/sniffer_test.go",
+    "https://github.com/tiagosf13/Project-ECO-PostgreSQL/blob/HEAD/handlers/processing_handlers.py",
+    "https://github.com/StereoPT/coin-guard/blob/HEAD/packages/parser/src/types.ts"
+  ],
+  "layout_confidence": 65,
+  "notes": "CGD Caixadirecta \"Consultar saldos e movimentos à ordem\" CSV, \";\" separated with the odd \" ;\" spacing (a space before most separators) and a trailing \";\" on header and data lines. Rows above: title with the export date, blank, \"Conta ;<number> - EUR - Conta Extracto \", \"Data de início ;…\", \"Data de fim ;…\", blank; header: Data mov. ;Data valor ;Descrição ;Débito ;Crédito ;Saldo contabilístico ;Saldo disponível ;Categoria ;. Dates dd-mm-yyyy, debits and credits POSITIVE in separate columns, decimal comma, two running balances, newest first. The 2026 sample shows no thousands mark (\"5269,59\") and UTF-8, the 2016 fixture shows \"1.000,00\" and CRLF; this file uses the 2026 number form with CRLF. Currency from the \"Conta\" line.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 209450,
+        "closing": 271685,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": 132000,
+            "text": "vencimento empresa"
+          },
+          {
+            "date": "2026-10-09",
+            "amount": -2000,
+            "text": "trf mbway"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -2345,
+            "text": "aguas exemplo"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": -60000,
+            "text": "senhorio exemplo"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -5420,
+            "text": "supermercado exemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

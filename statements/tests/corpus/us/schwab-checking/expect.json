@@ -1,0 +1,33 @@
+{
+  "bank": "Charles Schwab Bank",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "XXXXXX345678_Checking_Transactions_20261001-101530.csv",
+  "layout_sources": [
+    "https://github.com/redstreet/beancount_reds_importers/tree/main/beancount_reds_importers/importers/schwab/tests/schwab_csv_checking (2022 export: this header, every field quoted, \"$\" amounts)",
+    "https://github.com/reubano/csv2ofx/blob/master/data/test/schwab-checking.csv (2022: \"$1,036.47\", Status Posted, newest first) and csv2ofx/mappings/schwabchecking.py (keeps Status == Posted)",
+    "https://raw.githubusercontent.com/bank2ynab/bank2ynab/master/bank2ynab.conf ([US Schwab Checking]: the older export with three rows above the table and Withdrawal (-)/Deposit (+) headings)"
+  ],
+  "layout_confidence": 80,
+  "notes": "\"Date\",\"Status\",\"Type\",\"CheckNumber\",\"Description\",\"Withdrawal\",\"Deposit\",\"RunningBalance\", every field quoted, amounts with \"$\" and comma thousands separators, money out under Withdrawal and in under Deposit, a running balance. Pending rows come first with no running balance; they are not posted and are not lines. Newest first, MM/DD/YYYY, LF. Opening is the oldest balance less its amount; closing the newest posted balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 421266,
+        "closing": 549601,
+        "lines": [
+          {"date": "2026-09-30", "amount": 152, "text": "interest paid"},
+          {"date": "2026-09-30", "amount": 300, "text": "atm fee rebate"},
+          {"date": "2026-09-21", "amount": -12000, "text": "check paid #1042"},
+          {"date": "2026-09-14", "amount": -8117, "text": "corner grocer"},
+          {"date": "2026-09-04", "amount": -150000, "text": "maple street properties"},
+          {"date": "2026-09-01", "amount": 298000, "text": "example studio payroll"}
+        ]
+      }
+    ]
+  }
+}

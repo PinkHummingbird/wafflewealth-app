@@ -1,0 +1,31 @@
+{
+  "bank": "Crédit Agricole",
+  "country": "FR",
+  "product": "compte de dépôt (current account)",
+  "format": "csv",
+  "file": "CA20261104_101530.csv",
+  "layout_sources": [
+    "https://openflyers.com/fr/doc/of4/Mod%C3%A8le-d'import-de-relev%C3%A9-bancaire-CSV-Cr%C3%A9dit-Agricole-avec-point-virgule (ISO-8859-15, semicolon, a header block that starts \"Téléchargement du ...\" with the holder, a \"Solde au ...\" line and the period, ended by the line that starts \"Date;\"; columns Date, Libellé, Débit Euros, Crédit Euros, sometimes Date valeur)",
+    "https://wiki.gestan.fr/doku.php?id=wiki:extensv15:cyberbanque (Crédit Agricole 2020 format: Date;Libellé;Débit euros;Crédit euros)"
+  ],
+  "layout_confidence": 45,
+  "notes": "Crédit Agricole en Ligne \"Télécharger vos opérations\" CSV: a preamble (download date, holder, account, \"Solde au\" with the balance, the period), a blank line, then \"Date;Libellé;Débit euros;Crédit euros;\" with a trailing semicolon. Debits and credits in separate columns as positive figures with a comma decimal; the label is a quoted field spread over two lines padded with spaces. ISO-8859-15 (so the € after the balance is byte 0xA4, °/é as in Latin-1), CRLF, newest first. Regional banks (caisses régionales) differ in details; the exact preamble wording, the multi-line labels, the absence of a thousands mark and the file name (CAyyyymmdd_hhmmss.csv) are from memory and not confirmed. The \"Solde au 03/11/2026\" balance is the closing: the period ends that day.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": 178798,
+        "lines": [
+          {"date": "2026-10-01", "amount": 219500, "text": "exemple sas salaire"},
+          {"date": "2026-10-03", "amount": -108000, "text": "sci exemple loyer"},
+          {"date": "2026-10-15", "amount": -4630, "text": "supermarche exemp"},
+          {"date": "2026-10-24", "amount": -1290, "text": "cafe exemple"},
+          {"date": "2026-10-31", "amount": 3000, "text": "camille exemple"}
+        ]
+      }
+    ]
+  }
+}

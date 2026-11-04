@@ -1,0 +1,46 @@
+{
+  "bank": "Eurobank",
+  "country": "GR",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "eurobank.xlsx",
+  "layout_sources": [
+    "https://github.com/spyridwngeorgiou/la-budgeting/blob/HEAD/backoffice/src/lib/ingest/profiles/presets.ts",
+    "https://github.com/panospao7/Cost-agregator/blob/HEAD/docs/releases/statement-import/statement-import-investigation.md"
+  ],
+  "layout_confidence": 20,
+  "notes": "No public source documents Eurobank e-Banking's movements export. la-budgeting carries an explicitly UNVERIFIED \"Eurobank (XLSX)\" preset (Ημερομηνία / Ημερομηνία Αξίας / Περιγραφή / Ποσό / Υπόλοιπο, signed amounts, newest first); Eurobank's card statement prints ΗΜ/ΝΙΑ ΣΥΝΑΛΛΑΓΗΣ, ΗΜ/ΝΙΑ ΑΞΙΑΣ, ΠΕΡΙΓΡΑΦΗ, ΠΟΣΟ. This file is a best guess built from those: .xlsx, three title rows, header Ημ/νία Συναλλαγής | Ημ/νία Αξίας | Περιγραφή | Ποσό | Υπόλοιπο, date cells, signed amounts, running balance, newest first. Treat everything here as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 128650,
+        "closing": 189325,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 128560,
+            "text": "ΜΙΣΘΟΔΟΣΙΑ"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -55000,
+            "text": "ΕΝΟΙΚΙΟ ΣΕΠΤΕΜΒΡΙΟΥ"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": -8215,
+            "text": "ΛΟΓΑΡΙΑΣΜΟΥ ΕΝΕΡΓΕΙΑΣ"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": -4670,
+            "text": "ΣΟΥΠΕΡ ΜΑΡΚΕΤ"
+          }
+        ]
+      }
+    ]
+  }
+}

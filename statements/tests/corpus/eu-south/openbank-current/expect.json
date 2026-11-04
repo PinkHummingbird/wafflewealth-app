@@ -1,0 +1,53 @@
+{
+  "bank": "Openbank",
+  "country": "ES",
+  "product": "current account",
+  "format": "xls",
+  "file": "openbank.xls",
+  "layout_sources": [
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/src/lib/importers/openbank.ts",
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/tests/openbank-import.test.ts",
+    "https://github.com/ErmoGarcia/expense_toolkit/blob/HEAD/app/services/bank_parsers.py",
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/src/lib/bank-detector/html-markers.ts"
+  ],
+  "layout_confidence": 45,
+  "notes": "Openbank's Excel download is not a workbook: it is an HTML table saved with a .xls name (both importers read it as HTML), encoded ISO-8859-1 with no charset declared (read as UTF-8 the header shows \"Fecha Operaci�n\"). Header: Fecha Operación | Fecha Valor | Concepto | Importe | Saldo; dates dd/mm/yyyy; amounts and balance are TEXT with decimal comma and dot thousands (\"-1.600,00\"); newest first (assumed). The few rows above the header (an \"Extracto\" title, account, period) are only loosely documented: their exact wording is a guess. Currency never stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 293033,
+        "closing": 345678,
+        "lines": [
+          {
+            "date": "2026-05-01",
+            "amount": -1500,
+            "text": "amigo ejemplo"
+          },
+          {
+            "date": "2026-05-04",
+            "amount": 221035,
+            "text": "empresa ejemplo"
+          },
+          {
+            "date": "2026-05-12",
+            "amount": -4500,
+            "text": "telefonía ejemplo"
+          },
+          {
+            "date": "2026-05-18",
+            "amount": -160000,
+            "text": "comunidad propietarios"
+          },
+          {
+            "date": "2026-05-27",
+            "amount": -2390,
+            "text": "librería ejemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

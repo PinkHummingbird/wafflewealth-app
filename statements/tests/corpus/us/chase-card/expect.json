@@ -1,0 +1,35 @@
+{
+  "bank": "Chase",
+  "country": "US",
+  "product": "credit card",
+  "format": "csv",
+  "file": "Chase1234_Activity20260901_20260930_20261001.CSV",
+  "layout_sources": [
+    "https://github.com/mtlynch/beancount-chase (beancount_chase/credit_test.py: 2026 export header without the old leading Card column, and the 2021 one with it)",
+    "https://github.com/keatz1/budget_tracker (PLAN.md: profile built from the owner's real Chase card export; Type is Sale, Payment or Return)",
+    "https://forum.manager.io/t/credit-card-download-transaction-vs-posting-date-reconcile-problem/58134 (user download in this column order)",
+    "https://raw.githubusercontent.com/bank2ynab/bank2ynab/master/bank2ynab.conf ([US Chase Credit Card 2019]: the earlier Card,Transaction Date,... form)",
+    "https://pkg.go.dev/git.sr.ht/~mendelmaleh/pfin/parser/chase (CSV struct: Transaction Date, Post Date, Description, Category, Type, Amount, Memo, MM/DD/YYYY)"
+  ],
+  "layout_confidence": 85,
+  "notes": "Transaction Date,Post Date,Description,Category,Type,Amount,Memo. Newest first, MM/DD/YYYY, unquoted fields, every row ends with an empty Memo. The amount is signed from the cardholder's side as Chase prints it: a Sale is negative, a Payment or Return positive; no thousands separator. Older exports (2019-2024) put a Card column (last four digits) first. Each line is dated by its Transaction Date (the purchase day). CRLF line ends as in Chase's checking export (not verified for the card file). No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-28", "amount": -8621, "text": "corner grocer"},
+          {"date": "2026-09-24", "amount": -124060, "text": "skyline airways"},
+          {"date": "2026-09-19", "amount": 150000, "text": "payment thank you"},
+          {"date": "2026-09-15", "amount": -1875, "text": "blue door cafe"},
+          {"date": "2026-09-11", "amount": 4299, "text": "gadgethaus"},
+          {"date": "2026-09-04", "amount": -1549, "text": "example streaming"}
+        ]
+      }
+    ]
+  }
+}

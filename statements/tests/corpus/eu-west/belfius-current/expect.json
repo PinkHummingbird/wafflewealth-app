@@ -1,0 +1,32 @@
+{
+  "bank": "Belfius",
+  "country": "BE",
+  "product": "zichtrekening (current account)",
+  "format": "csv",
+  "file": "BE12063012345678_2026-11-04.csv",
+  "layout_sources": [
+    "https://github.com/wimverstuyf/php-belgianbankstatement-parser/tree/master/tests/Samples (sample6_belfius.csv and sample7_belfius.csv: the search-criteria rows, \"Laatste saldo;1.617,97 EUR\", the \";\" row, the 15-column header; CsvBelfiusParser.php)",
+    "https://github.com/renardeau/ofxstatement-be-belfius (reads ISO-8859-1 by default; skips the query header up to the line starting with \";\" and then the column-name line)",
+    "https://www.belfius.be/webapps/nl/selfcare/belfius/belfiusdirectnet/gebruik/Hoe-kan-ik-mijn-historiek-in-Belfius-Direct-Net-exporteren-naar-een-CSV-bestand-(Excel)"
+  ],
+  "layout_confidence": 70,
+  "notes": "Belfius Direct Net / Belfius Mobile history export to CSV (Dutch): eleven \"criterion;value\" rows (only the start date filled here), \"Laatste saldo;2.304,05 EUR\" with a dot thousands mark and the currency after it, its date and time, a lone \";\" row, then the header and the lines. Semicolon-separated, unquoted, dd/mm/yyyy, signed Bedrag with a comma decimal and no thousands mark, Devies EUR, oldest first as in the sample. ISO-8859-1 (a café name carries 0xC9). CRLF assumed (one sample has CRLF, another shows the doubled line breaks a CRLF file gets when re-saved). File name invented. Closing = \"Laatste saldo\": no end date is set, so the list runs up to the moment that balance was taken. No opening is printed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": 230405,
+        "lines": [
+          {"date": "2026-10-01", "amount": 248000, "text": "voorbeeld bvba"},
+          {"date": "2026-10-02", "amount": -115000, "text": "immo voorbeeld"},
+          {"date": "2026-10-15", "amount": -4237, "text": "supermarkt voorbeeld"},
+          {"date": "2026-10-22", "amount": -1890, "text": "café 't hoekje"},
+          {"date": "2026-10-30", "amount": 2000, "text": "j peeters"}
+        ]
+      }
+    ]
+  }
+}

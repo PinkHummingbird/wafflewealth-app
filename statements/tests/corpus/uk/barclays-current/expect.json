@@ -1,0 +1,59 @@
+{
+  "bank": "Barclays",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "barclays.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/gb/barclays/default.json (comma, header row, d/m/Y; Number, Date, Account, Amount, Subcategory, Memo)",
+    "https://github.com/kaartiik/finance-tracker/tree/main/uploads (Barclays exports uploaded to an app, Dec 2024 - Jan 2025: LF, leading tab on Number from the 2nd row, memo = 22-char payee + TAB + reference + TAB, trailing tab-only line)",
+    "https://github.com/awhitwam/whit-lend/blob/main/csv%20examples/bank%20csv/barclays.csv (2024 export re-saved by a tool: same Subcategory words, memo tabs, unquoted comma in a memo)",
+    "https://github.com/Breakthru/splitbills/blob/master/finance/barclays.py (newest first: prints in reverse; reads latin_1)",
+    "https://github.com/alunwcom-products/moany/blob/master/src/main/java/com/alunw/moany/model/BarclaysCsvStatementV1.java (header line; memo may contain commas)"
+  ],
+  "layout_confidence": 80,
+  "notes": "Newest first, DD/MM/YYYY, one signed Amount with two decimals and no thousands mark, no balance column, no currency named. Account is \"sort-code account-number\". Number is 0 except a direct debit reference. Memo is the payee padded to 22 characters (then any location), a TAB, the reference/type code (BCC card, CPM contactless, BDC, DDR, BGC, FT), and a trailing TAB; that trailing tab makes every row after the first start with a TAB in Number, and the file ends with a line holding a single TAB. Memos are not quoted, so a payee with a comma (\"EXAMPLE CLOUD, INC.\") spills into a 7th field. LF line endings as seen in the 2024-25 exports (not certain: could have been normalised). ASCII.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-29",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-25",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-17",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-14",
+            "amount": -999,
+            "text": "example cloud"
+          },
+          {
+            "date": "2026-09-08",
+            "amount": -420,
+            "text": "little bean cafe"
+          }
+        ]
+      }
+    ]
+  }
+}

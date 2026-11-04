@@ -1,0 +1,33 @@
+{
+  "bank": "Ally Bank",
+  "country": "US",
+  "product": "spending (checking) account",
+  "format": "csv",
+  "file": "transactions.csv",
+  "layout_sources": [
+    "https://github.com/YoungCatChen/bank-csv-parser/blob/master/csv-examples/ally.csv (a real 2016 export, amounts scrambled: \"Date, Time, Amount, Type, Description\" with spaces only in the header, LF, newest first, a blank last line)",
+    "https://tiller.com/export-ally-bank-transactions/ (Amount negative for withdrawals)",
+    "https://beancount.io/tools/csv-to-beancount/ally (a space after every comma in the header; ISO dates, time in its own column)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Header \"Date, Time, Amount, Type, Description\" with a space after each comma; rows without. ISO dates, the clock time in its own column, Amount signed (withdrawals negative), Type Deposit or Withdrawal, no quoting (the 2016 export left commas inside descriptions unquoted), no thousands separator. Newest first, LF, a blank line at the end. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-30", "amount": 483, "text": "interest paid"},
+          {"date": "2026-09-24", "amount": -125000, "text": "internet transfer to online savings"},
+          {"date": "2026-09-18", "amount": 238000, "text": "example studio payroll"},
+          {"date": "2026-09-15", "amount": -7240, "text": "corner grocer"},
+          {"date": "2026-09-08", "amount": -51707, "text": "maple auto loan"},
+          {"date": "2026-09-02", "amount": -1549, "text": "example streaming"}
+        ]
+      }
+    ]
+  }
+}

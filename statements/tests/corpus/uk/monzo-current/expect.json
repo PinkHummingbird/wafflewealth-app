@@ -1,0 +1,59 @@
+{
+  "bank": "Monzo",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "Monzo Data Export - CSV (Thursday, 1 October 2026).csv",
+  "layout_sources": [
+    "https://github.com/Narayana221/FinanceApp/blob/main/Monzo%20Data%20Export%20-%20CSV%20(Monday,%205%20January%202026).csv (2026 export: 18 columns, file name, UTF-8 emoji and curly apostrophes, LF, oldest first)",
+    "https://github.com/cuginoAle/freeagent_csv_parser (2022 export, same 18 columns)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/gb/monzo/default.json (18 columns, d/m/Y)",
+    "https://github.com/hledgerorg/hledger/blob/master/examples/csv/banking/monzo.csv.rules (header; a later variant adds Balance, Balance currency)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf ([UK Monzo checking])"
+  ],
+  "layout_confidence": 88,
+  "notes": "Oldest first, DD/MM/YYYY with a separate Time column, signed Amount in the account currency (Currency GBP) and the card's own Local amount / Local currency for spending abroad (EUR here), Money Out written negative and Money In positive, no balance. UTF-8 without a BOM (emoji, é, curly apostrophe), LF, cells unquoted.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "GBP",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-12",
+            "amount": -861,
+            "text": "petit caf"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-27",
+            "amount": -420,
+            "text": "bakery"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "bank": "BoursoBank (Boursorama)",
+  "country": "FR",
+  "product": "compte courant (current account)",
+  "format": "csv",
+  "file": "export-operations-04-11-2026_10-15-30.csv",
+  "layout_sources": [
+    "https://github.com/ThibaultLanternier/bank-data-parser/pull/8 and issue #5 (October 2026: \"support new boursobank csv export format\" - French headers \"Date Opération\", \"Date Valeur\", Libellé, \"Libellé Suggéré\", Catégorie, \"Catégorie Parente\", Solde, Commentaire, \"Numéro Compte\", \"Libellé Compte\", Solde, Pointage; the first Solde is the amount, the second the balance; the tests show the rows, read as utf-8-sig)",
+    "The same repository's older format (to mid-2026): dateOp;dateVal;label;category;categoryParent;supplierFound;amount;comment;accountNum;accountLabel;accountbalance, ISO dates, \"-1 104,95\", balance \"266.19\"",
+    "https://github.com/reubano/csv2ofx/blob/master/csv2ofx/mappings/boursorama.py (2020: semicolon, header, amount with spaces removed and comma swapped, accountbalance)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/fr/boursorama/default.json"
+  ],
+  "layout_confidence": 65,
+  "notes": "boursobank.com account \"Exporter en format CSV\", the layout from October 2026: UTF-8 with BOM, semicolon-separated, header cells quoted only when they hold a space, text values quoted, ISO dates, the amount column headed \"Solde\" (sic) with a space as the thousands mark and a comma decimal (\"-1 140,00\"), the account balance in a second \"Solde\" column with a point decimal (\"1763.61\"), Pointage Non/Oui. Newest first. LF line ends assumed; whether the thousands space is a plain or a no-break space is not confirmed (plain here). No currency is written. Closing = the newest line's balance; opening = the oldest line's balance minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 64020,
+        "closing": 176361,
+        "lines": [
+          {"date": "2026-10-01", "amount": 231000, "text": "exemple sas"},
+          {"date": "2026-10-02", "amount": -114000, "text": "sci exemple"},
+          {"date": "2026-10-13", "amount": -2160, "text": "boulangerie exemp"},
+          {"date": "2026-10-20", "amount": -6499, "text": "librairie exemple"},
+          {"date": "2026-10-28", "amount": 4000, "text": "camille exemple"}
+        ]
+      }
+    ]
+  }
+}

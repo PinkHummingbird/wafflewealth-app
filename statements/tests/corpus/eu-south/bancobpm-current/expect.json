@@ -1,0 +1,55 @@
+{
+  "bank": "Banco BPM",
+  "country": "IT",
+  "product": "current account",
+  "format": "xls",
+  "file": "movimentiConto.xls",
+  "layout_sources": [
+    "https://github.com/ronzim/wheresmymoney/blob/HEAD/src/wheresmymoney/parsers.py",
+    "https://github.com/ronzim/wheresmymoney/blob/HEAD/tests/test_parsers.py",
+    "https://github.com/ronzim/wheresmymoney/blob/HEAD/README.md",
+    "https://github.com/danielededo/cashato/blob/main/demo/other_banks/webank_movimentiConto.xls",
+    "https://github.com/MGrin/scani-oss/blob/HEAD/packages/business/file-import/tests/fixtures/README.md",
+    "https://github.com/Alessandro-Sal/argus-risk-analytics/blob/HEAD/core/wealth/universal_bank_parser.py"
+  ],
+  "layout_confidence": 45,
+  "notes": "Banco BPM / Webank (YouWeb) \"movimentiConto.xls\": an HTML table named .xls, not a workbook. The table has id=\"CCMO\" and its first row is the header Data Contabile | Data Valuta | Importo | Divisa | Causale / Descrizione | Canale (some exports add \"Stato \" before Canale); dates dd/mm/yyyy, Importo TEXT signed with decimal comma and dot thousands (\"-1.050,00\"), Divisa \"EUR\", causale and description joined with \" - \" and lower case, empty cells hold &nbsp;; newest first. Sources are importers of a joint BPM account and Webank samples; the encoding (UTF-8 here) is not documented. No balance column.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-02-03",
+            "amount": -10000,
+            "text": "atm esempio"
+          },
+          {
+            "date": "2026-02-10",
+            "amount": 198560,
+            "text": "esempio s.r.l."
+          },
+          {
+            "date": "2026-02-13",
+            "amount": -3815,
+            "text": "energia esempio"
+          },
+          {
+            "date": "2026-02-20",
+            "amount": -105000,
+            "text": "immobiliare esempio"
+          },
+          {
+            "date": "2026-02-26",
+            "amount": -2780,
+            "text": "farmacia esempio"
+          }
+        ]
+      }
+    ]
+  }
+}

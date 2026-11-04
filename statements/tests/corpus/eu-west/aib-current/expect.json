@@ -1,0 +1,33 @@
+{
+  "bank": "AIB",
+  "country": "IE",
+  "product": "current account",
+  "format": "csv",
+  "file": "Transaction_Export_04.11.2026_10.15.csv",
+  "layout_sources": [
+    "https://github.com/andyregan/aib2ynab/blob/main/tests/test_files/transactions.csv (2024: the header with its spaces after the first commas, quoted values, unquoted empty cells and currency, Debit/Credit Amount, Balance, Transaction Type, Local Currency Amount)",
+    "https://github.com/yacoob/beancount-aib (same header; dd/mm/yyyy; last row is the newest and carries the closing balance; commas removed from amounts before parsing)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [IE AIB Ireland] (file name Transaction_Export_dd.mm.yyyy_hh.mm.csv)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/ie/aib/aib.json"
+  ],
+  "layout_confidence": 75,
+  "notes": "AIB Internet Banking \"Export transactions\" CSV for a current account: header \"Posted Account, Posted Transactions Date, Description1, Description2, Description3, Debit Amount, Credit Amount,Balance,Posted Currency,Transaction Type,Local Currency Amount,Local Currency\" (a space after the first six commas only). Values double-quoted except empty cells and the currency; dd/mm/yyyy; debits and credits as positive figures in their own columns with a point decimal (a comma thousands mark on large amounts is assumed from the importer that strips it), Balance after each line without a thousands mark, Transaction Type Debit/Credit/Direct Debit. Oldest first. LF and UTF-8 (ASCII content) assumed. Opening worked back from the first line.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 145066,
+        "closing": 319368,
+        "lines": [
+          {"date": "2026-10-01", "amount": 312000, "text": "example tech ltd"},
+          {"date": "2026-10-02", "amount": -135000, "text": "example lettings"},
+          {"date": "2026-10-13", "amount": -4218, "text": "corner grocer"},
+          {"date": "2026-10-20", "amount": -980, "text": "example cafe"},
+          {"date": "2026-10-29", "amount": 2500, "text": "a example"}
+        ]
+      }
+    ]
+  }
+}

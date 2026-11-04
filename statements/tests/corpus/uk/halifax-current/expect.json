@@ -1,0 +1,57 @@
+{
+  "bank": "Halifax",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "halifax.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/gb/halifax/default.json (same 9 columns as Lloyds, d/m/Y, header row)",
+    "https://github.com/BWeesy/gubbins/blob/main/statementflow/profiles/halifax.yaml (Lloyds Banking Group, same export layout as Lloyds; newest first)",
+    "https://github.com/Metasaura/ofxstatement-lloyds/blob/main/tests/sample-statement.csv (the shared Lloyds Banking Group row shape)"
+  ],
+  "layout_confidence": 75,
+  "notes": "Lloyds Banking Group layout: newest first, DD/MM/YYYY, header with a trailing comma, sort code with a leading apostrophe, Debit Amount / Credit Amount positive, running Balance, no thousands mark, no currency. Type codes DD, DEB, CPT (cash), BGC, SO, FPI. LF line endings assumed as for Lloyds. ASCII.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 35620,
+        "closing": 133077,
+        "lines": [
+          {
+            "date": "2026-08-03",
+            "amount": -1800,
+            "text": "example mobile"
+          },
+          {
+            "date": "2026-08-07",
+            "amount": -3785,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-08-14",
+            "amount": -2000,
+            "text": "headrow"
+          },
+          {
+            "date": "2026-08-21",
+            "amount": 197542,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-08-24",
+            "amount": -95000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-08-28",
+            "amount": 2500,
+            "text": "a friend"
+          }
+        ]
+      }
+    ]
+  }
+}

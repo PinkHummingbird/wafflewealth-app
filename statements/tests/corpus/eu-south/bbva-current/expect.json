@@ -1,0 +1,54 @@
+{
+  "bank": "BBVA",
+  "country": "ES",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "bbva.xlsx",
+  "layout_sources": [
+    "https://github.com/3v1n0/ofxstatement-bbva/blob/HEAD/src/ofxstatement/plugins/bbva.py",
+    "https://github.com/sla1k/smoothment/blob/HEAD/src/smoothment/statement/parsers/bbva.py",
+    "https://github.com/sla1k/smoothment/blob/HEAD/tests/test_parse_bbva.py",
+    "https://github.com/josuegbl/personalfin/blob/HEAD/backend/app/services/sync/bbva.py",
+    "https://github.com/nicoten/timey/blob/HEAD/src-tauri/src/import.rs"
+  ],
+  "layout_confidence": 80,
+  "notes": "BBVA \"Últimos movimientos\" .xlsx, sheet \"Informe BBVA\". Title block in column D (row 2 \"Últimos movimientos\", row 3 report date), header on row 5 starting in column B (column A empty): F.Valor | Fecha | Concepto | Movimiento | Importe | Divisa | Disponible | Divisa | Observaciones (two columns both called Divisa). Dates are TEXT dd/mm/yyyy, Importe is a signed number, Disponible the running balance; newest first. Row 3 wording is from one source (timey). Closing = Disponible after the newest line; opening derived.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 160065,
+        "closing": 291430,
+        "lines": [
+          {
+            "date": "2026-08-01",
+            "amount": -6000,
+            "text": "retirada de efectivo"
+          },
+          {
+            "date": "2026-08-03",
+            "amount": 215000,
+            "text": "transferencia recibida"
+          },
+          {
+            "date": "2026-08-14",
+            "amount": -3990,
+            "text": "telefonía ejemplo"
+          },
+          {
+            "date": "2026-08-21",
+            "amount": -70000,
+            "text": "transferencia realizada"
+          },
+          {
+            "date": "2026-08-27",
+            "amount": -3645,
+            "text": "mercado central ejemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

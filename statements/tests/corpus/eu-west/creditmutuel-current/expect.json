@@ -1,0 +1,31 @@
+{
+  "bank": "Crédit Mutuel",
+  "country": "FR",
+  "product": "compte courant (current account)",
+  "format": "csv",
+  "file": "export_cm_20261104.csv",
+  "layout_sources": [
+    "https://openflyers.com/fr/doc/of4/Mod%C3%A8le-d'import-de-relev%C3%A9-bancaire-CSV-Cr%C3%A9dit-Mutuel-avec-point-virgule (header Date;Date de valeur;Débit;Crédit;Libellé;Solde; ISO-8859-15; one header line, no footer, single-line labels; the Débit column holds the negative amount, e.g. -10,84)",
+    "https://wiki.gestan.fr/doku.php?id=wiki:extensv15:cyberbanque (Crédit Mutuel variant headed \"Date d'opération;Date de valeur;Débit;Crédit;Libellé;Solde\")"
+  ],
+  "layout_confidence": 55,
+  "notes": "Crédit Mutuel (and CIC on the same platform) \"Télécharger\" CSV: one header row, semicolon-separated, unquoted, dd/mm/yyyy operation and value dates, debits as negative figures in \"Débit\" and credits positive in \"Crédit\" (comma decimal), the label, and \"Solde\" the balance after the line. ISO-8859-15 (é in the header), CRLF assumed, oldest first assumed, no thousands mark assumed. No currency is written. Closing = the last line's balance; opening = the first line's balance minus its amount. File name invented.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 128873,
+        "closing": 218205,
+        "lines": [
+          {"date": "2026-10-01", "amount": 207500, "text": "exemple sarl"},
+          {"date": "2026-10-03", "amount": -113500, "text": "sci exemple"},
+          {"date": "2026-10-12", "amount": -5248, "text": "supermarche ex"},
+          {"date": "2026-10-19", "amount": -1420, "text": "cafe exemple"},
+          {"date": "2026-10-27", "amount": 2000, "text": "camille exemple"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+"Date","Status","Type","CheckNumber","Description","Withdrawal","Deposit","RunningBalance"
+"10/01/2026","Pending","VISA","","BLUE DOOR CAFE SPRINGFIELD IL","$12.50","",""
+"09/30/2026","Posted","INTADJUST","","Interest Paid","","$1.52","$5,496.01"
+"09/30/2026","Posted","ATMREBATE","","ATM Fee Rebate","","$3.00","$5,494.49"
+"09/21/2026","Posted","CHECK","1042","Check Paid #1042","$120.00","","$5,491.49"
+"09/14/2026","Posted","VISA","","CORNER GROCER SPRINGFIELD IL","$81.17","","$5,611.49"
+"09/04/2026","Posted","ACH","","MAPLE STREET PROPERTIES RENT","$1,500.00","","$5,692.66"
+"09/01/2026","Posted","ACH","","EXAMPLE STUDIO PAYROLL","","$2,980.00","$7,192.66"

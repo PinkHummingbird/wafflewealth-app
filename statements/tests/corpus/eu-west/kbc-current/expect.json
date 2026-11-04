@@ -1,0 +1,33 @@
+{
+  "bank": "KBC",
+  "country": "BE",
+  "product": "zichtrekening (current account)",
+  "format": "csv",
+  "file": "export_BE68539007547034_20261104_1015.csv",
+  "layout_sources": [
+    "https://github.com/wimverstuyf/php-belgianbankstatement-parser/blob/master/tests/Samples/sample4_kbc.csv (the 18-column header word for word; padded Afschriftnummer, blank credit/debet cells as 14 spaces, newest first)",
+    "https://github.com/plenaerts/ofxstatement-be-kbc (18 fields; first data line is the most recent and carries the end balance)",
+    "https://github.com/matthiasvalvekens/kbc-gnucash-import (semicolon; Datum dd/mm/yyyy; Bedrag parsed by swapping the comma for a point, so no thousands mark)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [BE KBC checking] (file name export_<IBAN>_<yyyymmdd>_<hhmm>.csv)"
+  ],
+  "layout_confidence": 70,
+  "notes": "KBC Touch CSV export: one header row, semicolon-separated, unquoted, dates dd/mm/yyyy, signed Bedrag with a comma decimal and no thousands mark, Saldo the balance after each line, newest first. The credit/debet columns repeat the amount on the matching side and hold 14 spaces on the other (whether debet is printed signed is not confirmed; here it repeats the signed Bedrag). Empty structured-message cells are 35 spaces. LF line ends as in the sample; encoding unconfirmed (content kept ASCII). Closing = the newest line's Saldo; opening = the oldest line's Saldo minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 121055,
+        "closing": 269350,
+        "lines": [
+          {"date": "2026-10-01", "amount": 265000, "text": "voorbeeld nv"},
+          {"date": "2026-10-02", "amount": -105000, "text": "immo voorbeeld"},
+          {"date": "2026-10-14", "amount": -3785, "text": "supermarkt voorbeeld"},
+          {"date": "2026-10-21", "amount": -6420, "text": "energie voorbeeld"},
+          {"date": "2026-10-29", "amount": -1500, "text": "j peeters"}
+        ]
+      }
+    ]
+  }
+}

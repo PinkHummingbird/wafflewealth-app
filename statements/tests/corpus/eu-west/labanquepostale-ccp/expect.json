@@ -1,0 +1,31 @@
+{
+  "bank": "La Banque Postale",
+  "country": "FR",
+  "product": "CCP (current account)",
+  "format": "csv",
+  "file": "releve_CCP_0123456X020_04112026.csv",
+  "layout_sources": [
+    "https://pypi.org/project/hb-account-statement-banque-postale-csv/ (tests/02.csv, the 2023 export: UTF-8 with BOM, CRLF, \"Numéro de compte\", \"Type;CCP\", \"Fichier téléchargé;le ... à ...\", \"Opérations imputées;du ... au ...\", \"Solde comptable au ...;... EUR\", a blank line, \"Date;Libellé;Montant\", quoted padded labels, amounts like \"-5432,00€\"; the parser strips the last character and swaps the comma, so no thousands mark)",
+    "https://github.com/binnette/homebank-converter/blob/master/data/tests/banquePostale.csv (the older layout with Solde (EUROS)/(FRANCS) and Montant(EUROS);Montant(FRANCS), newest first)"
+  ],
+  "layout_confidence": 70,
+  "notes": "labanquepostale.fr \"Télécharger mes opérations\" CSV (2023 layout): five \"label;value\" lines about the account and the download, a blank line, then \"Date;Libellé;Montant\". Semicolon, dd/mm/yyyy, the label double-quoted and padded with spaces, the amount signed with a comma decimal, no thousands mark and the euro sign glued to it (\"-1095,00€\"). UTF-8 with BOM, CRLF, newest first. \"Solde comptable au 04/11/2026\" is the closing: the period of the operations listed runs to that same day. Account number and file name invented.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": 198764,
+        "lines": [
+          {"date": "2026-10-05", "amount": 214000, "text": "exemple sas"},
+          {"date": "2026-10-06", "amount": -109500, "text": "sci exemple"},
+          {"date": "2026-10-17", "amount": -3347, "text": "supermarche ex"},
+          {"date": "2026-10-26", "amount": -5540, "text": "eau exemple"},
+          {"date": "2026-11-03", "amount": 2500, "text": "camille exemple"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "bank": "UniCredit",
+  "country": "IT",
+  "product": "current account",
+  "format": "csv",
+  "file": "unicredit.csv",
+  "layout_sources": [
+    "https://github.com/BananaAccounting/Italia/blob/master/ImportExtensions/unicredit_import_bank_statement/ch.banana.italia.import.unicredit.js",
+    "https://github.com/riccardopiola/monjour/blob/HEAD/monjour/providers/unicredit/importers/it_IT_v1.py",
+    "https://github.com/memoryleak07/LazyRisparmioforo/blob/HEAD/backend/LazyRisparmioforo/LazyRisparmioforo.Services/ImportCsvService/Models/UnicreditCsvModel.cs",
+    "https://github.com/danielededo/cashato/blob/main/demo/other_banks/unicredit_movimenti_format2.csv"
+  ],
+  "layout_confidence": 65,
+  "notes": "UniCredit internet banking CSV (\"Format 2\" in Banana's importer, the form most importers read): header \"Data Registrazione;Data valuta;Descrizione;Importo (EUR);\" with a trailing semicolon on every line, no rows above or below, dates dd.mm.yyyy, signed amounts with decimal comma and dot thousands (\"1.840,20\"), descriptions padded with runs of spaces, newest first, CRLF. Text is plain ASCII so the encoding is moot. Banana also shows a newer 2026 form with \"Saldo Contabile/Saldo Disponibile\" lines above \"Data registrazione;Data Valuta;Causale;Descrizione;Importo (EUR)\" and a decimal point, seen in one source only. No balance; currency from the \"Importo (EUR)\" heading.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-04-01",
+            "amount": -200,
+            "text": "commissioni"
+          },
+          {
+            "date": "2026-04-10",
+            "amount": 184020,
+            "text": "esempio srl"
+          },
+          {
+            "date": "2026-04-15",
+            "amount": -6137,
+            "text": "energia esempio"
+          },
+          {
+            "date": "2026-04-22",
+            "amount": -82000,
+            "text": "immobiliare esempio"
+          },
+          {
+            "date": "2026-04-29",
+            "amount": -650,
+            "text": "edicola esempio"
+          }
+        ]
+      }
+    ]
+  }
+}

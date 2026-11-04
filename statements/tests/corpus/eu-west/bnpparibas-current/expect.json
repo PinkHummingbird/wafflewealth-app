@@ -1,0 +1,31 @@
+{
+  "bank": "BNP Paribas",
+  "country": "FR",
+  "product": "compte de chèques (current account)",
+  "format": "csv",
+  "file": "E5678_04112026.csv",
+  "layout_sources": [
+    "https://doc4-fr.openflyers.com/Mod%C3%A8le-d'import-de-relev%C3%A9-bancaire-CSV-BNP-particulier-avec-point-virgule (ISO-8859-15, semicolon, one leading account line - account name, holder, masked number, date, balance - then date dd/mm/yyyy; payment type; transaction description; label; one signed amount)",
+    "https://mabanque.bnpparibas (Mes comptes > Télécharger mes opérations, CSV over a rolling 12 months; reported by third-party guides)"
+  ],
+  "layout_confidence": 45,
+  "notes": "mabanque.bnpparibas \"Télécharger mes opérations\" CSV for a personal account: no column-name row; the first line names the account, the holder, the masked number, the date and the balance on that date; then one line per operation: date, operation type, category, label, signed amount with a comma decimal. ISO-8859-15 (é in \"reçu\", \"Prélèvement\", \"chèques\"). Newest first assumed; CRLF assumed; no thousands mark assumed; the exact wording of the type and category columns and the file name are not confirmed. The balance on the first line is dated after the newest operation, so it is the closing. No currency is written anywhere.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": 191152,
+        "lines": [
+          {"date": "2026-10-01", "amount": 235000, "text": "exemple sas"},
+          {"date": "2026-10-05", "amount": -115000, "text": "sci exemple"},
+          {"date": "2026-10-16", "amount": -4860, "text": "boulangerie exemple"},
+          {"date": "2026-10-22", "amount": -6000, "text": "retrait dab"},
+          {"date": "2026-11-03", "amount": -2500, "text": "camille exemple"}
+        ]
+      }
+    ]
+  }
+}

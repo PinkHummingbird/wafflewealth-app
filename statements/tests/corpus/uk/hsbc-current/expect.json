@@ -1,0 +1,59 @@
+{
+  "bank": "HSBC UK",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "TransactionHistory.csv",
+  "layout_sources": [
+    "https://forums.moneysavingexpert.com/discussion/5803620/which-bank-download-old-statement-data-in-excel (HSBC CSV: three columns, date, details, amount)",
+    "https://github.com/MalakMaki/budget-tracker (HSBC parser: no header row, dd/mm/yyyy, one signed amount, strips \",\" and \"£\" from amounts; README: contactless \")))\" in the text)",
+    "https://github.com/ChrisMott97/budget-tracker/blob/main/sample-data/README.md (HSBC: three columns, no header row, quoted descriptions, oldest first, no balance)",
+    "https://lists.gnucash.org/pipermail/gnucash-user/2015-May/060499.html (HSBC UK downloads write a thousands comma in amounts: 1,509.00)",
+    "https://community.quickfile.co.uk/t/hsbc-change-to-csv-format-march-2019/26354 (format change in March 2019)"
+  ],
+  "layout_confidence": 55,
+  "notes": "No header row: date (DD/MM/YYYY), description in quotes, signed amount (money out negative). No balance, no currency. Amounts of 1,000 or more carry a thousands comma and are then quoted (\"1,850.00\"); quoting of the amount is the most widely reported form but not confirmed. Oldest first per one importer (not confirmed). Line endings unknown (LF here).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-03",
+            "amount": -1862,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 185000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-18",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-28",
+            "amount": -4000,
+            "text": "headrow"
+          }
+        ]
+      }
+    ]
+  }
+}

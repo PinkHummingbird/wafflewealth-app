@@ -1,0 +1,31 @@
+{
+  "bank": "Société Générale",
+  "country": "FR",
+  "product": "compte courant (current account)",
+  "format": "csv",
+  "file": "Export_00012345678_04112026.csv",
+  "layout_sources": [
+    "https://github.com/Eazhi/beancount-sog (2023 importer: reads latin-1, skips the first line and a blank second line when present, semicolon DictReader on \"Date de l'opération\", \"Détail de l'écriture\", \"Montant de l'opération\"; amounts parsed by swapping the comma for a point, so no thousands mark; label prefixes CARTE, PRELEVEMENT EUROPEEN, VIR RECU, VIR INST RE ...)",
+    "https://enodev.fr/posts/fin-du-qif-a-la-societe-generale.html (the CSV: first line is the account number written =\"...\" so Excel keeps the leading zeros, next the column names; ISO-8859 with CRLF; six months of history)"
+  ],
+  "layout_confidence": 55,
+  "notes": "Particuliers site \"Télécharger\" CSV: the account number on its own line as =\"00012345678\";, a blank line (the newer form that beancount-sog handles; older files put the header straight after), then \"Date de l'opération;Libellé;Détail de l'écriture;Montant de l'opération;Devise\". Semicolon, unquoted, dd/mm/yyyy, one signed amount with a comma decimal and no thousands mark, Devise EUR. Latin-1 (accents in the header), CRLF. Newest first assumed. No balance in the file. File name invented.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-10-01", "amount": 228000, "text": "exemple sas"},
+          {"date": "2026-10-05", "amount": -105000, "text": "sci exemple"},
+          {"date": "2026-10-14", "amount": -840, "text": "boulangerie exemp"},
+          {"date": "2026-10-21", "amount": -6315, "text": "supermarche exemp"},
+          {"date": "2026-10-30", "amount": 2500, "text": "camille exemple"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "bank": "Royal Bank of Scotland",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "rbs.csv",
+  "layout_sources": [
+    "https://github.com/callummarshall9/BankingSimulation/blob/master/BankingSimulation.UI/BankingSimulationDependencyInstaller.cs (RBS import example: \"Date,Type,Description,Value,Balance,Account Name,Account Number\" / \"19 Dec 2022,DPC,...\")",
+    "https://github.com/BWeesy/gubbins/blob/main/statementflow/profiles/rbs.yaml (NatWest Group, same export as NatWest; newest first; \"%d %b %Y\")",
+    "https://github.com/seangraham006/Finance-Tracker/tree/main/Finance%20Tracker%20Data/Natwest%20Bank (the shared NatWest Group layout since 2023)",
+    "https://github.com/sanichi/mio/blob/main/spec/files/mrbs.csv (RBS export in the older layout, June 2023: CRLF, blank lines, quoted cells, DD/MM/YYYY)"
+  ],
+  "layout_confidence": 75,
+  "notes": "Same online banking as NatWest, same file: newest first, \"DD Mon YYYY\" dates, signed Value, running Balance, Account Name and Account Number (RBS sort code 83xxxx). INT for interest. No currency, no thousands mark, LF, ASCII. Exports before mid-2023 had the older quoted CRLF layout.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 208710,
+        "closing": 298377,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -95000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-06",
+            "amount": -3112,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-10-13",
+            "amount": -5875,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-19",
+            "amount": -4500,
+            "text": "a friend"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": 198042,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 112,
+            "text": "interest"
+          }
+        ]
+      }
+    ]
+  }
+}

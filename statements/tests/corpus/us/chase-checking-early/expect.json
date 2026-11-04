@@ -1,0 +1,33 @@
+{
+  "bank": "Chase",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "chase.csv",
+  "layout_sources": [
+    "https://github.com/mtlynch/beancount-chase (beancount_chase/checking_test.py: Details,Posting Date,Description,Amount,Type,Balance,Check or Slip # with \",,\" row ends)",
+    "https://github.com/keatz1/budget_tracker (PLAN.md, from a real export: header has 7 columns, every row 8 because of a trailing comma)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/us/chase/default.json (8 column roles, m/d/Y)"
+  ],
+  "layout_confidence": 80,
+  "notes": "The chase-checking layout with every date on day 12 or below (09/01 to 09/12), to measure month/day order guessing: nothing in the file says the month comes first except that this is a US bank. Newest first, MM/DD/YYYY, signed Amount, running Balance, CRLF, a trailing empty column on every row (7 headings, 8 cells); a check row carries its number in Check or Slip #. Opening is the oldest balance less its amount; closing the newest balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 231540,
+        "closing": 347222,
+        "lines": [
+          {"date": "2026-09-12", "amount": 31000, "text": "remote online deposit"},
+          {"date": "2026-09-10", "amount": -4500, "text": "zelle payment to sam example"},
+          {"date": "2026-09-08", "amount": -12000, "text": "check 1043"},
+          {"date": "2026-09-04", "amount": -137500, "text": "maple street properties"},
+          {"date": "2026-09-02", "amount": -6318, "text": "corner grocer"},
+          {"date": "2026-09-01", "amount": 245000, "text": "example studio"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "bank": "National Bank of Greece",
+  "country": "GR",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "nbg.xlsx",
+  "layout_sources": [
+    "https://github.com/Nikolay-Sergeev/nbg-ynab-export/blob/HEAD/converter/account.py",
+    "https://github.com/Nikolay-Sergeev/nbg-ynab-export/blob/HEAD/tests/test_main.py",
+    "https://github.com/Nikolay-Sergeev/nbg-ynab-export/blob/HEAD/README.md",
+    "https://github.com/gliaropoulos-ai/csv_processing/blob/HEAD/csv_preprocessing_functions.py",
+    "https://github.com/panospao7/Cost-agregator/blob/HEAD/docs/releases/statement-import/statement-import-investigation.md"
+  ],
+  "layout_confidence": 55,
+  "notes": "NBG (ibank) account movements Excel (.xlsx, also .xls), read by nbg-ynab-export with pandas defaults, so the header is row 1 with no rows above: 28 Greek columns from \"Α/Α Συναλλαγής\" to \"Χρεωστική Κάρτα\", among them Ημερομηνία, Ώρα, Valeur, Ποσό συναλλαγής, Χρέωση / Πίστωση, Περιγραφή, Λογιστικό Υπόλοιπο. Cells are TEXT as in the importer's fixture: dates dd/mm/yyyy, amounts signed with a decimal comma and no thousands mark (\"-650,00\", \"1410,25\"), the running balance likewise; Χρέωση / Πίστωση spells the direction; Νόμισμα/Ισοτιμία are filled only for foreign-currency orders; newest first. \"Aγορά\" starts with a Latin A as in the fixture. The sheet name is not documented.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 148859,
+        "closing": 218744,
+        "lines": [
+          {
+            "date": "2026-07-01",
+            "amount": 141025,
+            "text": "ΜΙΣΘΟΔΟΣΙΑ"
+          },
+          {
+            "date": "2026-07-14",
+            "amount": -3780,
+            "text": "ΛΟΓΑΡΙΑΣΜΟΥ ΥΔΡΕΥΣΗΣ"
+          },
+          {
+            "date": "2026-07-20",
+            "amount": -65000,
+            "text": "ΕΝΟΙΚΙΟ ΙΟΥΛΙΟΥ"
+          },
+          {
+            "date": "2026-07-28",
+            "amount": -2360,
+            "text": "ΦΟΥΡΝΟΣ ΠΑΡΑΔΕΙΓΜΑ"
+          }
+        ]
+      }
+    ]
+  }
+}

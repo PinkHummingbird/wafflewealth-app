@@ -1,0 +1,33 @@
+{
+  "bank": "ING",
+  "country": "NL",
+  "product": "betaalrekening (current account)",
+  "format": "csv",
+  "file": "NL20INGB0001234567_01-10-2026_31-10-2026.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/nl/ing/default.json (2024: semicolon, header row, date Ymd, 11 columns: date, name, own IBAN, counter IBAN, code, ing-debit-credit, amount, mutatiesoort, note, saldo, tag)",
+    "https://github.com/gpaulissen/ofxstatement-dutch/blob/master/src/ofxstatement/plugins/nl/ing.py (header words, Af/Bij sign column, MutatieSoort renamed Mutatiesoort; the newer semicolon export adds columns)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [NL ING Checking 2020] (file name NL..INGB.._dd-mm-yyyy_dd-mm-yyyy.csv, %Y%m%d, Af/Bij indicator)",
+    "https://support.yuki.nl/en/support/solutions/articles/80000787467-ing-bank-export-files (columns incl. Saldo na mutatie and Tag)"
+  ],
+  "layout_confidence": 80,
+  "notes": "Mijn ING \"Af- en bijschrijvingen downloaden\", semicolon-separated variant: every field double-quoted, dates YYYYMMDD, amount always positive with a comma decimal and no thousands mark, the sign only in the \"Af Bij\" column (Af = money out, Bij = money in), \"Saldo na mutatie\" is the balance after each line, \"Tag\" empty. Newest first. Encoding not confirmed (content kept ASCII); CRLF line ends assumed. Opening worked back from the oldest line (370,35 + 1150,00); closing is the newest line's balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 152035,
+        "closing": 310381,
+        "lines": [
+          {"date": "2026-10-01", "amount": -115000, "text": "woonstichting voorbeeldstad"},
+          {"date": "2026-10-07", "amount": -2345, "text": "supermarkt voorbeeld"},
+          {"date": "2026-10-14", "amount": -6410, "text": "energie voorbeeld"},
+          {"date": "2026-10-24", "amount": 284000, "text": "voorbeeld software"},
+          {"date": "2026-10-27", "amount": -1899, "text": "webwinkel voorbeeld"}
+        ]
+      }
+    ]
+  }
+}

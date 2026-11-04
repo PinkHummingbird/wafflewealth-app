@@ -1,0 +1,6 @@
+Posted Account, Posted Transactions Date, Description1, Description2, Description3, Debit Amount, Credit Amount,Balance,Posted Currency,Transaction Type,Local Currency Amount,Local Currency
+"931011 - 12345678","01/10/2026","EXAMPLE TECH LTD","SALARY OCT","",,"3,120.00","4570.66",EUR,"Credit","3,120.00",EUR
+"931011 - 12345678","02/10/2026","D/D EXAMPLE LETTINGS","RENT1234","","1,350.00",,"3220.66",EUR,"Direct Debit","1,350.00",EUR
+"931011 - 12345678","13/10/2026","VDP-CORNER GROCER","","","42.18",,"3178.48",EUR,"Debit","42.18",EUR
+"931011 - 12345678","20/10/2026","VDC-EXAMPLE CAFE","","","9.80",,"3168.68",EUR,"Debit","9.80",EUR
+"931011 - 12345678","29/10/2026","A EXAMPLE","DINNER","",,"25.00","3193.68",EUR,"Credit","25.00",EUR

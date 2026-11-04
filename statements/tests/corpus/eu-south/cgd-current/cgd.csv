@@ -1,0 +1,12 @@
+Consultar saldos e movimentos à ordem - 04-11-2026
+
+Conta ;0123456789012 - EUR - Conta Extracto 
+Data de início ;01-10-2026
+Data de fim ;31-10-2026
+
+Data mov. ;Data valor ;Descrição ;Débito ;Crédito ;Saldo contabilístico ;Saldo disponível ;Categoria ;
+30-10-2026;30-10-2026;COMPRA SUPERMERCADO EXEMPLO ;54,20;;2716,85;2716,85;COMPRAS ;
+23-10-2026;23-10-2026;TFI SENHORIO EXEMPLO ;600,00;;2771,05;2771,05;Diversos ;
+16-10-2026;16-10-2026;PAG SERV AGUAS EXEMPLO ;23,45;;3371,05;3371,05;Diversos ;
+09-10-2026;09-10-2026;Trf Mbway 912XXX345 ;20,00;;3394,50;3394,50;Diversos ;
+02-10-2026;02-10-2026;VENCIMENTO EMPRESA EXEMPLO LDA ;;1320,00;3414,50;3414,50;Vencimento ;

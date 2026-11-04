@@ -1,0 +1,58 @@
+{
+  "bank": "Revolut",
+  "country": "GB",
+  "product": "personal current account (UK)",
+  "format": "csv",
+  "file": "account-statement_2026-09-01_2026-09-30_en-gb_7d41e2.csv",
+  "layout_sources": [
+    "https://github.com/Yatekii/dinero/blob/main/src/banks/revolut.rs (export rows: TOPUP/CARD_PAYMENT/TRANSFER, Fee column taken off the Balance, a REVERTED row with no Completed Date or Balance, rows in completion order)",
+    "https://github.com/BananaAccounting/Universal/blob/master/extensions/import/revolut/ch.banana.uni.import.revolut.js (personal format 1 header and rows; English/German/Italian/French headers)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf ([Revolut]: account-statement_<from>_<to>_... file name, %Y-%m-%d %H:%M:%S)",
+    "https://github.com/BWeesy/gubbins/blob/main/statementflow/profiles/revolut.yaml"
+  ],
+  "layout_confidence": 82,
+  "notes": "Rows in the order they completed (oldest first), ISO date-times, signed Amount, a separate Fee that the Balance also takes off (the cash withdrawal: -200.00 with a 2.00 fee, so -202.00 leaves the account), Currency per row, State, and the Balance after each completed row. A REVERTED row has no Completed Date and no Balance, and is not a line of the statement. Started and Completed are the same day on every completed row here, so the line date is not ambiguous. LF, ASCII, no thousands mark.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "GBP",
+        "owed": false,
+        "opening": 11235,
+        "closing": 90325,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 150000,
+            "text": "top-up"
+          },
+          {
+            "date": "2026-09-03",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-14",
+            "amount": -20200,
+            "text": "cash at example bank"
+          },
+          {
+            "date": "2026-09-20",
+            "amount": -45000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": 500,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-28",
+            "amount": -3870,
+            "text": "example rail"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "bank": "bunq",
+  "country": "NL",
+  "product": "current account",
+  "format": "csv",
+  "file": "2026-11-04_10-15-30_bunq-statement.csv",
+  "layout_sources": [
+    "https://www.npmjs.com/package/bunq-fix-csv (2022: test data \"Date\",\"Interest Date\",\"Amount\",\"Account\",\"Counterparty\",\"Name\",\"Description\"; amounts like \"-1.034,75\")",
+    "https://github.com/DanielHaitink/YNABGoingDutch/blob/master/banks.json (bunq-en header; bunq Dutch header Datum/Rentedatum/Bedrag/Rekening/Tegenrekening/Naam/Omschrijving)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [NL Bunq checking] (file name <date>_<time>_bunq-statement.csv, %Y-%m-%d)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/nl/bunq/default.json (comma, header, Y-m-d)"
+  ],
+  "layout_confidence": 65,
+  "notes": "bunq app \"Export statement\" as CSV, English headers: comma-separated, every field double-quoted, ISO dates, a signed amount in Dutch number format (dot thousands, comma decimal: \"-1.120,00\") inside the quotes, no balance column and no currency named anywhere. Oldest first is assumed (the only dated sample is oldest first); LF line ends assumed. bunq also writes Dutch headers for Dutch-language users.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-10-01", "amount": 230000, "text": "voorbeeld studio"},
+          {"date": "2026-10-03", "amount": -112000, "text": "verhuurder voorbeeld"},
+          {"date": "2026-10-14", "amount": -2385, "text": "supermarkt voorbeeld"},
+          {"date": "2026-10-22", "amount": -999, "text": "streaming voorbeeld"},
+          {"date": "2026-10-29", "amount": 1500, "text": "j. de vries"}
+        ]
+      }
+    ]
+  }
+}

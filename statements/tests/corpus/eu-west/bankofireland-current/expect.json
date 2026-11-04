@@ -1,0 +1,32 @@
+{
+  "bank": "Bank of Ireland",
+  "country": "IE",
+  "product": "current account",
+  "format": "csv",
+  "file": "3b5e9c1a-7d2f-4e8b-9a6c-1f0e2d3c4b5a.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/ie/boi/boi.json (comma, header row, d/m/Y, five columns: date, description, debit, credit, ignored balance)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [IE Bank of Ireland] (Date,Payee,Outflow,Inflow,skip; a UUID file name; %d/%m/%Y)",
+    "https://www.bankofireland.com/help-centre/faq/can-i-make-changes-to-transactions-on-my-estatements (365 online can export transaction history as a CSV file)"
+  ],
+  "layout_confidence": 60,
+  "notes": "365 online \"Export\" CSV for a current account: header Date,Details,Debit,Credit,Balance; unquoted; dd/mm/yyyy; debit and credit as positive figures in their own columns with a point decimal and no thousands mark; Balance after each line. The column order is documented by two importers; the header words, newest-first order, the POSddMMM card prefix and the unquoted plain numbers are the commonly reported form, not confirmed. No currency is written. Closing = the newest line's balance; opening = the oldest line's balance minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 139540,
+        "closing": 289342,
+        "lines": [
+          {"date": "2026-10-01", "amount": 287500, "text": "salary example"},
+          {"date": "2026-10-02", "amount": -135000, "text": "example lettings"},
+          {"date": "2026-10-14", "amount": -4218, "text": "corner grocer"},
+          {"date": "2026-10-21", "amount": -980, "text": "example cafe"},
+          {"date": "2026-10-29", "amount": 2500, "text": "a example"}
+        ]
+      }
+    ]
+  }
+}

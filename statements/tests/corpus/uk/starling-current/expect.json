@@ -1,0 +1,58 @@
+{
+  "bank": "Starling Bank",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "StarlingStatement_2026-09-01_2026-09-30.csv",
+  "layout_sources": [
+    "https://github.com/mudasirmujtaba/Plutus-Accountant-Automation-Suite- (Starling export 2025-26: header, LF, oldest first, amounts without trailing zeros: -1000, 850, 24440.05)",
+    "https://github.com/octoenergy/techzero-hackathon-2024/blob/master/EcoCompass/teamtwo-master/app/data/archive/starling_q1.csv (2024 export: -34.4, -3, oldest first)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/gb/starling/default.json (d/m/Y, Counter Party, Reference, Type, Amount)",
+    "https://github.com/rustledger/rustledger/blob/main/crates/rustledger/src/cmd/extract_cmd/mod.rs (StarlingStatement_*.csv; Amount (EUR) for a euro account)"
+  ],
+  "layout_confidence": 85,
+  "notes": "Oldest first, DD/MM/YYYY, signed \"Amount (GBP)\" and running \"Balance (GBP)\": the currency is in the headings. Numbers are written without trailing zeros (2150, -23.4). Spending Category in capitals with underscores; Notes free text. LF, no BOM (one sample has a BOM after passing through another tool), ASCII.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "GBP",
+        "owed": false,
+        "opening": 50312,
+        "closing": 148553,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-23",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-28",
+            "amount": 2500,
+            "text": "a friend"
+          }
+        ]
+      }
+    ]
+  }
+}

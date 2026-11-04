@@ -1,0 +1,54 @@
+{
+  "bank": "Banco Sabadell",
+  "country": "ES",
+  "product": "current account",
+  "format": "txt",
+  "file": "sabadell.txt",
+  "layout_sources": [
+    "https://github.com/Gummiees/wealthfolio-importer/blob/HEAD/wealthfolio_importer/parsers/sabadell.py",
+    "https://github.com/Gummiees/wealthfolio-importer/blob/HEAD/tests/test_importers.py",
+    "https://github.com/Gummiees/wealthfolio-importer/blob/HEAD/README.md",
+    "https://github.com/alejandroo313/beancoutn-financial-aggregator/blob/HEAD/parsers/bank_profiles.py",
+    "https://github.com/frankgimeno3/P3ERP/blob/HEAD/app/dashboard/contabilidad/page.tsx"
+  ],
+  "layout_confidence": 45,
+  "notes": "Sabadell offers no CSV: its movements download is a TXT (\"Histórico de movimientos .txt\") or an old .xls. This is the TXT: NO header row, no rows above or below, fields separated by \"|\", seven per line: F. operativa | Concepto | F. valor | Importe | Saldo | NIF | Referencia. Dates dd/mm/yyyy, amounts signed with decimal comma, running balance after each line, newest first. Only one importer documents the TXT, so the thousands mark (written \"1.940,00\"), the encoding (Windows-1252, the importer falls back to it) and CRLF line ends are the likeliest forms, not confirmed. The .xls alternative has rows Cuenta:/Divisa:/Titular:/Selección: then F. Operativa | Concepto | F. Valor | Importe | Saldo | Referencia 1 | Referencia 2. Currency never stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 166127,
+        "closing": 280735,
+        "lines": [
+          {
+            "date": "2026-07-01",
+            "amount": -600,
+            "text": "comisión mantenimiento"
+          },
+          {
+            "date": "2026-07-02",
+            "amount": 194000,
+            "text": "empresa ejemplo"
+          },
+          {
+            "date": "2026-07-15",
+            "amount": -5842,
+            "text": "energía ejemplo"
+          },
+          {
+            "date": "2026-07-24",
+            "amount": -72500,
+            "text": "inmobiliaria ejemplo"
+          },
+          {
+            "date": "2026-07-29",
+            "amount": -450,
+            "text": "cafetería ejemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

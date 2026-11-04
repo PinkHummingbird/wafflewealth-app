@@ -1,0 +1,33 @@
+{
+  "bank": "BNP Paribas Fortis",
+  "country": "BE",
+  "product": "zichtrekening (current account)",
+  "format": "csv",
+  "file": "CSV_2026-11-04-10.15.csv",
+  "layout_sources": [
+    "https://github.com/wimverstuyf/php-belgianbankstatement-parser/blob/master/tests/Samples/sample1.csv (the 13-column Dutch header, an empty line after it, Volgnummer yyyy-nnnn, Status Geaccepteerd)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [BE BNP Paribas Fortis Export] (file name CSV_yyyy-mm-dd-hh.mm.csv; the same header; %d/%m/%Y)",
+    "https://github.com/bfrisque/ofxstatement-be-bnp (semicolon, one header row, dd/mm/yyyy, signed amount)",
+    "https://github.com/binnette/homebank-converter/blob/master/data/tests/bnpParibasFortis.csv (the older 8-column French export, newest first by sequence number)"
+  ],
+  "layout_confidence": 70,
+  "notes": "Easy Banking Web \"export CSV\" in Dutch: semicolon-separated, unquoted, Volgnummer like 2026-0188, execution and value dates dd/mm/yyyy, one signed amount with a comma decimal (no thousands mark assumed), Valuta rekening EUR, own account number, type, counterparty (an account number or \"BETALING MET BANKKAART\"), name, message, details, Status, refusal reason. An empty line follows the header, as in the sample. Newest first. No balance in the file. Encoding unconfirmed (content kept ASCII), LF as in the samples. The same export exists with French and English headers.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-10-01", "amount": 271000, "text": "voorbeeld nv"},
+          {"date": "2026-10-02", "amount": -109500, "text": "immo voorbeeld"},
+          {"date": "2026-10-13", "amount": -3680, "text": "supermarkt voorbeeld"},
+          {"date": "2026-10-19", "amount": -7145, "text": "energie voorbeeld"},
+          {"date": "2026-10-28", "amount": -2500, "text": "j peeters"}
+        ]
+      }
+    ]
+  }
+}

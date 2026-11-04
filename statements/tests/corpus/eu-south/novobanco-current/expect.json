@@ -1,0 +1,46 @@
+{
+  "bank": "Novo Banco",
+  "country": "PT",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "novobanco.xlsx",
+  "layout_sources": [
+    "https://github.com/tomasgferreira06/automacaoExcel/blob/HEAD/automacao_excel/mappers/novobanco.py",
+    "https://github.com/joseazoia-creator/carmim-reconciliacao/blob/HEAD/config/profiles.json"
+  ],
+  "layout_confidence": 35,
+  "notes": "Novo Banco (NB) homebanking movements as Excel (the real file is an old .xls; written as .xlsx). Sparsely documented: one importer requires the header Data Operação | Data Valor | Descrição | Débito | Crédito and treats \"-\" as an empty amount; a business profile says the header is on row 2 and names the amount columns \"Débito (€)\" / \"Crédito (€)\" with a \"Montante (€)\" and \"Tipo\". This file uses the plain names, one title row (its wording is a placeholder), date cells, POSITIVE debits and credits in separate columns with \"-\" on the empty side, newest first. No balance column is documented, so none here; currency never stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-06-05",
+            "amount": 173510,
+            "text": "empresa exemplo"
+          },
+          {
+            "date": "2026-06-12",
+            "amount": -3175,
+            "text": "seguros exemplo"
+          },
+          {
+            "date": "2026-06-19",
+            "amount": -70000,
+            "text": "senhorio exemplo"
+          },
+          {
+            "date": "2026-06-26",
+            "amount": -1290,
+            "text": "farmacia exemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

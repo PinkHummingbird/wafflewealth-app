@@ -1,0 +1,32 @@
+{
+  "bank": "U.S. Bank",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "usbank.csv",
+  "layout_sources": [
+    "https://tiller.com/export-us-bank-transactions/ (Date, Transaction, Name, Memo, Amount; debits negative)",
+    "https://beancount.io/tools/csv-to-beancount/us-bank (five columns, Memo a filler, Name the payee; ISO dates and two decimals now, month-first dates and four decimals in older exports)"
+  ],
+  "layout_confidence": 45,
+  "notes": "\"Date\",\"Transaction\",\"Name\",\"Memo\",\"Amount\", every field quoted. Transaction is DEBIT or CREDIT, Amount signed (money out negative), Memo the same filler on every row. Dates YYYY-MM-DD with two decimals as recent reports say; older exports wrote M/D/YYYY and four decimals (\"-15.4900\"). Newest first and CRLF assumed. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-29", "amount": -1549, "text": "example streaming"},
+          {"date": "2026-09-25", "amount": 261000, "text": "example studio payroll"},
+          {"date": "2026-09-18", "amount": -139500, "text": "maple street properties"},
+          {"date": "2026-09-14", "amount": -7126, "text": "corner grocer"},
+          {"date": "2026-09-09", "amount": -12000, "text": "check 1042"},
+          {"date": "2026-09-02", "amount": 15000, "text": "electronic deposit"}
+        ]
+      }
+    ]
+  }
+}

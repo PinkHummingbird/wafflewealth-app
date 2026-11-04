@@ -1,0 +1,33 @@
+{
+  "bank": "Apple Card",
+  "country": "US",
+  "product": "credit card",
+  "format": "csv",
+  "file": "Apple Card Transactions September 2026.csv",
+  "layout_sources": [
+    "https://github.com/dflippojr/financial-planner/blob/main/docs/requirements.md (a real export recorded 2026-10-02: UTF-8, LF, these eight columns, MM/DD/YYYY, signed amount with positive charges, Type Purchase/Payment/Credit/Debit)",
+    "https://github.com/keatz1/budget_tracker/blob/main/PLAN.md (profile built from a real export: Purchased By per card holder, positive = purchase)",
+    "https://discussions.apple.com/thread/251068204?page=2 (Transaction Date, Clearing Date, Description, Merchant, Category, Type, Amount (USD))"
+  ],
+  "layout_confidence": 80,
+  "notes": "Transaction Date,Clearing Date,Description,Merchant,Category,Type,Amount (USD),Purchased By (Purchased By came with Apple Card Family). Amount (USD) signed as Apple sees the account: purchases and other charges (Type Debit) positive, payments and credits negative. Description is the raw text with the address, Merchant the clean name. MM/DD/YYYY, quoted only where a cell holds a comma, no thousands separator, LF, newest first. The heading names USD. Lines dated by Transaction Date. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "USD",
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-28", "amount": -8314, "text": "corner grocer"},
+          {"date": "2026-09-24", "amount": -121580, "text": "skyline airways"},
+          {"date": "2026-09-20", "amount": 130000, "text": "ach deposit internet transfer"},
+          {"date": "2026-09-15", "amount": -2460, "text": "blue door cafe"},
+          {"date": "2026-09-11", "amount": 3999, "text": "gadgethaus"},
+          {"date": "2026-09-06", "amount": -215, "text": "interest charge"}
+        ]
+      }
+    ]
+  }
+}

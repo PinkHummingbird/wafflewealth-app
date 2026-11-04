@@ -1,0 +1,32 @@
+{
+  "bank": "Revolut",
+  "country": "IE",
+  "product": "personal current account (EUR)",
+  "format": "csv",
+  "file": "account-statement_2026-10-01_2026-10-31_en-ie_4f2a9c.csv",
+  "layout_sources": [
+    "https://github.com/mlaitinen/ofxstatement-revolut/tree/master/tests/samples (2021 and 2022 exports: the 10-column header, Started/Completed Date \"yyyy-mm-dd hh:mm:ss\", signed Amount, Fee, Currency, State COMPLETED, Balance after the line, oldest first, UTF-8)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/ie/revolut/default.json (2025: comma, header, Y-m-d H:i:s, 10 columns)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [Revolut] (file name account-statement_<from>_<to>_...csv)"
+  ],
+  "layout_confidence": 85,
+  "notes": "Revolut app \"Statement\" as Excel/CSV for the EUR current account (Revolut Bank UAB, Irish branch): comma-separated, unquoted unless a value holds a comma, the started and completed date-times, a signed Amount with a point decimal, Fee, Currency EUR, State, and Balance after the line. Oldest first, LF, UTF-8. All lines start and complete on the same day here, so the date is not ambiguous; no fees. Closing = the last line's balance; opening = the first line's balance minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 23015,
+        "closing": 54425,
+        "lines": [
+          {"date": "2026-10-01", "amount": 150000, "text": "top-up"},
+          {"date": "2026-10-04", "amount": -640, "text": "example bakery"},
+          {"date": "2026-10-15", "amount": -120000, "text": "example lettings"},
+          {"date": "2026-10-22", "amount": -1450, "text": "example cinema"},
+          {"date": "2026-10-28", "amount": 3500, "text": "alex example"}
+        ]
+      }
+    ]
+  }
+}

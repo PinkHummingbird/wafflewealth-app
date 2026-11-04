@@ -1,0 +1,7 @@
+"Date","Transaction","Name","Memo","Amount"
+"2026-09-29","DEBIT","EXAMPLE STREAMING CO 888-555-0123 CA","Download from usbank.com.","-15.49"
+"2026-09-25","CREDIT","EXAMPLE STUDIO PAYROLL","Download from usbank.com.","2610.00"
+"2026-09-18","DEBIT","MAPLE STREET PROPERTIES RENT","Download from usbank.com.","-1395.00"
+"2026-09-14","DEBIT","CORNER GROCER SPRINGFIELD IL","Download from usbank.com.","-71.26"
+"2026-09-09","DEBIT","CHECK 1042","Download from usbank.com.","-120.00"
+"2026-09-02","CREDIT","ELECTRONIC DEPOSIT SAM EXAMPLE","Download from usbank.com.","150.00"

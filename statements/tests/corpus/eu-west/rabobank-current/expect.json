@@ -1,0 +1,34 @@
+{
+  "bank": "Rabobank",
+  "country": "NL",
+  "product": "betaalrekening (current account)",
+  "format": "csv",
+  "file": "CSV_A_NL44RABO0123456789_EUR_20261001_20261031.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [NL Rabobank-2018] (the 26-column header)",
+    "https://github.com/mvaerle/beancount-rabobank (test_files: the CSV_A_<IBAN>_EUR_<from>_<to>.csv file has CRLF line ends; amounts \"+442,98\"/\"-30,00\", \"Saldo na trn\" \"+3436,04\"; the importer opens it as latin-1)",
+    "https://github.com/DanielHaitink/YNABGoingDutch/blob/master/testfiles/rabo.csv (ISO-8859 bytes: \"initiërende\" with ë as 0xEB)",
+    "https://github.com/reubano/csv2ofx/blob/master/csv2ofx/mappings/rabobank.py (\"csv2ofx -m rabobank -E ISO-8859-1\")",
+    "https://github.com/firefly-iii/firefly-iii/issues/1420 (Rabobank new-format CSV reported as ANSI, not UTF-8)"
+  ],
+  "layout_confidence": 80,
+  "notes": "Rabo Bankieren \"Transacties downloaden\" CSV: comma-separated, every field double-quoted (empty ones as \"\"), ISO-8859-1 (the header word \"initiërende\" and a café name carry 0xE9/0xEB bytes), CRLF, dates YYYY-MM-DD, amounts always signed (\"+2450,00\", \"-1095,00\") with a comma decimal and no thousands mark, \"Saldo na trn\" the balance after each line, oldest first (Volgnr ascending). Opening worked back from the first line; closing the last line's balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 81240,
+        "closing": 206966,
+        "lines": [
+          {"date": "2026-10-01", "amount": 245000, "text": "voorbeeld zorg"},
+          {"date": "2026-10-02", "amount": -109500, "text": "stichting woonvoorbeeld"},
+          {"date": "2026-10-09", "amount": -1280, "text": "café de molen"},
+          {"date": "2026-10-16", "amount": -5495, "text": "zorgverzekeraar voorbeeld"},
+          {"date": "2026-10-23", "amount": -2999, "text": "webwinkel voorbeeld"}
+        ]
+      }
+    ]
+  }
+}

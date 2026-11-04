@@ -1,0 +1,33 @@
+{
+  "bank": "USAA",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "bk_download.csv",
+  "layout_sources": [
+    "https://groups.google.com/g/beancount/c/lIuvPHsampA (Jan 2024: \"The CSV file looks like this: Date,Description,Original Description,Category,Amount,Status\")",
+    "https://bitbucket.org/hleofxquotesteam/hleofxquotes/wiki/csv2ofx%20-%20To%20convert%20CSV%20to%20OFX%20(for%20Checking/Saving%20and%20Credit%20Card) (USAA checking sample: header row, six columns, year-month-day date)",
+    "https://excel-checkbook.com/exporting-transactions-from-a-usaa-checking-account-to-import-load-into-the-excel-checkbook-register/ (Description cleaned, Original Description the bank's text)"
+  ],
+  "layout_confidence": 65,
+  "notes": "Date,Description,Original Description,Category,Amount,Status. ISO dates, Amount signed (money out negative), Description USAA's cleaned name and Original Description the raw text, Status Posted or Pending. The pending row is not posted and is not a line. Newest first, no quoting, LF assumed; file name bk_download.csv as in USAA's older header-less export. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-30", "amount": -1549, "text": "example streaming"},
+          {"date": "2026-09-25", "amount": 312500, "text": "example studio"},
+          {"date": "2026-09-18", "amount": -145000, "text": "maple street properties"},
+          {"date": "2026-09-14", "amount": -5807, "text": "corner grocer"},
+          {"date": "2026-09-08", "amount": 25000, "text": "transfer from savings"},
+          {"date": "2026-09-03", "amount": -4120, "text": "prairie fuel"}
+        ]
+      }
+    ]
+  }
+}

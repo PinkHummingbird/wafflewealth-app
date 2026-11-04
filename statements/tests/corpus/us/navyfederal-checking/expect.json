@@ -1,0 +1,32 @@
+{
+  "bank": "Navy Federal Credit Union",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "navyfederal.csv",
+  "layout_sources": [
+    "https://github.com/cubic1M/Jane/pull/1043 (Posting Date, Transaction Date, Amount, Credit Debit Indicator, type, Type Group, Reference, ..., Description, Category; every amount positive)",
+    "https://github.com/Duncan-Haywood/oss-monorepo/pull/9727 (Navy Federal style Credit Debit Indicator column with an unsigned Amount)"
+  ],
+  "layout_confidence": 45,
+  "notes": "Every Amount is positive; Credit Debit Indicator says Debit (money out) or Credit (money in). The lower-case \"type\" heading is Navy Federal's. Check Serial Number and Card Ending at the end are from memory (one report stops at Category). MM/DD/YYYY, newest first, no quoting or thousands separator, LF assumed. Lines dated by Transaction Date. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-28", "amount": -1549, "text": "example streaming"},
+          {"date": "2026-09-25", "amount": 284000, "text": "example studio payroll"},
+          {"date": "2026-09-18", "amount": -139500, "text": "maple street properties"},
+          {"date": "2026-09-14", "amount": -6673, "text": "corner grocer"},
+          {"date": "2026-09-09", "amount": -12000, "text": "check 1042"},
+          {"date": "2026-09-02", "amount": 20000, "text": "transfer from savings"}
+        ]
+      }
+    ]
+  }
+}

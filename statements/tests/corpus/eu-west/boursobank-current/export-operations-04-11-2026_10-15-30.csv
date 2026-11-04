@@ -1,0 +1,6 @@
+﻿"Date Opération";"Date Valeur";Libellé;"Libellé Suggéré";Catégorie;"Catégorie Parente";Solde;Commentaire;"Numéro Compte";"Libellé Compte";Solde;Pointage
+2026-10-28;2026-10-28;"VIR INST M CAMILLE EXEMPLE";"";"Non catégorisé";"Non catégorisé";40,00;;00040123456;"BoursoBank";1763.61;Non
+2026-10-20;2026-10-19;"CARTE 19/10/26 LIBRAIRIE EXEMPLE CB*5678";"Librairie Exemple";"Livres, CD, DVD, jeux vidéo";"Loisirs et sorties";-64,99;;00040123456;"BoursoBank";1723.61;Non
+2026-10-13;2026-10-12;"CARTE 12/10/26 BOULANGERIE EXEMP CB*5678";"Boulangerie Exemple";"Alimentation";"Vie quotidienne";-21,60;;00040123456;"BoursoBank";1788.60;Non
+2026-10-02;2026-10-02;"PRLV SEPA SCI EXEMPLE";"SCI Exemple";"Loyer";"Logement";-1 140,00;;00040123456;"BoursoBank";1810.20;Non
+2026-10-01;2026-10-01;"VIR SEPA EXEMPLE SAS";"Exemple SAS";"Salaires et revenus d'activité";"Revenus";2 310,00;;00040123456;"BoursoBank";2950.20;Non

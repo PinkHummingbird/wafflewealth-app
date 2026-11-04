@@ -1,0 +1,11 @@
+"Account Name:","FlexAccount ****34567"
+"Account Balance:","£2151.02"
+"Available Balance: ","£2151.02"
+
+"Date","Transaction type","Description","Paid out","Paid in","Balance"
+"01 Oct 2026","Direct Debit","NORTHWIND ENERGY","£64.99","","£1115.41"
+"05 Oct 2026","Contactless Payment","CORNER GROCER LEEDS","£23.40","","£1092.01"
+"15 Oct 2026","Bank credit","EXAMPLE STUDIO LTD","","£2150.00","£3242.01"
+"16 Oct 2026","Standing Order","J SMITH RENT","£1100.00","","£2142.01"
+"22 Oct 2026","Visa purchase","EXAMPLE BOOKS ONLINE","£15.99","","£2126.02"
+"30 Oct 2026","Transfer from","A FRIEND","","£25.00","£2151.02"

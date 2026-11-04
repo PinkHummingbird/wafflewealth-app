@@ -1,0 +1,7 @@
+Transaction Date,Clearing Date,Description,Merchant,Category,Type,Amount (USD),Purchased By
+09/28/2026,09/29/2026,CORNER GROCER 412 MAIN ST SPRINGFIELD 62701 IL USA,Corner Grocer,Grocery,Purchase,83.14,Jane Example
+09/24/2026,09/25/2026,SKYLINE AIRWAYS 1 AIRPORT RD DALLAS 75261 TX USA,Skyline Airways,Airlines,Purchase,1215.80,Jane Example
+09/20/2026,09/20/2026,ACH DEPOSIT INTERNET TRANSFER FROM ACCOUNT ENDING IN 1234,Ach Deposit Internet Transfer From Account Ending In 1234,Payment,Payment,-1300.00,Jane Example
+09/15/2026,09/16/2026,"BLUE DOOR CAFE 18 ELM ST, STE 2 SPRINGFIELD 62701 IL USA",Blue Door Cafe,Restaurants,Purchase,24.60,Sam Example
+09/11/2026,09/12/2026,GADGETHAUS ONLINE 500 PINE ST SEATTLE 98101 WA USA,GadgetHaus,Shopping,Credit,-39.99,Jane Example
+09/06/2026,09/06/2026,INTEREST CHARGE,Interest Charge,Other,Debit,2.15,Jane Example

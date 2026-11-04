@@ -1,0 +1,33 @@
+{
+  "bank": "SNS (de Volksbank, ASN Bank since 2025)",
+  "country": "NL",
+  "product": "betaalrekening (current account)",
+  "format": "csv",
+  "file": "transactie-historie_NL12SNSB0123456789_20261104101530.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/nl/sns/default.json (comma, no header, date d-m-Y, 19 columns, amount in column 11, description in column 18)",
+    "https://github.com/DanielHaitink/YNABGoingDutch/blob/master/testfiles/sns.csv and banks.json \"SNS Bank\" (headerless rows, single-quoted kenmerk and omschrijving)",
+    "https://github.com/gpaulissen/ofxstatement-dutch/blob/master/src/ofxstatement/plugins/nl/asn.py (the de Volksbank CSV field list: saldo voor mutatie and bedrag with a point decimal, no thousands mark, leading minus; dd-mm-yyyy)",
+    "https://www.snsbank.nl/particulier/support/download-tonen-op-pagina/uitleg-van-je-transactieoverzicht-in-mijn-sns.html"
+  ],
+  "layout_confidence": 75,
+  "notes": "De Volksbank (SNS, ASN, RegioBank) CSV transaction overview: no header row, comma-separated, 19 fields: boekingsdatum (dd-mm-yyyy), own IBAN, counter IBAN, counter name, three unused address fields, account currency, balance BEFORE the line, line currency, amount (point decimal, leading minus, no thousands mark), journaaldatum, valutadatum, internal code, global code (OVB/BEA/EIC/GEA), sequence number, betalingskenmerk and omschrijving in single quotes, statement number. Oldest first. The opening is the first line's balance-before; the closing is the last line's balance-before plus its amount. File name pattern copied from the ASN download; LF and ASCII content assumed (encoding unconfirmed).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 95020,
+        "closing": 191715,
+        "lines": [
+          {"date": "2026-10-01", "amount": 218540, "text": "voorbeeld onderwijs"},
+          {"date": "2026-10-02", "amount": -107500, "text": "woonvoorbeeld"},
+          {"date": "2026-10-13", "amount": -3215, "text": "supermarkt voorb"},
+          {"date": "2026-10-20", "amount": -6130, "text": "waterbedrijf voorbeeld"},
+          {"date": "2026-10-27", "amount": -5000, "text": "geldautomaat"}
+        ]
+      }
+    ]
+  }
+}

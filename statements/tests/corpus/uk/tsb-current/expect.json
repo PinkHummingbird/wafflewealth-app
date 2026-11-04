@@ -1,0 +1,56 @@
+{
+  "bank": "TSB",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "tsb.csv",
+  "layout_sources": [
+    "https://community.quickfile.co.uk/t/upload-of-tsb-bank-statement-broken/41983 (TSB export columns: Transaction date, Transaction Type, Sort Code, Account Number, Transaction description, Debit amount, Credit amount, Balance)",
+    "https://github.com/BWeesy/gubbins/blob/main/statementflow/profiles/tsb.yaml (same layout as the Lloyds family; newest first; DD/MM/YYYY)"
+  ],
+  "layout_confidence": 45,
+  "notes": "Header words in TSB's own mixed case (\"Transaction date\", \"Transaction description\", \"Debit amount\", \"Credit amount\"), no trailing comma reported. The rows are not documented: written as the Lloyds family writes them (newest first, DD/MM/YYYY, sort code with a leading apostrophe, positive Debit/Credit amounts, running Balance, no thousands mark), which is the most widely reported shape for this header. One converter says TSB exports omit balances; the forum header has a Balance column, so it is kept. Line endings unknown (LF here).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 74209,
+        "closing": 166264,
+        "lines": [
+          {
+            "date": "2026-08-01",
+            "amount": 197542,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-08-03",
+            "amount": -5875,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-08-06",
+            "amount": -3112,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-08-14",
+            "amount": -95000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-08-19",
+            "amount": -4000,
+            "text": "headrow"
+          },
+          {
+            "date": "2026-08-27",
+            "amount": 2500,
+            "text": "a friend"
+          }
+        ]
+      }
+    ]
+  }
+}

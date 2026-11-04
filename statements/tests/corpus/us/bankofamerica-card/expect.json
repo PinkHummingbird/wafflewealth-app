@@ -1,0 +1,32 @@
+{
+  "bank": "Bank of America",
+  "country": "US",
+  "product": "credit card",
+  "format": "csv",
+  "file": "September2026_1234.csv",
+  "layout_sources": [
+    "https://github.com/YoungCatChen/bank-csv-parser/blob/master/csv-examples/bofa-card.csv (a real 2015 card export, amounts scrambled: this header, CRLF, newest first, blank reference on a payment)",
+    "https://raw.githubusercontent.com/bank2ynab/bank2ynab/master/bank2ynab.conf ([US Bank of America Credit Card]: October2018_9999.CSV, Date,skip,Memo,skip,Inflow, %m/%d/%Y)"
+  ],
+  "layout_confidence": 70,
+  "notes": "Posted Date,Reference Number,Payee,Address,Amount. Newest first, MM/DD/YYYY, Payee and Address quoted (Address padded with spaces), Amount unquoted and signed from the cardholder's side: purchases negative, payments and refunds positive, no thousands separator. A payment's Reference Number is 23 spaces. File named <Month><Year>_<last four>.csv, CRLF. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-27", "amount": -7235, "text": "corner grocer"},
+          {"date": "2026-09-22", "amount": -118640, "text": "skyline airways"},
+          {"date": "2026-09-18", "amount": 125000, "text": "payment - thank you"},
+          {"date": "2026-09-14", "amount": -2380, "text": "blue door cafe"},
+          {"date": "2026-09-09", "amount": -12999, "text": "gadgethaus"},
+          {"date": "2026-09-05", "amount": 3500, "text": "gadgethaus"}
+        ]
+      }
+    ]
+  }
+}

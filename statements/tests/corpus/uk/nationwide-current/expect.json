@@ -1,0 +1,58 @@
+{
+  "bank": "Nationwide Building Society",
+  "country": "GB",
+  "product": "current account (FlexAccount)",
+  "format": "csv",
+  "file": "nationwide.csv",
+  "layout_sources": [
+    "https://github.com/huin/accountmerge/blob/master/src/importers/nationwide_csv.rs (decodes Windows-1252; rows \"Account Name:\", \"Account Balance:\", \"Available Balance:\" then the header Date, Transaction type, Description, Paid out, Paid in, Balance; dates \"%d %b %Y\"; amounts \"£NNN.NN\", minus after the pound sign, no thousands mark)",
+    "https://github.com/callummarshall9/BankingSimulation/blob/master/BankingSimulation.UI/BankingSimulationDependencyInstaller.cs (2024 example: every cell quoted, \"Available Balance: \" with a trailing space, a blank line, \"10 Apr 2024\", and the £ turned into U+FFFD because it was not UTF-8)",
+    "https://github.com/wmanley/nationwide2homebank/blob/master/nationwide2homebank.py (older layout; splits amounts on the 0xA3 pound byte)",
+    "https://github.com/BWeesy/gubbins/blob/main/statementflow/profiles/nationwide.yaml (preamble before the header; \"14 Jan 2026\" dates)"
+  ],
+  "layout_confidence": 78,
+  "notes": "Three account rows (\"Account Name:\", \"Account Balance:\", \"Available Balance: \" with its trailing space), a blank line, then the table. Every cell quoted. Dates \"DD Mon YYYY\". Separate Paid out / Paid in, running Balance, each with a £ sign and no thousands mark. Oldest first. Windows-1252, so £ is the single byte A3. The £ names the currency (GBP). CRLF assumed for a Windows-1252 export (not confirmed). The account rows give the balance at download, here the closing.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "GBP",
+        "owed": false,
+        "opening": 118040,
+        "closing": 215102,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -2340,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -1599,
+            "text": "example books"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 2500,
+            "text": "a friend"
+          }
+        ]
+      }
+    ]
+  }
+}

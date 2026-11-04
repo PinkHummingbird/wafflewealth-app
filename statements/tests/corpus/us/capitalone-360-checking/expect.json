@@ -1,0 +1,32 @@
+{
+  "bank": "Capital One",
+  "country": "US",
+  "product": "360 checking account",
+  "format": "csv",
+  "file": "2026-10-01_transaction_download.csv",
+  "layout_sources": [
+    "https://github.com/wgwz/capital-one-recurring-expenses (README, 2021: \"Account Number,Transaction Date,Transaction Amount,Transaction Type,Transaction Description,Balance\"; dates %m/%d/%y)",
+    "https://pkg.go.dev/git.sr.ht/~mendelmaleh/pfin/parser/capitalone/checking (Transaction Date as 01/02/06; Transaction Amount unsigned, its sign from Transaction Type Credit or Debit)"
+  ],
+  "layout_confidence": 55,
+  "notes": "Account Number,Transaction Date,Transaction Amount,Transaction Type,Transaction Description,Balance. The amount has no sign: Transaction Type says Debit (money out) or Credit (money in). Dates MM/DD/YY, newest first, running Balance, no quoting or thousands separator, LF assumed. Column order as reported in 2021 (another report puts Transaction Description second). Opening is the oldest balance less its amount; closing the newest balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 310455,
+        "closing": 383243,
+        "lines": [
+          {"date": "2026-09-30", "amount": 127, "text": "monthly interest paid"},
+          {"date": "2026-09-22", "amount": -8999, "text": "gadgethaus"},
+          {"date": "2026-09-16", "amount": -20000, "text": "zelle money sent"},
+          {"date": "2026-09-09", "amount": -5840, "text": "corner grocer"},
+          {"date": "2026-09-03", "amount": -137500, "text": "maple street properties"},
+          {"date": "2026-09-01", "amount": 245000, "text": "example studio payroll"}
+        ]
+      }
+    ]
+  }
+}

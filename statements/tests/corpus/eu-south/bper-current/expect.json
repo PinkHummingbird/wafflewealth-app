@@ -1,0 +1,53 @@
+{
+  "bank": "BPER Banca",
+  "country": "IT",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "bper.xlsx",
+  "layout_sources": [
+    "https://github.com/BananaAccounting/Italia/blob/master/ImportExtensions/bper_import_bank_statement_xls/ch.banana.italia.import.bper.js",
+    "https://github.com/idearecreazioni-source/Borgo58-App/blob/HEAD/tests/unita/csv-bper.test.js",
+    "https://github.com/danielededo/cashato/blob/main/demo/other_banks/bper_smart_web_movimenti.xlsx",
+    "https://github.com/firefly-iii/import-configurations/blob/main/it/bper/default.json"
+  ],
+  "layout_confidence": 65,
+  "notes": "BPER Smart Web \"Lista movimenti\" Excel (the real file is an old .xls; written as .xlsx with the same cells). Place and date in A1, then label/value pairs: CONTO, Conto Corrente, IBAN, Intestatari on the left and Saldo disponibile / contabile / iniziale / finale (\"4.821,90 EUR\" text) on the right, \"Numero Movimenti: N\", the date range, header on row 12 (Banana finds it at line 12 of the Excel-saved CSV): Data operazione | Data valuta | Descrizione | Entrate | Uscite | Categoria | Stato. Dates are TEXT with Italian month names (\"09 ottobre 2026\"); Entrate positive and Uscite NEGATIVE numbers in separate columns; newest first; a \"Totale\" row under the table (sums as text) and \"Dati Aggiornati al …\" at the end. Pending lines (Stato \"Da contabilizzare\", valuta \"-\") are not in this file. Day zero-padding follows Borgo58 (measured on a real file); cashato writes \"9 maggio 2026\". Opening and closing from Saldo iniziale / finale. An older (2022) BPER CSV with 9 columns also existed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 391048,
+        "closing": 523783,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -5489,
+            "text": "prelievo atm"
+          },
+          {
+            "date": "2026-10-09",
+            "amount": 263324,
+            "text": "esempio spa"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -115000,
+            "text": "immobiliare esempio"
+          },
+          {
+            "date": "2026-10-21",
+            "amount": -8840,
+            "text": "energia esempio"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -1260,
+            "text": "panificio esempio"
+          }
+        ]
+      }
+    ]
+  }
+}

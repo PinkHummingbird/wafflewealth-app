@@ -1,0 +1,32 @@
+{
+  "bank": "Wells Fargo",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "Checking1.csv",
+  "layout_sources": [
+    "https://github.com/simonmichael/hledger/blob/master/examples/csv/banking/wellsfargo-checking.csv.rules (real sample rows: \"12/04/2009\",\"-12.07\",\"*\",\"\",\"CHECK CRD PURCHASE ...\"; \"...\",\"*\",\"2392\",\"CHECK # 2392\"; skip 0)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/us/wellsfargo/default.json (headers false; date, amount, ignore, ignore, description)"
+  ],
+  "layout_confidence": 80,
+  "notes": "The wellsfargo-checking layout with every date on day 12 or below (09/01 to 09/12), to measure month/day order guessing. No header row: five quoted columns, date, signed amount, \"*\", check number, description. Newest first, MM/DD/YYYY, CRLF assumed. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-12", "amount": -1549, "text": "example streaming"},
+          {"date": "2026-09-10", "amount": 286000, "text": "example studio payroll"},
+          {"date": "2026-09-08", "amount": -6480, "text": "corner grocer"},
+          {"date": "2026-09-04", "amount": -12000, "text": "check # 1042"},
+          {"date": "2026-09-02", "amount": -142000, "text": "maple street prop"},
+          {"date": "2026-09-01", "amount": -1000, "text": "monthly service fee"}
+        ]
+      }
+    ]
+  }
+}

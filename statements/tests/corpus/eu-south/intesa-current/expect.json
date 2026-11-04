@@ -1,0 +1,54 @@
+{
+  "bank": "Intesa Sanpaolo",
+  "country": "IT",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "intesa.xlsx",
+  "layout_sources": [
+    "https://github.com/Librefolio/LibreFolio/blob/HEAD/LibreFolio_devWiki/graphify-out/converted/intesa-lista_ae1e1a04.md",
+    "https://github.com/DevDelu/sito-personale/blob/HEAD/lib/parsers/raw-intesa.ts",
+    "https://github.com/BananaAccounting/Italia/blob/master/ImportExtensions/intesa_import_bank_statement_csv/ch.banana.italia.import.intesa.js",
+    "https://github.com/LeoPalanca/Portfolio-Dashboard/blob/HEAD/test_intesa_import.py",
+    "https://github.com/lparolari/cashflow/blob/HEAD/README.md"
+  ],
+  "layout_confidence": 80,
+  "notes": "Intesa Sanpaolo \"Lista Operazione\" .xlsx (the Excel export; no CSV from the bank, Banana's CSV is Excel-saved). Eight label/value rows above the table, labels in column B: Conti e Carte:, Finanziamento:, Investimenti e previdenza:, I movimenti selezionati sono: (count, then Tipo operazione:), Entrate/Uscite:, Data inizio periodo:, Data fine periodo:. Header row 9: Data | Operazione | Dettagli | Conto o carta | Contabilizzazione | \"Categoria \" (with a trailing space) | Valuta | Importo. Dates are real Excel date cells, Importo a signed number, Valuta \"EUR\"; newest first; no balance column, so no opening or closing.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-03-02",
+            "amount": -5000,
+            "text": "prelievo carta"
+          },
+          {
+            "date": "2026-03-10",
+            "amount": 192540,
+            "text": "esempio spa"
+          },
+          {
+            "date": "2026-03-16",
+            "amount": -78000,
+            "text": "immobiliare esempio"
+          },
+          {
+            "date": "2026-03-24",
+            "amount": -7435,
+            "text": "energia esempio"
+          },
+          {
+            "date": "2026-03-30",
+            "amount": -1860,
+            "text": "farmacia esempio"
+          }
+        ]
+      }
+    ]
+  }
+}

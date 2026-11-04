@@ -1,0 +1,50 @@
+{
+  "bank": "Fineco",
+  "country": "IT",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "fineco.xlsx",
+  "layout_sources": [
+    "https://github.com/fulgidus/senso/blob/HEAD/api/app/ingestion/modules/builtin/fineco_it.py",
+    "https://github.com/marcobazzani/FinanceCopilot/blob/HEAD/integration_test/fixtures/generate_xlsx.dart",
+    "https://github.com/magnum/ppapi/blob/HEAD/README.md",
+    "https://github.com/magnum/ppapi/blob/HEAD/test/fineco_import_test.rb",
+    "https://github.com/firefly-iii/import-configurations/blob/main/it/fineco/default.json",
+    "https://github.com/frankIT/ofxstatement-fineco/blob/HEAD/src/ofxstatement_fineco/config/defaults.ini"
+  ],
+  "layout_confidence": 60,
+  "notes": "Fineco: Portafoglio > Movimenti > Esporta > Excel (.xlsx; no CSV). Twelve banner rows above the header for a EUR account (Conto Corrente, Intestazione, Periodo, the opening and closing balance line, notes, \"Risultati Ricerca\"); header on row 13: Data_Operazione | Data_Valuta | Entrate | Uscite | Descrizione | Descrizione_Completa | Stato | Moneymap. Dates are date cells; Entrate positive and Uscite NEGATIVE numbers in separate columns; newest first. The banner wording (balance line \"Saldo Iniziale: … - Saldo Finale: …\" and the notes) follows one source (FinanceCopilot) and is approximate; older exports had \"Data\" and no Data_Valuta/Moneymap with 6 banner rows. Opening and closing come from the balance line; currency never stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 312045,
+        "closing": 440313,
+        "lines": [
+          {
+            "date": "2026-07-10",
+            "amount": 212978,
+            "text": "esempio spa"
+          },
+          {
+            "date": "2026-07-15",
+            "amount": -5500,
+            "text": "prelievo atm"
+          },
+          {
+            "date": "2026-07-23",
+            "amount": -75000,
+            "text": "immobiliare esempio"
+          },
+          {
+            "date": "2026-07-30",
+            "amount": -4210,
+            "text": "supermercato esempio"
+          }
+        ]
+      }
+    ]
+  }
+}

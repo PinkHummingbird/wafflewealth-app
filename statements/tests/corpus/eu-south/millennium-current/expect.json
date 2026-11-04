@@ -1,0 +1,52 @@
+{
+  "bank": "Millennium bcp",
+  "country": "PT",
+  "product": "current account",
+  "format": "csv",
+  "file": "millennium.csv",
+  "layout_sources": [
+    "https://github.com/mumia/wallet-accountant-go/blob/HEAD/test/assets/importFile/bcp-dirty.csv",
+    "https://github.com/ericsts/py_banco/blob/HEAD/backend/app/parsers/millennium_conta.py",
+    "https://github.com/jbveiga/fin-folio/blob/HEAD/src-tauri/src/ingest/mod.rs"
+  ],
+  "layout_confidence": 80,
+  "notes": "Millennium bcp \"Saldos e movimentos\" CSV, modelled byte for byte on a raw download kept as a test asset (bcp-dirty.csv): UTF-8 without BOM, CRLF, \";\" separator. Seven \"label:;value\" rows above the table (Moeda base, Saldo contabilístico, Saldo disponível, Saldo autorizado, Saldo valor, Data de, Data até) and a blank line; header: Data lançamento;Data valor;Descrição;Montante;Tipo;Saldo. Dates dd-mm-yyyy, Montante signed with a decimal POINT and no thousands mark (\"1450.00\"), Tipo \"Débito\"/\"Crédito\", Saldo the running balance, newest first. Below the table: \"O millenniumbcp.pt é um serviço do Banco Comercial Português S.A.\" and an empty line. An .xlsx export with the same columns (sheet \"Saldos e movimentos\") also exists.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 313409,
+        "closing": 384255,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 145000,
+            "text": "empresa exemplo"
+          },
+          {
+            "date": "2026-09-08",
+            "amount": -65000,
+            "text": "senhorio exemplo"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -4780,
+            "text": "electricidade exemplo"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -1500,
+            "text": "mb way"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": -2874,
+            "text": "supermercado exemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

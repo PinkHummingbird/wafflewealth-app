@@ -1,0 +1,34 @@
+{
+  "bank": "Capital One",
+  "country": "US",
+  "product": "credit card",
+  "format": "csv",
+  "file": "2026-10-01_transaction_download.csv",
+  "layout_sources": [
+    "https://github.com/simonmichael/hledger/blob/master/examples/csv/banking/capital-one.csv.rules (format \"as of July 9 2022\")",
+    "https://github.com/mtlynch/beancount-capitalone (credit_test.py: 2023 export rows, file *_transaction_download.csv)",
+    "https://github.com/dflippojr/financial-planner/blob/main/docs/requirements.md (a real export recorded 2026-10-02: UTF-8, LF, ISO dates, unsigned Debit/Credit, no thousands separator)",
+    "https://github.com/reubano/csv2ofx/blob/master/data/test/capitalone.csv"
+  ],
+  "layout_confidence": 90,
+  "notes": "Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit. ISO dates (YYYY-MM-DD), Card No. the last four digits, unsigned amounts: a charge fills Debit, a payment or refund fills Credit. No quoting, no thousands separator, LF, newest first. Lines dated by Transaction Date. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-09-28", "amount": -9137, "text": "corner grocer"},
+          {"date": "2026-09-24", "amount": -118520, "text": "skyline airways"},
+          {"date": "2026-09-19", "amount": 140000, "text": "capital one mobile pymt"},
+          {"date": "2026-09-15", "amount": -3105, "text": "blue door cafe"},
+          {"date": "2026-09-10", "amount": 4999, "text": "gadgethaus"},
+          {"date": "2026-09-03", "amount": -4410, "text": "prairie fuel"}
+        ]
+      }
+    ]
+  }
+}

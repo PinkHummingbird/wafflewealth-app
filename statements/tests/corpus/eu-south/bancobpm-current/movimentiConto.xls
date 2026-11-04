@@ -1,0 +1,12 @@
+<html>
+<body>
+<table id="CCMO">
+<tr><th>Data Contabile</th><th>Data Valuta</th><th>Importo</th><th>Divisa</th><th>Causale / Descrizione</th><th>Canale</th></tr>
+<tr><td>26/02/2026</td><td>26/02/2026</td><td>-27,80</td><td>EUR</td><td>pagamento pos - farmacia esempio verona carta *1234</td><td>POS</td></tr>
+<tr><td>20/02/2026</td><td>20/02/2026</td><td>-1.050,00</td><td>EUR</td><td>disposizione bonifico - a favore di immobiliare esempio srl canone febbraio</td><td>Internet</td></tr>
+<tr><td>13/02/2026</td><td>13/02/2026</td><td>-38,15</td><td>EUR</td><td>addebito sdd - energia esempio spa fattura 0123456</td><td>&nbsp;</td></tr>
+<tr><td>10/02/2026</td><td>10/02/2026</td><td>1.985,60</td><td>EUR</td><td>acc.emolum.(stp.pen) - bon.da esempio s.r.l. stipendio gennaio 2026</td><td>&nbsp;</td></tr>
+<tr><td>03/02/2026</td><td>03/02/2026</td><td>-100,00</td><td>EUR</td><td>prelievo bancomat - atm esempio verona</td><td>ATM</td></tr>
+</table>
+</body>
+</html>

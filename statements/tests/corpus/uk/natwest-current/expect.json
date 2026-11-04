@@ -1,0 +1,58 @@
+{
+  "bank": "NatWest",
+  "country": "GB",
+  "product": "current account",
+  "format": "csv",
+  "file": "natwest.csv",
+  "layout_sources": [
+    "https://github.com/seangraham006/Finance-Tracker/tree/main/Finance%20Tracker%20Data/Natwest%20Bank (NatWest exports Jul 2023 - Mar 2026: LF, \"26 Mar 2026\" dates, only descriptions with commas quoted, signed Value, Balance, Account Name, Account Number \"600008-49017411\", newest first)",
+    "https://github.com/ChrisMott97/budget-tracker/blob/main/sample-data/README.md (NatWest: dates as \"25 Aug 2026\", newest first, comma-structured POS/BAC/DPC descriptions)",
+    "https://github.com/callummarshall9/BankingSimulation/blob/master/BankingSimulation.UI/BankingSimulationDependencyInstaller.cs (NatWest Group example row \"19 Dec 2022,DPC,...\")",
+    "https://forums.moneysavingexpert.com/discussion/6417245/anyone-recommend-the-best-bank-which-offers-good-online-transaction-reporting-and-csv-downloads (columns Date, Type, Description, Value, Balance, Account Name, Account Number)"
+  ],
+  "layout_confidence": 82,
+  "notes": "The layout NatWest Group has used since mid-2023 (the older one had CRLF, a blank first line, a blank line after the header, DD/MM/YYYY and every cell quoted). Newest first; dates \"DD Mon YYYY\"; one signed Value; running Balance; no thousands mark; only a description containing commas is quoted; Account Number is sort code (no dashes) + \"-\" + account number. No currency named. LF, ASCII.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 141266,
+        "closing": 235207,
+        "lines": [
+          {
+            "date": "2026-09-03",
+            "amount": -1800,
+            "text": "example mobile"
+          },
+          {
+            "date": "2026-09-14",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-09-16",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-09-25",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

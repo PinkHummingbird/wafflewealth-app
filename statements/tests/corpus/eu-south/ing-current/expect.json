@@ -1,0 +1,49 @@
+{
+  "bank": "ING España",
+  "country": "ES",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "ing.xlsx",
+  "layout_sources": [
+    "https://github.com/KashaMalaga/KashaFlow/blob/HEAD/src/lib/importers/ing.ts",
+    "https://github.com/WarcryMaster/SauronSheet/blob/HEAD/src/SauronSheet.Infrastructure/Excel/IngExcelStatementParser.cs",
+    "https://github.com/manolotoVSCode/saviumfinanzas/blob/HEAD/src/lib/import/bankStatementParser.test.ts",
+    "https://github.com/antoniovelazquezbarroso/AV_RStudio/blob/HEAD/Old_LOAD_ING.R",
+    "https://github.com/agosalvez/financial-tracker/blob/HEAD/backend/src/parsers/parser-ingdirect.js"
+  ],
+  "layout_confidence": 75,
+  "notes": "ING España \"Descargar movimientos\" gives Excel only (sheet \"Movimientos\"); importers handle it as .xls or .xlsx (KashaFlow calls it the \"ING España XLS\"), written here as .xlsx. Rows 1-3: \"Movimientos de la Cuenta\" and, in columns C-D, \"  Número de cuenta:\" / \"  Titular:\" / \"  Fecha exportación:\" with their values (leading spaces kept). Header row 4: F. VALOR | CATEGORÍA | SUBCATEGORÍA | DESCRIPCIÓN | COMENTARIO | IMPORTE (€) | SALDO (€) (the 2026 form; files from 2024 had an extra IMAGEN column before IMPORTE). Dates are Excel date serials, amounts signed numbers, SALDO the running balance, newest first.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 1977923,
+        "closing": 2147045,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": 267540,
+            "text": "empresa ejemplo"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": 3000,
+            "text": "amigo ejemplo"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -95000,
+            "text": "inmobiliaria ejemplo"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -6418,
+            "text": "supermercado ejemplo"
+          }
+        ]
+      }
+    ]
+  }
+}

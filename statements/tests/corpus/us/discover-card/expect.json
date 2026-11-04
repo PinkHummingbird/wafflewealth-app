@@ -1,0 +1,33 @@
+{
+  "bank": "Discover",
+  "country": "US",
+  "product": "credit card",
+  "format": "csv",
+  "file": "Discover-Statement-20260928.csv",
+  "layout_sources": [
+    "https://github.com/redstreet/beancount_reds_importers/blob/main/beancount_reds_importers/importers/discover/__init__.py (header \"Trans. Date,Post Date,Description,Amount,Category\", %m/%d/%Y, amounts inverted)",
+    "https://github.com/YoungCatChen/bank-csv-parser/blob/master/csv-examples/discover-card.csv (a real 2015 export, amounts scrambled: CRLF, oldest first, quoted description and category)",
+    "https://github.com/ubahmapk/ynab-format-csv/blob/main/resources/DiscoverCard-Statement.csv (2024 sample in the same shape)"
+  ],
+  "layout_confidence": 80,
+  "notes": "Trans. Date,Post Date,Description,Amount,Category. Purchases positive, payments and credits negative, as Discover sees the account. Oldest first, MM/DD/YYYY, Description and Category quoted, Amount not, no thousands separator, CRLF. Lines dated by Trans. Date. No balance in the file.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {"date": "2026-08-29", "amount": -5762, "text": "corner grocer"},
+          {"date": "2026-09-02", "amount": 120000, "text": "internet payment - thank you"},
+          {"date": "2026-09-06", "amount": -110430, "text": "skyline airways"},
+          {"date": "2026-09-14", "amount": -1985, "text": "blue door cafe"},
+          {"date": "2026-09-19", "amount": 4299, "text": "gadgethaus"},
+          {"date": "2026-09-24", "amount": 2500, "text": "cashback bonus redemption"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "bank": "Bank of America",
+  "country": "US",
+  "product": "checking account",
+  "format": "csv",
+  "file": "stmt.csv",
+  "layout_sources": [
+    "https://pkg.go.dev/git.sr.ht/~mendelmaleh/pfin/parser/bofa (parser splits the file at the CRLF blank line: a summary table, then Date,Description,Amount,Running Bal.; amounts with thousands commas)",
+    "https://raw.githubusercontent.com/bank2ynab/bank2ynab/master/bank2ynab.conf ([US Bank of America]: stmt.csv, Header Rows = 7, Date,Payee,Outflow,skip, %m/%d/%Y)",
+    "https://github.com/YoungCatChen/bank-csv-parser/blob/master/csv-examples/bofa.csv (a real 2015 export, amounts scrambled: same summary block, CRLF, oldest first)",
+    "https://github.com/VonHoltenCodes/SlowBooks-Pro-2026/pull/130 (2026 \"real shape\" fixture: summary amounts quoted with thousands commas)"
+  ],
+  "layout_confidence": 80,
+  "notes": "Five summary rows (Description,,Summary Amt. / Beginning balance as of / Total credits / Total debits / Ending balance as of), a blank line, then Date,Description,Amount,Running Bal. The first row under the header is the beginning balance again with an empty Amount: not a line. Oldest first, MM/DD/YYYY, signed amounts in quotes with comma thousands separators (the 2015 sample has none; recent ones do), CRLF. Opening and closing are the summary's beginning and ending balances, and the running balance agrees.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 184217,
+        "closing": 317674,
+        "lines": [
+          {"date": "2026-09-02", "amount": -5843, "text": "corner grocer"},
+          {"date": "2026-09-03", "amount": 310000, "text": "example studio"},
+          {"date": "2026-09-08", "amount": -165000, "text": "maple street properties"},
+          {"date": "2026-09-15", "amount": 31000, "text": "zelle payment from sam example"},
+          {"date": "2026-09-21", "amount": -14200, "text": "acme power"},
+          {"date": "2026-09-28", "amount": -22500, "text": "online banking transfer"}
+        ]
+      }
+    ]
+  }
+}
