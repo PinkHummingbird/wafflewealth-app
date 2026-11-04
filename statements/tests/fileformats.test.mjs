@@ -308,7 +308,9 @@ EXCHANGE,Current,2026-09-05 08:00:00,2026-09-05 08:00:00,Exchanged from EUR,86.0
   const statement = readCsvStatement(text, { fileName: 'account-statement.csv' });
   assert.equal(statement.institution, 'Revolut');
   assert.deepEqual(statement.accounts.map((a) => a.name), ['Revolut EUR', 'Revolut GBP']);
-  assert.deepEqual(statement.accounts.map((a) => a.ref), ['CSV:Revolut:EUR', 'CSV:Revolut:GBP']);
+  // No account number in the file: no bank reference (decaf's rule; FileFormatTests expects nil too), so
+  // two people's Revolut exports, or a person's two, are never written into one account.
+  assert.deepEqual(statement.accounts.map((a) => a.ref), [null, null]);
   const euro = statement.accounts[0];
   assert.deepEqual(amounts(euro), [50_000, -450, -10_050]);
   assert.equal(euro.opening, 0);
@@ -376,6 +378,67 @@ CREDIT,09/01/2026,"EXAMPLE STUDIO PAYROLL",2000.00,ACH_CREDIT,2000.00,,`;
   const commas = 'Date;Description;Amount\n09/02/2026;Shop;-5,00\n09/01/2026;Pay;10,00\n';
   const european = readCsvStatement(commas, { fileName: 'export.csv', dayFirstWhenUnsure: false }).accounts[0];
   assert.equal(european.lines[0].date, '2026-01-09');
+});
+
+// decaf's FileFormatTests.cardExportsAreOwedWithChargesAsMoneyOut. The files are guessed from the
+// rules agreed with decaf (cards, signs, refs): check them against the Swift test's own when it lands.
+test('CSV: card exports are owed, with charges as money out', () => {
+  // American Express prints charges positive and payments negative: every sign turns round.
+  const amex = readCsvStatement(`Date,Description,Card Member,Account #,Amount
+09/28/2026,CORNER GROCER #412    SPRINGFIELD         IL,SAM EXAMPLE,-41007,64.18
+09/20/2026,AUTOPAY PAYMENT - THANK YOU,SAM EXAMPLE,-41007,-1500.00
+09/12/2026,GADGETHAUS ONLINE,SAM EXAMPLE,-41007,-54.99`, { fileName: 'activity.csv' });
+  const card = amex.accounts[0];
+  assert.equal(amex.institution, 'American Express');
+  assert.equal(card.type, 'card');
+  assert.equal(card.owed, true);
+  assert.deepEqual(amounts(card), [5_499, 150_000, -6_418]);
+  assert.equal(card.ref, 'CSV:-41007');
+  assert.equal(card.name, 'American Express card ·· 1007');
+  // Chase's card file is signed from the cardholder's side already, and its own numbers are in the name.
+  const chase = readCsvStatement(`Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+09/28/2026,09/29/2026,CORNER GROCER #0412,Groceries,Sale,-86.21,
+09/19/2026,09/19/2026,Payment Thank You-Mobile,,Payment,1500.00,
+09/11/2026,09/12/2026,GADGETHAUS ONLINE,Shopping,Return,42.99,`, { fileName: 'Chase5678_Activity20260901_20260930_20261001.CSV' });
+  const chaseCard = chase.accounts[0];
+  assert.equal(chaseCard.type, 'card');
+  assert.equal(chaseCard.owed, true);
+  assert.deepEqual(amounts(chaseCard), [4_299, 150_000, -8_621]);
+  assert.equal(chaseCard.ref, 'CSV:Chase:5678');
+  // Without the issuer: the payments are the only money out and most of the rest is money in.
+  const plain = readCsvStatement(`Date,Description,Cardholder,Amount
+2026-09-02,CORNER GROCER,SAM EXAMPLE,20.00
+2026-09-05,PAYMENT RECEIVED - THANK YOU,SAM EXAMPLE,-100.00
+2026-09-09,EXAMPLE RAIL,SAM EXAMPLE,35.50`, { fileName: 'export.csv' });
+  assert.deepEqual(amounts(plain.accounts[0]), [-2_000, 10_000, -3_550]);
+  assert.equal(plain.accounts[0].name, 'Card');
+  assert.equal(plain.accounts[0].ref, null);
+  // A card's balance column is what is owed: the opening is the first balance and its line added back.
+  const owing = readCsvStatement(`Date,Description,Cardholder,Amount,Balance
+2026-09-02,CORNER GROCER,SAM EXAMPLE,-20.00,120.00
+2026-09-05,PAYMENT RECEIVED,SAM EXAMPLE,100.00,20.00`, { fileName: 'export.csv' }).accounts[0];
+  assert.equal(owing.opening, 10_000);
+  assert.equal(owing.closing, 2_000);
+  assert.ok(owing.check.ok);
+});
+
+// decaf's FileFormatTests.datesWithMonthNamesAndTimesAreReadWhole: the whole cell is read once a time
+// at its end is gone, never its first ten characters.
+test('CSV: dates with month names and times are read whole', () => {
+  const read = (cell) => readCsvStatement(`Date,Description,Amount\n${cell},Example,-1.00\n`, { fileName: 'export.csv' }).accounts[0]?.lines[0]?.date;
+  assert.equal(read('09 Aug 2024'), '2024-08-09');
+  assert.equal(read('20 August 2024'), '2024-08-20');
+  assert.equal(read('"Aug 20, 2024"'), '2024-08-20');
+  assert.equal(read('20-Aug-24'), '2024-08-20');
+  assert.equal(read('2024-08-20 12:01:00'), '2024-08-20');
+  assert.equal(read('2024-08-20T10:31:00Z'), '2024-08-20');
+  assert.equal(read('2024-08-20T10:31:00+02:00'), '2024-08-20');
+  assert.equal(read('20/08/2024 12:01'), '2024-08-20');
+  assert.equal(read('08/31/2024 12:00:00 PM'), '2024-08-31');
+  // A file whose dates can't be read at all is refused, and says so.
+  const unread = readCsvStatement('Date,Description,Amount\nyesterday,Example,-1.00\n', { fileName: 'export.csv' });
+  assert.equal(unread.accounts.length, 0);
+  assert.equal(unread.datesUnread, true);
 });
 
 test('CSV: one that isn’t a bank statement isn’t read', () => {

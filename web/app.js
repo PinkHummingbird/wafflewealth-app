@@ -216,7 +216,7 @@
       const download = d.file && d.file.downloadURL
         ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>`
         : Number(d.f.parts) > 0 ? `<button type="button" class="linkbtn" data-download-doc="${esc(d.name)}">Download</button>` : "";
-      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip|ofx|qfx|qbo|sta|mt940|940|swi|qif|xml|txt)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
+      const readable = d.f.status === "NEW" && /\.(pdf|csv|tsv|tab|zip|ofx|qfx|qbo|sta|mt940|940|swi|qif|xml|txt)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
       const read = readable ? `<button type="button" class="linkbtn" data-read-doc="${esc(d.name)}">Read here</button>` : "";
       return `<div class="row">
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=28"), import("./statement-save.mjs?v=27")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=29"), import("./statement-save.mjs?v=28")]);
     const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
     return { ...read, ...save, match };
   }
@@ -642,7 +642,9 @@
       const mods = await statementModules();
       const bytes = await store.documentBytes(doc);
       // Dates that read either way in a bank's CSV or QIF follow the main currency, as on the phone.
-      const { statements, problems } = await mods.readDocument(doc.f.file_name, bytes, { dayFirstWhenUnsure: store.baseCurrency() !== "USD" });
+      const { statements, problems } = await mods.readDocument(doc.f.file_name, bytes, {
+        dayFirstWhenUnsure: store.baseCurrency() !== "USD", mainCurrency: store.baseCurrency(),
+      });
       state.review = {
         doc, reading: false, problems, mods,
         statements: statements.map((st) => ({ ...st, already: store.statementRead(st.sha256) })),
@@ -752,6 +754,10 @@
       const period = st.period && st.period.to ? `${st.period.from ? M.dayLabel(st.period.from) + " to " : "To "}${M.dayLabel(st.period.to)}` : "Dates not found";
       html += `<div class="month"><h3>${esc(st.institution || "Statement")} · ${esc(period)}</h3></div>`;
       if (st.already) { html += `<p class="empty">Already added to your money, here or on your iPhone.</p>`; return; }
+      // Nothing in the file said which comes first, the day or the month: say how they were read.
+      if (st.dateOrderGuessed) html += `<p class="cap" id="review-date-order-${si}">${esc(st.dateOrder === "MDY"
+        ? "The dates could be read either way: they're read month first (09/02 is 2 September)."
+        : "The dates could be read either way: they're read day first (09/02 is 9 February).")}</p>`;
       st.accounts.forEach((read, ai) => {
         const choice = r.choices[si][ai];
         // As it would be saved: the currency chosen when the file names none, the typed balance when it gives none.
@@ -855,7 +861,7 @@
       $("upload-ok").textContent = `Added to your money: ${parts.join(", ")}.` + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Your iPhone has them the next time WaffleWealth opens.");
     } catch (error) {
       $("review-error").hidden = false;
-      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable", "needsBalance", "needsCurrency"].includes(error.code) ? error.reason : C.explain(error);
+      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable", "needsBalance", "needsCurrency", "noDates"].includes(error.code) ? error.reason : C.explain(error);
       $("review-add").disabled = false;
       if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
     }

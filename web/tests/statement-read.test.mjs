@@ -89,3 +89,41 @@ test('read here: dates that read either way follow the main currency the page pa
   const elsewhere = await readDocument('export.csv', plain);
   assert.equal(elsewhere.statements[0].accounts[0].lines[0].date, '2026-01-09');
 });
+
+test('read here: a tab-separated .TAB or .tsv file is a bank file (ABN AMRO), read without a header', async () => {
+  const tab = '123456789\tEUR\t20261001\t1640,25\t390,25\t20261001\t-1250,00\tHuur oktober\n'
+    + '123456789\tEUR\t20261024\t390,25\t3005,55\t20261024\t2615,30\tSalaris oktober\n';
+  for (const name of ['TXT261104101530.TAB', 'export.tsv']) {
+    const { statements, problems } = await readDocument(name, bytes(tab));
+    assert.deepEqual(problems, [], name);
+    assert.equal(statements[0].reader, 'CSV', name);
+    assert.equal(statements[0].general, true, name);
+    assert.equal(statements[0].accounts[0].closing, 300_555, name);
+    // Hashed on its bytes, as the app hashes every bank file that isn't named .csv.
+    assert.equal(statements[0].sha256, sha(tab), name);
+  }
+});
+
+test('read here: a table whose dates can’t be read says so, as the phone does', async () => {
+  const { statements, problems } = await readDocument('export.csv', bytes('Date,Description,Amount\nyesterday,Shop,-5.00\n'));
+  assert.equal(statements.length, 0);
+  assert.deepEqual(problems, ['export.csv: its dates couldn’t be read.']);
+});
+
+test('read here: the main currency settles dates that read either way, and the statement says it guessed', async () => {
+  const plain = bytes('Date,Description,Amount\n09/02/2026,Shop,-5.00\n09/01/2026,Pay,10.00\n');
+  const canadian = await readDocument('export.csv', plain, { mainCurrency: 'CAD' });
+  assert.equal(canadian.statements[0].accounts[0].lines[0].date, '2026-09-01');
+  assert.equal(canadian.statements[0].dateOrder, 'MDY');
+  assert.equal(canadian.statements[0].dateOrderGuessed, true);
+  const british = await readDocument('export.csv', plain, { mainCurrency: 'GBP', dayFirstWhenUnsure: true });
+  assert.equal(british.statements[0].accounts[0].lines[0].date, '2026-01-09');
+  assert.equal(british.statements[0].dateOrder, 'DMY');
+});
+
+test('read here: a Windows-1250 or UTF-16 file is decoded before it is read', async () => {
+  const text = 'Date\tDescription\tAmount\tBalance\r\n20/08/2026\tAMAZON.CO.UK\t-45.20\t1189.36\r\n';
+  const utf16 = new Uint8Array([0xFF, 0xFE, ...[...text].flatMap((c) => [c.charCodeAt(0), 0])]);
+  const { statements } = await readDocument('export.csv', utf16);
+  assert.equal(statements[0].accounts[0].closing, 118_936);
+});

@@ -41,8 +41,9 @@ const LABEL = { in: 'Money in', out: 'Money out', own: 'Between your accounts', 
 // ---------------------------------------------------------------------------------------------
 // Reading files
 
-/** The other downloads a bank may give, as the app names them: MT940, CAMT (XML), QIF, and text files of either. */
-const BANK_FILE = /\.(sta|mt940|940|swi|qif|xml|txt)$/i;
+/** The other downloads a bank may give, as the app names them: MT940, CAMT (XML), QIF, text files of either, and
+    tab-separated tables (ABN AMRO's .TAB, Excel's .tsv). */
+const BANK_FILE = /\.(sta|mt940|940|swi|qif|xml|txt|tab|tsv)$/i;
 
 const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx'
   : /\.zip$/i.test(name) ? 'zip' : BANK_FILE.test(name) ? 'bank' : null);
@@ -57,7 +58,8 @@ function addBankFile(name, bytes) {
     : looksLikeQif(text) ? readQifStatement : readCsvStatement;
   const statement = read(text, { fileName: name });
   if (statement.accounts.length) state.statements.push(statement);
-  else state.problems.push({ file: name, text: kindOf(name) === 'csv'
+  else if (statement.datesUnread) state.problems.push({ file: name, text: 'Its dates couldn’t be read.' });
+  else state.problems.push({ file: name, text: kindOf(name) === 'csv' || /\.(tab|tsv)$/i.test(name)
     ? 'Its columns weren’t recognised: it needs a date and an amount, or money in and money out.'
     : 'No statement was found in this file.' });
 }

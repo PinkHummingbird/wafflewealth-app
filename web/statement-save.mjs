@@ -139,9 +139,13 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
     if (account.belowZero && !account.owed && !choice.keepBelowZero) {
       throw { code: 'belowZeroNotConfirmed', reason: `${choice.name || account.name} went below zero: switch on “Keep it below zero”, or leave it out.` };
     }
-    const lastLine = account.lines.length ? account.lines[account.lines.length - 1].date : null;
+    // Its last day: the statement's, else its latest line's (the app's Choice.lastDay). With neither,
+    // no balance can be dated, so it isn't added, and says so rather than going quietly.
+    const lastLine = account.lines.map((l) => l.date).filter(Boolean).sort().pop() ?? null;
     const asOf = statement.period?.to ?? lastLine;
-    if (!account.currency || !asOf) return;
+    if (!asOf) {
+      throw { code: 'noDates', reason: `${choice.name || account.name}: no dates were read from this file, so it can't be added.` };
+    }
     const points = balancePoints(account, asOf, keepBelowZero);
     if (!points.length) return;
     // Found by its bank reference, as last time; failing that, the account you chose to add it to.

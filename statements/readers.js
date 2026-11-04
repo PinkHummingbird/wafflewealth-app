@@ -4,6 +4,7 @@
 // balances and lines. Amounts are whole numbers of the currency's smallest unit, never floats.
 
 import { PROFILES } from './profiles.js';
+import { CSV_WORDS } from './csv-words.js';
 
 // ---------------------------------------------------------------------------------------------
 // Rows
@@ -76,7 +77,7 @@ export async function pagesFromPdf(pdf) {
 // Numbers, dates, currencies
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-const ZERO_DIGITS = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'UGX', 'PYG', 'XAF', 'XOF']);
+const ZERO_DIGITS = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'UGX', 'PYG', 'XAF', 'XOF', 'HUF']);
 const THREE_DIGITS = new Set(['BHD', 'KWD', 'OMR', 'JOD', 'TND', 'LYD', 'IQD']);
 export const minorDigits = (code) => (ZERO_DIGITS.has(code) ? 0 : THREE_DIGITS.has(code) ? 3 : 2);
 
@@ -1120,57 +1121,53 @@ function finishAccount(a, unchecked = false) {
   a.belowZero = !a.owed && [a.opening, a.closing, ...a.lines.map((l) => l.running)].some((v) => v != null && v < 0);
 }
 
-/**
- * A CSV or QIF amount: `1,234.56`, `1.234,56`, `-12,50`, `£12.00`, `(12.00)`, `12.00 DR`. `DR`
- * takes away and `CR` adds, as a bank account prints them. Null when it isn't a figure.
- */
-export function csvAmount(text, digits = 2) {
-  let s = trimSpaces(text);
-  let sign = 1;
-  const mark = /^(.*?)\s*(DR|Dr|dr|CR|Cr|cr)\.?$/.exec(s);
-  if (mark) {
-    s = mark[1];
-    if (mark[2].toLowerCase() === 'dr') sign = -1;
-  }
-  // Currency signs and codes go; the minus may come before or after them.
-  s = s.replace(/[A-Za-z$£€¥₹]+\.?/g, '').replace(/ /g, '').replace(/ /g, '').replace(/'/g, '').replace(/\+/g, '');
-  if (!s) return null;
-  // A comma before the last one or two digits is the point; the dots before it group thousands.
-  if (/^\(?-?[\d.]*,\d{1,2}\)?-?$/.test(s)) s = s.replace(/\./g, '').replace(/,/g, '.');
-  else s = s.replace(/,/g, '');
-  if (s.endsWith('-')) s = '-' + s.slice(0, -1);
-  if (!/^\(?-?\d*\.?\d+\)?$/.test(s)) return null;
-  const value = parseAmount(s, digits);
-  return value == null ? null : value * sign;
-}
+// ---------------------------------------------------------------------------------------------
+// Any bank's CSV: the words banks use are data (csv-words.js, the app's Statements/CSV/words.json),
+// so the phone and the website read a file alike and no bank has code of its own. Every rule below
+// is written to be ported line by line, in this file's order (the list of rules for the Swift port follows it).
 
 /**
- * Whether dates written `a/b/yyyy` put the day first. Any first part over 12 says yes, any second
- * part over 12 says no; when every date could be either, the reading that keeps the lines in
- * order wins, and when both do (a short file, the first days of a month) `unsure`: what the rest
- * of the file and the person's main currency say.
+ * **A key**: how a heading, a label or a word is compared, here and on the phone. Lowercase (no
+ * locale), final sigma as sigma, decomposed (NFD), combining marks dropped, every run of characters
+ * that are neither letters nor digits one space, none at the ends. "Betrag (€)" → "betrag",
+ * "Zahlungsempfänger*in" → "zahlungsempfanger in", "Ποσό" → "ποσο", "取引日" stays "取引日".
+ * Swift: `lowercased()`, "ς"→"σ", `decomposedStringWithCanonicalMapping`, then `\p{M}` removed and
+ * `[^\p{L}\p{N}]+` → " " with NSRegularExpression, trimmed.
  */
-export function dayFirstOf(dates, unsure = true) {
-  const parts = dates.map((d) => /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(d)).filter(Boolean);
-  if (parts.some((p) => +p[1] > 12)) return true;
-  if (parts.some((p) => +p[2] > 12)) return false;
-  const ordered = (first) => {
-    const days = dates.map((d) => fileDay(String(d).slice(0, 10), first)).filter(Boolean);
-    const up = [...days].sort();
-    return days.every((d, i) => d === up[i]) || days.every((d, i) => d === up[up.length - 1 - i]);
-  };
-  const dayFirst = ordered(true);
-  const monthFirst = ordered(false);
-  return dayFirst === monthFirst ? unsure : dayFirst;
+export function csvKey(s) {
+  return String(s ?? '').toLowerCase().replace(/ς/g, 'σ').normalize('NFD')
+    .replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 
-/** Banks that write the month first. Their name in the file settles a date either way. */
-const MONTH_FIRST_BRANDS = new Set(['Chase', 'Capital One', 'Wells Fargo', 'Bank of America']);
+const WORD_LISTS = ['date', 'text', 'party', 'kind', 'amount', 'net', 'out', 'in', 'balance', 'currency', 'account', 'counterAccount',
+  'state', 'pending', 'fee', 'sign', 'signOut', 'signIn', 'card', 'cardFile', 'payment', 'holder', 'opening', 'closing', 'totals',
+  'periodFrom', 'periodTo', 'period', 'dateFillers'];
 
-/** Amounts with a decimal comma (`12,50`): a sign of the day written first. */
-const decimalComma = (amounts) => amounts.some((a) => /\d,\d{2}\)?-?\s*$/.test(a) && !a.includes('.'));
+/** Every list of words as keys, in its order. A word whose key is empty ("+", "-") is kept out. */
+const WORDS = Object.fromEntries(WORD_LISTS.map((name) => [name, CSV_WORDS[name].map(csvKey).filter(Boolean)]));
 
-/** ISO 4217 codes in use, for telling a currency at the end of a heading from any three capitals. */
+/** Currencies and countries whose banks write dates month first (USD, CAD, PHP; US, CA, PH). */
+const MONTH_FIRST_CURRENCIES = new Set(CSV_WORDS.monthFirstCurrencies);
+const MONTH_FIRST_COUNTRIES = new Set(CSV_WORDS.monthFirstCountries);
+
+/** Month names and abbreviations of every language, by key ("aug", "agosto", "ม ค"); a key of one or two words. */
+const MONTH_NAMES = new Map(Object.entries(CSV_WORDS.months)
+  .flatMap(([month, names]) => names.map((name) => [csvKey(name), Number(month)])));
+
+/** Signs and words that name a currency ("€", "zł", "euros"), lowercase, the longest first; "$" alone names none. */
+const CURRENCY_SIGNS = Object.entries(CSV_WORDS.currencySigns)
+  .map(([sign, code]) => ({ sign: sign.toLowerCase(), code }))
+  .sort((a, b) => b.sign.length - a.sign.length);
+
+/** The banks known by name, with their whole-word patterns: a name of four letters or fewer only as written ("ING" isn't "Spending"). */
+const BANKS = CSV_WORDS.banks.map((b) => ({
+  ...b,
+  patterns: [b.brand, ...(b.aliases ?? [])].map((n) => new RegExp(`(?<![A-Za-z])${escapeRe(n)}(?![A-Za-z])`, n.length > 4 ? 'i' : '')),
+  headerKeys: (b.header ?? []).map(csvKey),
+  fileRe: b.fileName ? new RegExp(b.fileName, 'i') : null,
+}));
+
+/** ISO 4217 codes in use, for telling a currency at the end of a heading from any three letters. */
 const ISO_CURRENCIES = (() => {
   try { if (typeof Intl.supportedValuesOf === 'function') return new Set(Intl.supportedValuesOf('currency')); } catch { /* the list below */ }
   return new Set(('AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF '
@@ -1180,212 +1177,1126 @@ const ISO_CURRENCIES = (() => {
     + 'SEK SGD SHP SLE SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF '
     + 'XCD XOF XPF YER ZAR ZMW ZWL').split(' '));
 })();
+const isCode = (s) => /^[A-Z]{3}$/.test(s) && ISO_CURRENCIES.has(s);
 
-/** A currency code at the end of a heading: "Amount (GBP)", "Balance EUR". Null when there is none. */
-function currencyIn(heading) {
-  const m = /[\s(\[]([A-Z]{3})[)\]]?\s*$/.exec(String(heading ?? ''));
-  return m && ISO_CURRENCIES.has(m[1]) ? m[1] : null;
-}
-
-// ---------------------------------------------------------------------------------------------
-// Any bank's CSV
+/** The file's own name, without its folders. */
+const baseName = (name) => String(name ?? '').split(/[\\/]/).pop();
 
 /**
- * **Any bank's CSV**, read from its header: the columns for the date, what it was, the amount (or
- * money in and money out apart), and the balance after each line when the bank gives one. A file
- * with a balance column checks itself, line by line, like Wise's; one without is just its lines,
- * and has no balance in it. A currency column splits the file into an account per currency, as
- * Revolut sends it; lines marked pending, reverted or declined are left out.
+ * A cell as the bank meant it: spaces off both ends, and Excel's ways of keeping text as text
+ * undone: a leading `=` (`="00012345678"`), a leading apostrophe (`'30-12-34`), or the whole cell in
+ * apostrophes (`'Salaris oktober'`).
  */
-const BankCSV = {
-  id: 'CSV',
-  // Header words, lowercased with punctuation gone, in order of preference.
-  dateNames: ['date', 'transaction date', 'booking date', 'posting date', 'posted date', 'trans date',
-    'txn date', 'completed date', 'date completed', 'started date', 'value date', 'buchungstag', 'datum'],
-  textNames: ['description', 'transaction description', 'details', 'transaction details', 'narrative',
-    'particulars', 'memo', 'remarks', 'verwendungszweck', 'omschrijving', 'reference', 'type'],
-  partyNames: ['name', 'payee', 'merchant', 'counterparty', 'counter party', 'beneficiary', 'payer',
-    'beguenstigter zahlungspflichtiger', 'begunstigter zahlungspflichtiger', 'naam tegenrekening'],
-  amountNames: ['amount', 'transaction amount', 'amount gbp', 'amount eur', 'amount usd', 'amount aed',
-    'amount sgd', 'amount inr', 'net', 'net amount', 'value', 'betrag', 'bedrag', 'gross'],
-  outNames: ['debit', 'debit amount', 'money out', 'paid out', 'withdrawal', 'withdrawals', 'withdrawal amount',
-    'withdrawal amt', 'out', 'dr', 'debits', 'amount debit'],
-  inNames: ['credit', 'credit amount', 'money in', 'paid in', 'deposit', 'deposits', 'deposit amount',
-    'deposit amt', 'in', 'cr', 'credits', 'amount credit'],
-  balanceNames: ['balance', 'running balance', 'balance after', 'account balance', 'closing balance',
-    'available balance', 'saldo'],
-  currencyNames: ['currency', 'ccy', 'currency code', 'waehrung', 'wahrung', 'munt'],
-  accountNames: ['account', 'account number', 'account no', 'account name', 'iban', 'card number'],
-  stateNames: ['state', 'status'],
-  feeNames: ['fee', 'fees'],
-  // Brands that name themselves in their file's name or header: the account is called after them.
-  brands: ['Monzo', 'Revolut', 'N26', 'PayPal', 'Starling', 'Barclays', 'Lloyds', 'NatWest', 'Halifax',
-    'Santander', 'Nationwide', 'HSBC', 'Chase', 'Capital One', 'Wells Fargo', 'Bank of America', 'ING', 'Rabobank', 'ABN AMRO',
-    'DBS', 'OCBC', 'UOB', 'Emirates NBD', 'Mashreq', 'ADCB', 'FAB', 'Wio', 'ICICI', 'HDFC', 'Axis'],
+function cleanCell(value) {
+  let s = trimSpaces(value);
+  if (s.startsWith('=') && s.length > 1) s = trimSpaces(s.slice(1).replace(/^"([\s\S]*)"$/, '$1'));
+  if (s.length >= 2 && s.startsWith("'") && s.endsWith("'")) s = s.slice(1, -1);
+  else if (/^'\S/.test(s)) s = s.slice(1);
+  return trimSpaces(s);
+}
 
-  key: (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
-    .replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter(Boolean).join(' '),
+// --- Words in a header --------------------------------------------------------------------------
 
-  /**
-   * The column for the first name in `names` the header has; failing that, the first whose heading
-   * names it with a currency after it ("Amount (GBP)", "Balance EUR").
-   */
-  column(header, names) {
-    const keys = header.map(BankCSV.key);
-    for (const name of names) { const i = keys.indexOf(name); if (i >= 0) return i; }
-    const bare = header.map((h) => (currencyIn(h) == null ? null : BankCSV.key(h).split(' ').slice(0, -1).join(' ')));
-    for (const name of names) { const i = bare.indexOf(name); if (i >= 0) return i; }
-    return null;
-  },
+/**
+ * Whether a heading's key is a word followed only by a currency code, a currency's sign or word, or
+ * a number: "amount eur", "入出金 円", "description 2", "description1", "omschrijving 3".
+ */
+function suffixed(key, word) {
+  if (!key.startsWith(word) || key.length === word.length) return false;
+  const rest = key.slice(word.length);
+  if (/^ ?\d{1,2}$/.test(rest)) return true;
+  if (!rest.startsWith(' ')) return false;
+  const tail = rest.slice(1);
+  return (/^[a-z]{3}$/.test(tail) && ISO_CURRENCIES.has(tail.toUpperCase())) || CURRENCY_SIGNS.some((c) => c.code && csvKey(c.sign) === tail);
+}
 
-  /** The header row (within the first ten) and its columns: a date, and an amount or a money in and money out pair. */
-  header(rows) {
-    for (const [index, row] of rows.slice(0, 10).entries()) {
-      const col = (names) => BankCSV.column(row, names);
-      const date = col(BankCSV.dateNames);
-      if (date == null) continue;
-      const amount = col(BankCSV.amountNames);
-      const moneyOut = col(BankCSV.outNames);
-      const moneyIn = col(BankCSV.inNames);
-      if (amount == null && (moneyOut == null || moneyIn == null)) continue;
-      return [index, {
-        date, text: [col(BankCSV.partyNames), col(BankCSV.textNames)].filter((i) => i != null),
-        amount, moneyOut, moneyIn, balance: col(BankCSV.balanceNames), currency: col(BankCSV.currencyNames),
-        account: col(BankCSV.accountNames), state: col(BankCSV.stateNames),
-        fee: amount != null && BankCSV.key(row[amount]) !== 'net' ? col(BankCSV.feeNames) : null,
-      }];
-    }
-    return null;
-  },
+/** The column for the first of `words` the header has, as the whole heading, then with a code or number after it. */
+function columnOf(keys, words, used) {
+  for (const w of words) {
+    const i = keys.findIndex((k, j) => !used.has(j) && k === w);
+    if (i >= 0) return i;
+  }
+  for (const w of words) {
+    const i = keys.findIndex((k, j) => !used.has(j) && suffixed(k, w));
+    if (i >= 0) return i;
+  }
+  return null;
+}
 
-  /**
-   * Rows → a statement, or null when no header row names a date and an amount.
-   * `dayFirstWhenUnsure` settles dates that could be read either way when nothing in the file does.
-   */
-  read(rows, fileName, dayFirstWhenUnsure = true) {
-    const found = BankCSV.header(rows);
-    if (!found) return null;
-    const [at, c] = found;
-    const header = rows[at];
-    const body = rows.slice(at + 1).filter((r) => r.length > c.date && trimSpaces(r[c.date]) !== '');
-    const cell = (row, i) => (i == null || i >= row.length ? '' : trimSpaces(row[i]));
-    const dates = body.map((r) => cell(r, c.date).slice(0, 10));
-    const brand = BankCSV.brands.find((name) => {
-      // A whole word, and exactly as written when short: "ING" isn't the end of "Spending".
-      const re = new RegExp(`(?<![A-Za-z])${escapeRe(name)}(?![A-Za-z])`, name.length > 4 ? 'i' : '');
-      return [fileName ?? '', header.join(' ')].some((t) => re.test(t));
-    }) ?? (header.includes('Emoji') ? 'Monzo' : header.includes('Started Date') ? 'Revolut' : null);
-    // Dates either way round: a US bank or dollars put the month first, decimal commas the day,
-    // and failing those the person's main currency decides.
-    const amounts = body.flatMap((row) => [c.amount, c.moneyOut, c.moneyIn].map((i) => cell(row, i))).filter(Boolean);
-    const dollars = body.some((row) => cell(row, c.currency).toUpperCase() === 'USD')
-      || [c.amount, c.moneyOut, c.balance].some((i) => i != null && i < header.length && currencyIn(header[i]) === 'USD');
-    const unsure = brand != null ? !MONTH_FIRST_BRANDS.has(brand) && !dollars
-      : dollars ? false : decimalComma(amounts) ? true : dayFirstWhenUnsure;
-    const dayFirst = dayFirstOf(dates, unsure);
-
-    const order = [];
-    const built = new Map();
-    for (const row of body) {
-      const state = BankCSV.key(cell(row, c.state));
-      if (['pending', 'reverted', 'declined', 'failed', 'cancelled', 'canceled'].includes(state)) continue;
-      const currencyText = cell(row, c.currency).toUpperCase();
-      // The currency column, or the one the amount's heading names.
-      const currency = /^[A-Z]{3}$/.test(currencyText) ? currencyText
-        : [c.amount, c.moneyOut, c.balance].filter((i) => i != null && i < header.length).map((i) => currencyIn(header[i])).find((x) => x != null) ?? null;
-      const digits = minorDigits(currency);
-      let amount;
-      if (c.amount != null) {
-        amount = csvAmount(cell(row, c.amount), digits);
-        const fee = csvAmount(cell(row, c.fee), digits);
-        if (fee != null && amount != null) amount -= Math.abs(fee);
-      } else {
-        const out = csvAmount(cell(row, c.moneyOut), digits);
-        const into = csvAmount(cell(row, c.moneyIn), digits);
-        amount = cell(row, c.moneyOut) === '' && cell(row, c.moneyIn) === ''
-          ? null : (into == null ? 0 : Math.abs(into)) + (out == null ? 0 : -Math.abs(out));
-      }
-      if (amount == null) continue;
-      const words = [];
-      for (const i of c.text) {
-        const w = cell(row, i);
-        if (w && !words.some((x) => x.toLowerCase() === w.toLowerCase())) words.push(w);
-      }
-      const number = cell(row, c.account);
-      const k = `${number}|${currency ?? ''}`;
-      if (!built.has(k)) {
-        built.set(k, { number: number || null, currency, lines: [] });
-        order.push(k);
-      }
-      built.get(k).lines.push(line({
-        date: fileDay(cell(row, c.date).slice(0, 10), dayFirst),
-        description: collapse(words.join(' · ')), amount,
-        running: c.balance == null ? null : csvAmount(cell(row, c.balance), digits),
-      }));
-    }
-    const accounts = order.map((k) => {
-      const b = built.get(k);
-      // Oldest first: many banks send the newest first.
-      const days = b.lines.map((l) => l.date).filter(Boolean);
-      if (days.length && days[0] > days[days.length - 1]) b.lines.reverse();
-      const digitsOnly = (b.number ?? '').replace(/[^0-9]/g, '');
-      let name = brand ?? 'Account';
-      if (digitsOnly.length >= 4) name += ` ·· ${digitsOnly.slice(-4)}`;
-      else if (b.currency && (order.length > 1 || brand)) name += ` ${b.currency}`;
-      const ref = b.number ? `CSV:${b.number.toUpperCase().replace(/\s/g, '')}` : brand ? `CSV:${brand}:${b.currency ?? ''}` : null;
-      const acct = account({
-        ref, number: b.number, numbers: digitsOnly.length >= 8 ? [digitsOnly] : [], name,
-        type: 'current', currency: b.currency, lines: b.lines,
+/** Every column one of `words` names, best first. */
+function columnsOf(keys, words, used) {
+  const found = [];
+  for (const exact of [true, false]) {
+    for (const w of words) {
+      keys.forEach((k, j) => {
+        if (!used.has(j) && !found.includes(j) && (exact ? k === w : suffixed(k, w))) found.push(j);
       });
-      const first = b.lines[0];
-      if (first && first.running != null) {
-        acct.opening = first.running - first.amount;
-        acct.closing = b.lines[b.lines.length - 1].running;
-      } else {
-        acct.notes.push('no balance in the file');
-      }
-      return acct;
-    });
-    if (!accounts.length) return null;
-    const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
-    for (const a of accounts) finishAccount(a, a.closing == null);
-    return {
-      reader: BankCSV.id, institution: brand, country: null, general: false, fileName, holder: null,
-      period: { from: lineDates[0] ?? null, to: lineDates[lineDates.length - 1] ?? null }, accounts,
-    };
-  },
+    }
+  }
+  return found;
+}
+
+/** A currency a heading or a figure names: its last word if that is a code ("Amount (GBP)"), else a sign or word ("€", "euros", "zł"). */
+function currencyNamed(text, { lastWordOnly = false } = {}) {
+  const raw = String(text ?? '');
+  const tokens = csvKey(raw).split(' ').filter(Boolean);
+  const last = tokens[tokens.length - 1] ?? '';
+  if (tokens.length > (lastWordOnly ? 1 : 0) && isCode(last.toUpperCase()) && /^[a-z]{3}$/.test(last)) return last.toUpperCase();
+  const lower = raw.toLowerCase();
+  for (const { sign, code } of CURRENCY_SIGNS) {
+    // A sign of letters only ("euros", "zł", "Ft") as a whole word; any other ("€", "R$") anywhere.
+    if (code && (/^\p{L}+$/u.test(sign) ? tokens.includes(csvKey(sign)) : lower.includes(sign))) return code;
+  }
+  return null;
+}
+
+/**
+ * **The header**: the first of the first 40 rows that names a date and money: an amount, money out
+ * and money in, a column per currency ("CAD$", "USD$"), or two balance columns of which one is
+ * the amount (told apart by the figures). Its columns, each used once, in this order: amount, out,
+ * in, currency columns, balances, dates, sign, currency, own account, state, fee, the other side,
+ * the text (each word's columns, numbered ones and those with no heading after them), and the kind
+ * of line ("Type", "Typ transakce": words for a line that has no others).
+ */
+function headerColumns(row) {
+  const keys = row.map(csvKey);
+  const used = new Set();
+  const take = (i) => { if (i != null) used.add(i); return i; };
+  const amount = take(columnOf(keys, WORDS.amount, used));
+  const out = take(columnOf(keys, WORDS.out, used));
+  const into = take(columnOf(keys, WORDS.in, used));
+  const coded = [];
+  keys.forEach((k, i) => {
+    if (!used.has(i) && /^[a-z]{3}$/.test(k) && isCode(k.toUpperCase())) { coded.push({ index: i, code: k.toUpperCase() }); used.add(i); }
+  });
+  const balances = columnsOf(keys, WORDS.balance, used);
+  const pairedBalances = amount == null && (out == null || into == null) && !coded.length && balances.length >= 2;
+  if (amount == null && (out == null || into == null) && !coded.length && !pairedBalances) return null;
+  const balance = pairedBalances ? null : (balances[0] ?? null);
+  if (balance != null) used.add(balance);
+  if (pairedBalances) balances.forEach((i) => used.add(i));
+  const dates = columnsOf(keys, WORDS.date, used);
+  if (!dates.length) return null;
+  used.add(dates[0]);
+  const sign = take(columnOf(keys, WORDS.sign, used));
+  const currency = take(columnOf(keys, WORDS.currency, used));
+  // The other date headings, less the currency's ("Valuta" is a value date in German, a currency in Swedish).
+  dates.slice(1).forEach((i) => { if (i !== currency) used.add(i); });
+  const account = take(columnOf(keys, WORDS.account, used));
+  const state = take(columnOf(keys, WORDS.state, used));
+  const fee = amount != null && !WORDS.net.includes(keys[amount]) ? take(columnOf(keys, WORDS.fee, used)) : null;
+  const party = columnsOf(keys, WORDS.party, used);
+  party.forEach((i) => used.add(i));
+  const text = [];
+  for (const w of WORDS.text) {
+    const family = keys.map((k, j) => j).filter((j) => !used.has(j) && (keys[j] === w || suffixed(keys[j], w)));
+    if (!family.length) continue;
+    // Columns with no heading right after one carry its words on (PKO BP's "Opis transakcji","","","").
+    for (let j = family[family.length - 1] + 1; j < keys.length && keys[j] === '' && !used.has(j); j++) family.push(j);
+    text.push(family);
+    family.forEach((j) => used.add(j));
+  }
+  const kind = take(columnOf(keys, WORDS.kind, used));
+  return {
+    keys, dates: dates.filter((i) => i !== currency), amount, out, in: into, coded, balance, pairedBalances: pairedBalances ? balances.slice(0, 2) : null,
+    sign, currency, account, state, fee, party, text, kind,
+  };
+}
+
+/** The header row within the first 40 and its columns, or null. */
+function findHeader(rows) {
+  for (let at = 0; at < Math.min(rows.length, 40); at++) {
+    const cols = headerColumns(rows[at]);
+    if (cols) return { at, headerless: false, ...cols };
+  }
+  return null;
+}
+
+// --- Dates --------------------------------------------------------------------------------------
+
+/** A clock time at the end of a date goes: "10:31", "10:31:00", "T10:31:00Z", "+02:00", "AM". (decaf's pattern) */
+const TIME_AT_END = /(?:[T ]+\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*(?:[AaPp][Mm])?\s*(?:Z|[+-]\d{2}:?\d{2})?)$/;
+const withoutTime = (s) => trimSpaces(cleanCell(s).replace(TIME_AT_END, ''));
+
+/** A year as written → the year: two figures are 20xx, a Buddhist-era year (2400 to 2700, Thailand) is 543 ahead; 1900 to 2100 only. */
+function fullYear(text) {
+  let y = Number(text);
+  if (text.length <= 2) y += 2000;
+  else if (y >= 2400 && y <= 2700) y -= 543;
+  return y >= 1900 && y <= 2100 ? y : null;
+}
+
+const dayIn = (year, month, day) => {
+  const y = fullYear(year);
+  return y == null ? null : realDay(y, month, day);
 };
+
+/** `a/b/y`, `a.b.y`, `a-b-y`, `a b y`: day and month either way round. */
+const AB_Y = /^(\d{1,2})\s*[-/.\s]\s*(\d{1,2})\s*[-/.\s]\s*(\d{4}|\d{2})\s*\.?$/;
+
+/**
+ * **A date as a bank file writes it** → "YYYY-MM-DD", or null. The whole cell is read, once a time
+ * at its end is gone: `yyyy-mm-dd` (or `/`, `.`, and Korean `2024. 8. 20.`), `2024年8月20日`,
+ * `2024년 8월 20일`, `yyyymmdd` (a real day, 1990 to 2100), `a/b/y` with `dayFirst` saying which is
+ * the day, and dates with a month's name in any language in `months` ("20 Aug 2024", "20-Aug-24",
+ * "Aug 20, 2024", "20. August 2024", "20 de agosto de 2024", "1er août 2024").
+ */
+export function csvDate(text, dayFirst = true) {
+  const s = withoutTime(text);
+  if (!s) return null;
+  let m;
+  if ((m = /^(\d{4})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*\.?$/.exec(s))) return dayIn(m[1], +m[2], +m[3]);
+  if ((m = /^(\d{4})\s*[年년]\s*(\d{1,2})\s*[月월]\s*(\d{1,2})\s*[日일]?$/.exec(s))) return dayIn(m[1], +m[2], +m[3]);
+  if ((m = /^(\d{4})(\d{2})(\d{2})$/.exec(s))) return +m[1] >= 1990 && +m[1] <= 2100 ? realDay(+m[1], +m[2], +m[3]) : null;
+  if ((m = AB_Y.exec(s))) return dayFirst ? dayIn(m[3], +m[2], +m[1]) : dayIn(m[3], +m[1], +m[2]);
+  return /\p{L}/u.test(s) && /\d/.test(s) ? namedMonthDate(s) : null;
+}
+
+/**
+ * A date with a month's name: the key's words (seven at most) are a month's name (the first run of
+ * two words, or failing that one word, that is a name in `months`), two numbers, and nothing else
+ * but small words ("de", "of": `dateFillers`). A number of four figures is the year; otherwise the
+ * first is the day. Ordinals ("1st", "1er") count as numbers.
+ */
+function namedMonthDate(s) {
+  const words = csvKey(s).split(' ');
+  if (words.length > 7) return null;
+  let at = -1;
+  let span = 0;
+  for (const size of [2, 1]) {
+    for (let i = 0; i + size <= words.length && at < 0; i++) {
+      if (MONTH_NAMES.has(words.slice(i, i + size).join(' '))) { at = i; span = size; }
+    }
+    if (at >= 0) break;
+  }
+  if (at < 0) return null;
+  const month = MONTH_NAMES.get(words.slice(at, at + span).join(' '));
+  const numbers = [];
+  for (const word of [...words.slice(0, at), ...words.slice(at + span)]) {
+    const n = /^(\d{1,4})(?:st|nd|rd|th|er|e)?$/.exec(word);
+    if (n) numbers.push(n[1]);
+    else if (!WORDS.dateFillers.includes(word)) return null;
+  }
+  if (numbers.length !== 2) return null;
+  const [day, year] = numbers[0].length === 4 ? [numbers[1], numbers[0]] : numbers;
+  if (day.length > 2 || (year.length !== 2 && year.length !== 4)) return null;
+  return dayIn(year, month, +day);
+}
+
+/** Whether a cell reads as a date either way round. */
+const isDateCell = (s) => csvDate(s, true) != null || csvDate(s, false) != null;
+
+/**
+ * **Day or month first** for dates written `a/b/y`, in this order: a first part over 12 says day
+ * first; a second part over 12 says month first; else the order that keeps the lines sorted (up or
+ * down), if only one does. Else a hint, and the order is then marked as guessed: (a) the bank's own
+ * order (`banks[].dateOrder`, or its country in `monthFirstCountries`; not marked as guessed), (b) the
+ * currency the file names (USD, CAD, PHP month first; any other day first), (c) decimal commas in
+ * the amounts: day first, (d) the person's main currency (`mainCurrency`, month first for USD, CAD,
+ * PHP), else `dayFirstWhenUnsure` (false when it is USD), (e) day first.
+ * → `{ order: 'DMY'|'MDY'|'YMD', dayFirst, guessed }`. Files with no `a/b/y` dates are 'YMD' (or
+ * the order their month names are written in), and never guessed.
+ */
+export function dateOrderOf(cells, { bankOrder = null, currency = null, decimalComma: commas = false, mainCurrency = null, dayFirstWhenUnsure = true } = {}) {
+  const parts = [];
+  let named = null;
+  for (const c of cells) {
+    const s = withoutTime(c);
+    const m = AB_Y.exec(s);
+    if (m) parts.push([+m[1], +m[2]]);
+    else if (named == null && !/^\d{4}/.test(s) && /\p{L}/u.test(s) && namedMonthDate(s)) named = /^\d/.test(csvKey(s)) ? 'DMY' : 'MDY';
+  }
+  const settled = (dayFirst, guessed = false) => ({ order: dayFirst ? 'DMY' : 'MDY', dayFirst, guessed });
+  if (!parts.length) return { order: named ?? 'YMD', dayFirst: true, guessed: false };
+  if (parts.some(([a]) => a > 12)) return settled(true);
+  if (parts.some(([, b]) => b > 12)) return settled(false);
+  const sorted = (dayFirst) => {
+    const days = cells.map((c) => csvDate(c, dayFirst)).filter(Boolean);
+    const up = [...days].sort();
+    return days.every((d, i) => d === up[i]) || days.every((d, i) => d === up[up.length - 1 - i]);
+  };
+  const dayFirstSorted = sorted(true);
+  if (dayFirstSorted !== sorted(false)) return settled(dayFirstSorted);
+  if (bankOrder === 'DMY' || bankOrder === 'MDY') return settled(bankOrder === 'DMY');
+  if (currency) return settled(!MONTH_FIRST_CURRENCIES.has(currency), true);
+  if (commas) return settled(true, true);
+  if (mainCurrency) return settled(!MONTH_FIRST_CURRENCIES.has(mainCurrency), true);
+  return settled(dayFirstWhenUnsure !== false, true);
+}
+
+/**
+ * Whether dates written `a/b/yyyy` put the day first (`dateOrderOf` with only the page's hint).
+ * `unsure`: what the person's main currency says when nothing in the dates does.
+ */
+export function dayFirstOf(dates, unsure = true) {
+  return dateOrderOf(dates, { dayFirstWhenUnsure: unsure }).dayFirst;
+}
+
+/** Amounts with a decimal comma (`12,50`): a sign of the day written first. */
+const decimalComma = (amounts) => amounts.some((a) => /\d,\d{2}\)?-?\s*$/.test(a) && !a.includes('.'));
+
+// --- Amounts ------------------------------------------------------------------------------------
+
+/**
+ * **A CSV or QIF amount**: `1,234.56`, `1.234,56`, `1 234,56` (any space: NBSP, narrow, thin),
+ * `1'234.56` and `1’234.56`, `1.234.567,89`, `1,23,456.78`, `+1,234.56`, `-12,50`, `1.234,56-`,
+ * `(12.00)`, `12.00 DR`/`CR`/`Dr.`/`Cr.` (`DR` takes away), a currency's code, sign or word before or
+ * after (`€`, `£`, `$`, `CHF`, `zł`, `kr`, `Kč`, `Ft`, `₹`, `¥`, `₩`, `₪`, `R$`, `C$`, `A$`). `mark` is the
+ * column's decimal mark (',' or '.') when its figures show it; without it a comma before the last
+ * one or two digits is the point, and dots before groups of three are thousands ("245.000") unless
+ * the currency has three decimals. Null when it isn't a figure, and for an empty cell or a lone dash.
+ */
+export function csvAmount(text, digits = 2, mark = null) {
+  let s = trimSpaces(text);
+  if (s === '' || /^[-\u2013\u2014]$/.test(s)) return null;
+  // Letters between figures make it something else ("1e3", "12a34").
+  if (/\d\p{L}+\d/u.test(s)) return null;
+  let sign = 1;
+  // DR or CR after the figure, or after a space: not the end of a code ("100 IDR" is rupiah, not money out).
+  const dc = /^(.*?)(?:\s+|(?<=[\d)]))(DR|Dr|dr|CR|Cr|cr)\.?$/.exec(s);
+  if (dc) {
+    s = dc[1];
+    if (dc[2].toLowerCase() === 'dr') sign = -1;
+  }
+  // Currency codes, signs and words go; the minus may come before or after them.
+  s = s.replace(/\u2212/g, '-').replace(/[\p{L}\p{Sc}]+\.?/gu, '').replace(/[\s\p{Zs}'\u2019+]/gu, '');
+  if (!s) return null;
+  if (mark === ',' || (mark == null && /^\(?-?[\d.]*,\d{1,2}\)?-?$/.test(s))) s = s.replace(/\./g, '').replace(/,/g, '.');
+  // "5.000", "245.000", "1.234.567": dots before groups of three are thousands (Icelandic krónur,
+  // German whole euros), unless the currency has three decimals ("1.234" Kuwaiti dinars).
+  else if (mark == null && digits !== 3 && /^\(?-?[1-9]\d{0,2}(?:\.\d{3})+\)?-?$/.test(s)) s = s.replace(/\./g, '');
+  else s = s.replace(/,/g, '');
+  if (s.endsWith('-')) s = '-' + s.slice(0, -1);
+  if (!/^\(?-?\d*\.?\d+\)?$/.test(s)) return null;
+  const value = parseAmount(s, digits);
+  return value == null ? null : value * sign;
+}
+
+/**
+ * The decimal mark a column's figures show: ',' when some end in a comma and one or two digits
+ * and none in a point and one or two digits, '.' the other way round, null when they don't say.
+ */
+function decimalMarkOf(cells) {
+  let comma = false;
+  let point = false;
+  for (const c of cells) {
+    const s = String(c ?? '').replace(/[^\d.,]/g, '');
+    if (/\d,\d{1,2}$/.test(s) || /\d\.\d{3},\d+$/.test(s)) comma = true;
+    if (/\d\.\d{1,2}$/.test(s) || /\d,\d{3}\.\d+$/.test(s)) point = true;
+  }
+  return comma === point ? null : comma ? ',' : '.';
+}
+
+/** A figure: an amount with its decimals written ("12.50", "1.234,00"), not a date. */
+const isFigure = (s, mark = null) => /\d[.,]\d{1,3}(?!\d)/.test(s) && !isDateCell(s) && csvAmount(s, 2, mark) != null;
+
+/** The currency a figure carries ("1.234,56 EUR", "£12.00", "25,00€"), or null. */
+function currencyOfFigure(text) {
+  const s = trimSpaces(text).replace(/(?:\s+|(?<=[\d)]))(DR|Dr|dr|CR|Cr|cr)\.?$/, '');
+  if (!/\d/.test(s)) return null;
+  const marks = s.replace(/[^\p{L}\p{Sc}]/gu, '');
+  if (!marks) return null;
+  if (isCode(marks)) return marks;
+  const found = CURRENCY_SIGNS.find((c) => c.sign === marks.toLowerCase());
+  return found ? found.code : null;
+}
+
+/** The one currency every marked figure carries, or null. */
+function currencyOfFigures(cells) {
+  const codes = new Set(cells.map(currencyOfFigure).filter(Boolean));
+  return codes.size === 1 ? [...codes][0] : null;
+}
+
+/** A sign column's value: -1 for money out ("Af", "D", "Debit", "S", "Χ"), +1 for money in, 0 when it says neither. */
+function signOf(value) {
+  const raw = trimSpaces(value);
+  if (raw === '-') return -1;
+  if (raw === '+') return 1;
+  const k = csvKey(raw);
+  if (!k) return 0;
+  return WORDS.signOut.includes(k) ? -1 : WORDS.signIn.includes(k) ? 1 : 0;
+}
+
+/** A line not booked yet, or not at all: its state names one of `pending` ("Vorgemerkt", "Umsatz vorgemerkt"). */
+const isPending = (value) => {
+  const k = ` ${csvKey(value)} `;
+  return k.trim() !== '' && WORDS.pending.some((p) => k.includes(` ${p} `));
+};
+
+// --- Accounts and banks -------------------------------------------------------------------------
+
+/** Whether an IBAN's check digits are right (ISO 13616: the first four moved to the end, letters as 10 to 35, mod 97 is 1). */
+export function validIban(text) {
+  const s = String(text ?? '').replace(/[\s-]/g, '').toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+  let rest = 0;
+  for (const c of s.slice(4) + s.slice(0, 4)) {
+    const value = /[A-Z]/.test(c) ? String(c.charCodeAt(0) - 55) : c;
+    for (const d of value) rest = (rest * 10 + Number(d)) % 97;
+  }
+  return rest === 1;
+}
+
+/** Every IBAN in a text whose check digits are right, without its spaces. */
+function ibansIn(text) {
+  return (String(text ?? '').toUpperCase().match(/\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g) ?? [])
+    .map((s) => s.replace(/\s/g, '')).filter(validIban);
+}
+
+/**
+ * An account number in a cell: an IBAN; else the longest run of words made of digits and letters
+ * with a digit in each (or mask characters only: "XXXX", "****"), with six digits or more, or four
+ * with a mask ("****5678"). "Girokonto 123 4567890 00" → "123 4567890 00"; a date or a figure
+ * never counts (their dots and commas break the words).
+ */
+function identifierIn(text) {
+  const iban = ibansIn(text)[0];
+  if (iban) return iban;
+  let best = null;
+  let run = [];
+  const flush = () => {
+    const t = run.join(' ').replace(/^[-\s]+|[-\s]+$/g, '');
+    const digits = t.replace(/\D/g, '').length;
+    if (t && /\d/.test(t) && (digits >= 6 || (/[Xx*•]/.test(t) && digits >= 4)) && (!best || t.length > best.length)) best = t;
+    run = [];
+  };
+  for (const word of String(text ?? '').split(/[\s/]+/)) {
+    if (/^[0-9A-Za-z*•-]+$/.test(word) && (/\d/.test(word) || /^[Xx*•]+$/.test(word))) run.push(word);
+    else flush();
+  }
+  flush();
+  return best;
+}
+
+/** An account number standing for a name ("2001234567/2010", "FI21 1234 5600 0007 85", "NL55INGB0001234567"). */
+const looksLikeAccountNumber = (v) => validIban(v) || /^[A-Z]{2}\d{2}[A-Z0-9 ]{11,34}$/.test(v)
+  || (/^[A-Z]{0,2}[\d\s/.-]+$/.test(v) && v.replace(/\D/g, '').length >= 6);
+
+/** Whether a key is a label from `words`: the word itself, or the word then more words ("kontostand vom 31 08 2024"). */
+const labelled = (key, words) => words.some((w) => key === w || key.startsWith(`${w} `));
+
+/**
+ * **The bank** a file is from: a brand's name or another of its names as a whole word in the
+ * file's name, its header or the rows above it; failing that, a bank whose header words are all in
+ * the header ("Emoji" is Monzo's); failing that, one whose file name pattern matches ("Checking1.csv"
+ * is Wells Fargo's). Of a brand's entries, the one whose header or file name also matches comes
+ * first (the card export of a bank that has both). Null when nothing says.
+ */
+function bankOf(fileName, headerKeys, texts) {
+  const name = baseName(fileName);
+  const byHeader = (b) => b.headerKeys.length > 0 && b.headerKeys.every((k) => headerKeys.includes(k));
+  const byName = (b) => b.fileRe != null && b.fileRe.test(name);
+  const named = BANKS.find((b) => b.patterns.some((re) => re.test(name) || texts.some((t) => re.test(t))));
+  if (named) return BANKS.find((b) => b.brand === named.brand && (byHeader(b) || byName(b))) ?? named;
+  return BANKS.find(byHeader) ?? BANKS.find(byName) ?? null;
+}
+
+/** A bank's own order for dates: its `dateOrder`, or its country's (month first in `monthFirstCountries`, else day first). */
+function bankDateOrder(bank) {
+  if (!bank) return null;
+  if (bank.dateOrder) return bank.dateOrder;
+  if (!bank.country) return null;
+  return MONTH_FIRST_COUNTRIES.has(bank.country) ? 'MDY' : 'DMY';
+}
+
+/**
+ * **A card export**: the bank's entry says card, a heading in `card` ("Card Member", "Card No."),
+ * a "Transaction Date" with a "Post Date" ("Posted Date", "Posting Date") and neither a balance
+ * nor a sign column (decaf's three; the last narrowed, since Truist's and Navy Federal's checking
+ * exports carry both dates too), or the file's name says card (`cardFile`: "Apple Card Transactions", "visa").
+ */
+function cardExport(bank, headerKeys, fileName, { balance = false, sign = false } = {}) {
+  if (bank?.card) return true;
+  if (WORDS.card.some((w) => headerKeys.includes(w))) return true;
+  if (headerKeys.includes('transaction date') && ['post date', 'posted date', 'posting date'].some((w) => headerKeys.includes(w))
+    && !balance && !sign) return true;
+  const name = ` ${csvKey(baseName(fileName).replace(/\.[^.]*$/, ''))} `;
+  return WORDS.cardFile.some((w) => name.includes(` ${w} `));
+}
+
+/**
+ * Whether a card file prints charges positive (as its issuer sees the account): the bank's entry
+ * says so (`chargesPositive`: American Express, Discover, Apple Card), or its lines with a `payment`
+ * word starting a word of their description are all money out while most of the others are money in,
+ * or, with no such line, most of its lines are money in (purchases outnumber refunds on a card).
+ */
+function chargesPrintedPositive(bank, lines) {
+  if (bank?.chargesPositive) return true;
+  const paying = (l) => {
+    const k = ` ${csvKey(l.description)}`;
+    return WORDS.payment.some((w) => k.includes(` ${w}`));
+  };
+  const payments = lines.filter(paying);
+  const others = lines.filter((l) => !paying(l));
+  if (!payments.length) return lines.filter((l) => l.amount > 0).length * 2 > lines.length;
+  return payments.every((l) => l.amount < 0) && others.filter((l) => l.amount > 0).length * 2 > others.length;
+}
+
+// --- The rows above and below the table ---------------------------------------------------------
+
+/**
+ * **What the rows around the table say** (the rows above the header, and below the last line):
+ * - the account: an IBAN anywhere (check digits right), or a number after a label from `account`
+ *   ("Konto:", "Rachunek eKonto", "Compte de Dépôt carte n° 12345678901"), or a row whose only words
+ *   are a number of eight digits or more (`="00012345678"`), or one beginning a row of dates and figures;
+ * - the currency: a cell that is a code or a currency word, a figure carrying one ("1.189,36 EUR"),
+ *   or a code in the account's cell ("0123456789012 - EUR - Conta Extracto"), when only one is named;
+ * - the holder after a label from `holder` (words, no digits);
+ * - the period: dates after a label from `periodFrom`, `periodTo` or `period`;
+ * - the balances: a figure after (or at the end of) a label from `opening` or `closing`; failing
+ *   those, a row of two figures that the lines lead from one to the other, or one figure with a date
+ *   on or after the last line (the balance that day), or below the lines a row of one figure alone
+ *   that isn't their total (both checked once the lines are read).
+ * A label row with nothing after it takes the next row's cells ("#Klient;" then "JAN KOWALSKI;").
+ */
+function surroundings(above, below) {
+  const facts = { number: null, currency: null, holder: null, from: null, to: null, opening: null, closing: null, unlabelled: [] };
+  const currencies = new Set();
+  const all = [...above.map((r) => ({ r, place: 'above' })), ...below.map((r) => ({ r, place: 'below' }))];
+  const figureIn = (cells) => cells.find((c) => isFigure(c) || (csvAmount(c) != null && !isDateCell(c) && /\d/.test(c) && !identifierIn(c)));
+  for (let n = 0; n < all.length; n++) {
+    const { r, place } = all[n];
+    // mBank marks its labels and figures with "#".
+    const cells = r.map((x) => cleanCell(x).replace(/^#/, '')).filter((c) => c !== '');
+    if (!cells.length) continue;
+    for (const c of cells) {
+      const word = CURRENCY_SIGNS.find((s) => s.code && s.sign.length > 2 && /^\p{L}+$/u.test(s.sign) && csvKey(c) === csvKey(s.sign));
+      if (isCode(c)) currencies.add(c);
+      else if (word) currencies.add(word.code);
+      else if (/\d/.test(c) && csvAmount(c) != null) {
+        const code = currencyOfFigure(c);
+        if (code) currencies.add(code);
+      }
+    }
+    const label = csvKey(cells[0]);
+    let values = cells.slice(1);
+    if (!values.length && n + 1 < all.length) {
+      const next = all[n + 1].r.map((x) => cleanCell(x).replace(/^#/, '')).filter((c) => c !== '');
+      const nextKey = csvKey(next[0] ?? '');
+      const isLabel = [WORDS.account, WORDS.holder, WORDS.opening, WORDS.closing, WORDS.periodFrom, WORDS.periodTo, WORDS.period, WORDS.currency]
+        .some((words) => labelled(nextKey, words));
+      if (next.length && !isLabel) values = next;
+    }
+    const otherSide = label !== 'iban' && labelled(label, WORDS.counterAccount);
+    // Only an account's label: a customer's number may be shared by two accounts.
+    if (facts.number == null && place === 'above' && !otherSide && (label === 'iban' || labelled(label, WORDS.account))) {
+      const own = [cells[0], ...values].map(identifierIn).find(Boolean);
+      if (own) {
+        facts.number = own;
+        for (const c of values) for (const word of c.split(/[\s-]+/)) if (isCode(word)) currencies.add(word);
+      }
+    }
+    if (facts.holder == null && labelled(label, WORDS.holder) && values.length && /\p{L}/u.test(values[0]) && !/\d/.test(values[0])) facts.holder = values[0];
+    const datesIn = (cs) => cs.flatMap((c) => c.match(/\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}/g) ?? []);
+    if (labelled(label, WORDS.period) || labelled(label, WORDS.periodFrom) || labelled(label, WORDS.periodTo)) {
+      const ds = datesIn([cells[0].replace(/^[^\d]*/, ''), ...values]);
+      if (labelled(label, WORDS.period) && ds.length >= 2) { facts.from = ds[0]; facts.to = ds[1]; }
+      else if (labelled(label, WORDS.periodTo) && ds.length) facts.to = ds[0];
+      else if (labelled(label, WORDS.periodFrom) && ds.length >= 2) { facts.from = ds[0]; facts.to = ds[1]; }
+      else if (labelled(label, WORDS.periodFrom) && ds.length) facts.from = ds[0];
+    }
+    const balanceLabel = labelled(label, WORDS.opening) ? 'opening' : labelled(label, WORDS.closing) ? 'closing' : null;
+    if (balanceLabel) {
+      const words = cells[0].split(/\s+/);
+      const lastWord = words[words.length - 1];
+      const figure = figureIn(values) ?? words.find((w) => isFigure(w))
+        ?? (csvAmount(lastWord) != null && !isDateCell(lastWord) ? lastWord : null);
+      if (figure != null && facts[balanceLabel] == null) facts[balanceLabel] = figure;
+      continue;
+    }
+    // A row without a balance label: its figures, for the checks once the lines are read.
+    const figures = cells.filter((c) => isFigure(c));
+    const dates = cells.filter((c) => isDateCell(c));
+    if (place === 'above' && facts.number == null && !otherSide) {
+      const lone = cells.find((c) => identifierIn(c) === c && c.replace(/\D/g, '').length >= 8 && !isFigure(c) && !isDateCell(c));
+      if (lone && (cells.length === 1 || figures.length || dates.length)) facts.number = lone;
+    }
+    if (place === 'above' && figures.length >= 1 && figures.length <= 2) facts.unlabelled.push({ place, figures, dates });
+    if (place === 'below' && cells.length === 1 && figures.length === 1) facts.unlabelled.push({ place, figures, dates: [] });
+  }
+  if (currencies.size === 1) facts.currency = [...currencies][0];
+  // No account named: an IBAN anywhere above the table whose check digits are right.
+  if (facts.number == null) facts.number = above.flatMap((r) => r.flatMap((c) => ibansIn(cleanCell(c))))[0] ?? null;
+  return facts;
+}
+
+// --- Without a header ---------------------------------------------------------------------------
+
+/**
+ * **A file without a header** (Wells Fargo, HSBC UK, first direct, TD, CIBC, Simplii, Scotiabank,
+ * Desjardins, ABN AMRO, LCL, Sabadell, PNC, SNS): the columns are told by their cells, over the
+ * rows with three filled cells or more.
+ * - The date: the first column whose cells read as dates in one order on 90% of the rows from its
+ *   first date to its last, those rows being half or more; they are the lines.
+ * - Figures: 80% of the filled cells amounts, one at least with its decimals, not all the same,
+ *   not dates. A sign column: every filled cell a `signOut` or `signIn` word, both found.
+ * - Constant columns (one value on every line, two lines or more): an account number when one
+ *   (an IBAN, six digits or more, or masked "4500********1234", which makes it a card), a
+ *   currency when a code. Other date columns (value dates) are passed over.
+ * - Text: the column with the most letters a cell, and any other with half as many or more.
+ * - Among the figures: a start and an end balance with an amount (end = start + amount on every
+ *   line: ABN AMRO); else a balance with an amount, or money out and money in (two columns never
+ *   filled on the same line), whose balance follows from the lines in either order (after each
+ *   line, or before it: SNS); else one figure column is the amount, two never on the same line are
+ *   money out then money in. Anything else is refused rather than guessed.
+ * - Failing all that, once more without the first row (an account's summary above its lines).
+ */
+function inferLayout(rows, skip = 0) {
+  const filled = (r) => r.filter((c) => cleanCell(c) !== '').length;
+  const candidates = rows.map((r, i) => ({ r, i })).filter(({ r }) => filled(r) >= 3).slice(skip);
+  if (!candidates.length) return null;
+  const tried = inferColumns(rows, candidates);
+  // A first row that isn't like the lines below it (a summary of the account: Santander Bank Polska)
+  // goes above them, and the columns are told again.
+  return tried ?? (skip === 0 && candidates.length >= 3 ? inferLayout(rows, 1) : null);
+}
+
+function inferColumns(rows, candidates) {
+  const width = Math.max(...candidates.map(({ r }) => r.length));
+  let date = null;
+  let span = null;
+  let dayFirstHint = true;
+  for (let j = 0; j < width && date == null; j++) {
+    // The rows from the first that reads as a date (either way round) to the last: 90% of them in one order.
+    const either = candidates.map(({ r }) => isDateCell(r[j] ?? ''));
+    const first = either.indexOf(true);
+    const last = either.lastIndexOf(true);
+    if (first < 0 || (last - first + 1) * 2 < candidates.length) continue;
+    for (const dayFirst of [true, false]) {
+      const within = candidates.slice(first, last + 1).filter(({ r }) => csvDate(r[j] ?? '', dayFirst) != null).length;
+      if (within >= 0.9 * (last - first + 1)) {
+        date = j;
+        span = [first, last];
+        dayFirstHint = dayFirst;
+        break;
+      }
+    }
+  }
+  if (date == null) return null;
+  const body = candidates.slice(span[0], span[1] + 1).filter(({ r }) => isDateCell(r[date] ?? ''));
+  const column = (j) => body.map(({ r }) => cleanCell(r[j] ?? ''));
+  const figures = [];
+  const texts = [];
+  let sign = null;
+  let account = null;
+  let currency = null;
+  let masked = false;
+  for (let j = 0; j < width; j++) {
+    if (j === date) continue;
+    const all = column(j);
+    const cells = all.filter((c) => c !== '');
+    if (!cells.length) continue;
+    const constant = body.length >= 2 && cells.length === all.length && new Set(cells).size === 1;
+    if (constant) {
+      const id = identifierIn(cells[0]);
+      if (isCode(cells[0])) currency = currency ?? cells[0];
+      else if (id && id === cells[0] && account == null) { account = id; masked = /[Xx*•]{4,}/.test(id); }
+      continue;
+    }
+    // Another date (a value date) is neither a figure nor words.
+    if (cells.filter(isDateCell).length * 2 >= cells.length) continue;
+    const mark = decimalMarkOf(cells);
+    const amounts = cells.filter((c) => csvAmount(c, 2, mark) != null && !isDateCell(c));
+    if (amounts.length >= 0.8 * cells.length && cells.some((c) => isFigure(c, mark)) && (cells.length === 1 || new Set(cells).size > 1)) {
+      figures.push(j);
+      continue;
+    }
+    const signs = cells.map(signOf);
+    if (signs.every((s) => s !== 0) && signs.includes(-1) && signs.includes(1)) { sign = j; continue; }
+    const letters = cells.reduce((t, c) => t + (c.match(/\p{L}/gu) ?? []).length, 0) / cells.length;
+    texts.push({ j, letters });
+  }
+  if (!figures.length) return null;
+  const best = Math.max(0, ...texts.map((t) => t.letters));
+  const text = texts.filter((t) => t.letters > 0 && t.letters >= Math.max(3, best / 2)).map((t) => t.j);
+  const others = texts.filter((t) => !text.includes(t.j)).map((t) => t.j);
+  const roles = figureRoles(body.map(({ r }) => r), figures, sign);
+  if (!roles) return null;
+  return {
+    headerless: true, at: -1, from: body[0].i, to: body[body.length - 1].i, bodyIndexes: body.map(({ i }) => i),
+    keys: [], dates: [date], dayFirstHint, text: text.length ? [text] : [], fallbackText: others, party: [],
+    sign, currency: null, account: null, state: null, fee: null, coded: [], pairedBalances: null,
+    constAccount: account, constCurrency: currency, maskedCard: masked, ...roles,
+  };
+}
+
+/** The figure columns' parts: { amount | out and in, balance, balanceKind ('after'|'before'), start, end }, or null when unclear. */
+function figureRoles(rows, figures, sign) {
+  // Each figure column's values, read once with its own decimal mark.
+  const columns = new Map(figures.map((j) => {
+    const cells = rows.map((x) => cleanCell(x[j] ?? ''));
+    const mark = decimalMarkOf(cells);
+    return [j, cells.map((c) => csvAmount(c, 2, mark))];
+  }));
+  const at = new Map(rows.map((r, n) => [r, n]));
+  const value = (r, j) => (j == null ? null : columns.get(j)[at.get(r)]);
+  const signed = (r, j) => {
+    const v = value(r, j);
+    if (v == null || sign == null) return v;
+    const s = signOf(r[sign]);
+    return s === 0 ? v : s * Math.abs(v);
+  };
+  // Start, end and amount on every line (ABN AMRO): the start left of the end, each start the end
+  // of the line before it (in the file's order or the other way round).
+  for (const a of figures) for (const s of figures) for (const e of figures) {
+    if (a === s || a === e || s >= e) continue;
+    if (!rows.every((r) => { const x = signed(r, a); const b = value(r, s); const c = value(r, e); return x != null && b != null && c != null && b + x === c; })) continue;
+    const starts = rows.map((r) => value(r, s));
+    const ends = rows.map((r) => value(r, e));
+    const chained = (st, en) => st.every((v, i) => i === 0 || v === en[i - 1]);
+    if (rows.length < 2 || chained(starts, ends) || chained([...starts].reverse(), [...ends].reverse())) {
+      return { amount: a, out: null, in: null, balance: null, balanceKind: null, start: s, end: e };
+    }
+  }
+  const neverTogether = (p, q) => rows.every((r) => (value(r, p) == null) !== (value(r, q) == null));
+  const sources = [];
+  for (const a of figures) sources.push({ amount: a, of: (r) => signed(r, a) });
+  for (const p of figures) for (const q of figures) {
+    if (p >= q || !neverTogether(p, q)) continue;
+    const pair = (outCol, inCol) => (r) => {
+      const o = value(r, outCol);
+      const i = value(r, inCol);
+      return o != null ? -Math.abs(o) : i != null ? Math.abs(i) : null;
+    };
+    sources.push({ out: p, in: q, of: pair(p, q) });
+    sources.push({ out: q, in: p, of: pair(q, p) });
+  }
+  for (const b of figures) {
+    for (const src of sources) {
+      if (src.amount === b || src.out === b || src.in === b) continue;
+      const kind = runningKind(rows.map((r) => value(r, b)), rows.map(src.of));
+      if (kind) return { amount: src.amount ?? null, out: src.out ?? null, in: src.in ?? null, balance: b, balanceKind: kind, start: null, end: null };
+    }
+  }
+  if (figures.length === 1) return { amount: figures[0], out: null, in: null, balance: null, balanceKind: null, start: null, end: null };
+  if (figures.length === 2 && neverTogether(figures[0], figures[1])) {
+    return { amount: null, out: figures[0], in: figures[1], balance: null, balanceKind: null, start: null, end: null };
+  }
+  return null;
+}
+
+/**
+ * Whether balances follow from amounts, line by line, in the file's order or the other way round:
+ * 'after' when each is the one before plus its line, 'before' when each is the one before plus the
+ * line before it. Every line needs both, and there must be two lines or more.
+ */
+function runningKind(balances, amounts) {
+  if (balances.length < 2 || balances.some((b) => b == null) || amounts.some((a) => a == null)) return null;
+  const follows = (b, a, after) => b.every((v, i) => i === 0 || v === b[i - 1] + (after ? a[i] : a[i - 1]));
+  for (const after of [true, false]) {
+    if (follows(balances, amounts, after) || follows([...balances].reverse(), [...amounts].reverse(), after)) return after ? 'after' : 'before';
+  }
+  return null;
+}
+
+// --- Label: value text (Santander UK's .txt) ----------------------------------------------------
+
+/**
+ * **A file of `Label: value` lines** in blocks (Santander UK's statement .txt): each block with a
+ * date label and an amount label is a line; its labels, in the order first met, are the header.
+ * The blocks before the first line are read as the rows above a table.
+ */
+function labelValueTable(text) {
+  const blocks = [];
+  let block = null;
+  for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
+    const line = trimSpaces(raw.replace(/\t/g, ' '));
+    const m = line ? /^([^:]{1,40}?)\s*:\s*([\s\S]*)$/.exec(line) : null;
+    if (!m) { block = null; continue; }
+    if (!block) { block = []; blocks.push(block); }
+    block.push([trimSpaces(m[1]), trimSpaces(m[2])]);
+  }
+  const isLine = (b) => b.some(([l]) => WORDS.date.includes(csvKey(l))) && b.some(([l]) => [...WORDS.amount, ...WORDS.out, ...WORDS.in].includes(csvKey(l)));
+  const first = blocks.findIndex(isLine);
+  if (first < 0) return null;
+  const labels = [];
+  for (const b of blocks.slice(first)) for (const [l] of b) if (!labels.includes(l)) labels.push(l);
+  const rows = [
+    ...blocks.slice(0, first).flat(),
+    labels,
+    ...blocks.slice(first).filter(isLine).map((b) => labels.map((l) => b.find(([x]) => x === l)?.[1] ?? '')),
+  ];
+  const layout = findHeader(rows);
+  return layout && layout.at === blocks.slice(0, first).flat().length ? { rows, layout } : null;
+}
+
+// --- Reading the lines --------------------------------------------------------------------------
+
+/**
+ * **Rows → a statement**, by a header found (or columns told from the cells), or null when no line
+ * was read; `{ datesUnread: true }` when lines had amounts but no date could be read.
+ */
+function readTable(rows, layout, { fileName, dayFirstWhenUnsure, mainCurrency }) {
+  const c = layout;
+  const headerless = Boolean(c.headerless);
+  const header = headerless ? [] : rows[c.at];
+  const headerKeys = headerless ? [] : c.keys;
+  const cell = (r, j) => (j == null ? '' : cleanCell(r[j] ?? ''));
+  const after = headerless ? c.from : c.at + 1;
+  const candidates = headerless
+    ? c.bodyIndexes.map((i) => ({ r: rows[i], i }))
+    : rows.slice(after).map((r, k) => ({ r, i: after + k }));
+
+  // The date column: the first named whose filled cells are dates, half of them or more.
+  const date = c.dates.find((j) => {
+    const filled = candidates.map(({ r }) => cell(r, j)).filter(Boolean);
+    return filled.length > 0 && filled.filter(isDateCell).length * 2 >= filled.length;
+  });
+  if (date == null) {
+    const hadAmounts = candidates.some(({ r }) => cell(r, c.dates[0]) !== '' && [c.amount, c.out, c.in, ...c.coded.map((x) => x.index)].some((j) => csvAmount(cell(r, j)) != null));
+    return hadAmounts ? { datesUnread: true } : null;
+  }
+  const dated = candidates.filter(({ r }) => isDateCell(cell(r, date)));
+  const lastDated = dated.length ? dated[dated.length - 1].i : -1;
+  const above = rows.slice(0, headerless ? c.from : c.at);
+  const datedAt = new Set(dated.map((d) => d.i));
+  const below = rows.filter((r, i) => i > lastDated && i >= after && !datedAt.has(i));
+  const facts = surroundings(above, below);
+
+  // Two balance columns and no amount: the figures say which is which (BoursoBank's "Solde").
+  let amountCol = c.amount;
+  let balanceCol = c.balance;
+  let balanceKind = c.balanceKind ?? (c.balance != null ? 'after' : null);
+  if (c.pairedBalances) {
+    const [p, q] = c.pairedBalances;
+    const roles = figureRoles(dated.map(({ r }) => r), [p, q], null);
+    if (!roles || roles.amount == null || roles.balance == null) return null;
+    amountCol = roles.amount;
+    balanceCol = roles.balance;
+    balanceKind = roles.balanceKind;
+  }
+  // An amount column and a money out and in pair: the one filled on more lines (Deutsche Bank's
+  // empty "Betrag" beside "Soll" and "Haben").
+  let useAmount = amountCol != null;
+  if (amountCol != null && c.out != null && c.in != null) {
+    const filledAmount = dated.filter(({ r }) => cell(r, amountCol) !== '').length;
+    const filledPair = dated.filter(({ r }) => cell(r, c.out) !== '' || cell(r, c.in) !== '').length;
+    useAmount = filledAmount >= filledPair;
+  }
+
+  // Decimal marks, by column, then for the file.
+  const moneyCols = [amountCol, c.out, c.in, balanceCol, c.start, c.end, c.fee, ...c.coded.map((x) => x.index)].filter((j) => j != null);
+  const fileMark = decimalMarkOf(moneyCols.flatMap((j) => dated.map(({ r }) => cell(r, j))));
+  const marks = new Map(moneyCols.map((j) => [j, decimalMarkOf(dated.map(({ r }) => cell(r, j))) ?? fileMark]));
+  const figureCells = moneyCols.flatMap((j) => dated.map(({ r }) => cell(r, j))).filter(Boolean);
+
+  // The currency: the file's own, from its currency column, the headings, the rows around, the figures.
+  const columnCodes = c.currency == null ? [] : dated.map(({ r }) => cell(r, c.currency).toUpperCase()).filter(isCode);
+  const headingCode = headerless ? null
+    : [amountCol, c.out, c.in, balanceCol].filter((j) => j != null).map((j) => currencyNamed(header[j], { lastWordOnly: true })).find(Boolean) ?? null;
+  // A header in Japanese kana or in Hangul names no currency, but its amounts are whole yen or won.
+  const headerScript = header.join(' ');
+  const scriptCurrency = /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(headerScript) ? 'JPY' : /\p{Script=Hangul}/u.test(headerScript) ? 'KRW' : null;
+  const fileCurrency = (new Set(columnCodes).size === 1 ? columnCodes[0] : null) ?? c.constCurrency ?? (c.coded.length === 1 ? c.coded[0].code : null)
+    ?? headingCode ?? facts.currency ?? currencyOfFigures(figureCells) ?? scriptCurrency;
+
+  // The bank, and the order of the dates.
+  const texts = [header.join(' '), ...above.map((r) => r.join(' '))];
+  const bank = bankOf(fileName, headerKeys, texts);
+  const order = dateOrderOf(dated.map(({ r }) => cell(r, date)), {
+    bankOrder: bankDateOrder(bank), currency: fileCurrency, decimalComma: fileMark === ',' || decimalComma(figureCells),
+    mainCurrency, dayFirstWhenUnsure,
+  });
+
+  // A sign column told by its values (Capital One 360's "Transaction Type", PNC's "DEBIT"/"CREDIT"),
+  // only for an amount column that never prints a minus.
+  let signCol = c.sign;
+  if (signCol == null && useAmount && amountCol != null && !headerless) {
+    const unsigned = dated.every(({ r }) => (csvAmount(cell(r, amountCol), 2, marks.get(amountCol)) ?? 0) >= 0);
+    if (unsigned) {
+      signCol = header.map((h, j) => j).find((j) => {
+        const values = dated.map(({ r }) => cell(r, j)).filter(Boolean);
+        const signs = values.map(signOf);
+        return values.length > 0 && signs.every((s) => s !== 0) && signs.includes(-1) && signs.includes(1);
+      }) ?? null;
+    }
+  }
+
+  // The own account column: filled on every line, three numbers at most, each with four digits or
+  // more, and, when the rows above name the account, that one (DKB's old "Kontonummer" is the other side's).
+  const lineRows = dated.filter(({ r }) => !(c.state != null && isPending(cell(r, c.state))));
+  let accountCol = c.account;
+  if (accountCol != null) {
+    const values = lineRows.map(({ r }) => cell(r, accountCol));
+    const distinct = [...new Set(values)];
+    const digitsOf = (s) => s.replace(/\D/g, '');
+    const matchesAbove = (v) => !facts.number || digitsOf(facts.number).endsWith(digitsOf(v)) || digitsOf(v).endsWith(digitsOf(facts.number));
+    const own = values.every((v) => v !== '') && distinct.length <= 3 && distinct.every((v) => digitsOf(v).length >= 4 || validIban(v)) && distinct.every(matchesAbove);
+    if (!own) accountCol = null;
+  }
+
+  // The holder: a name in two columns of the other side (payer and payee: DKB), or a column of the
+  // other side with one name on every line beside another that varies (KBC's "Naam").
+  const partyCols = [...c.party];
+  let holder = facts.holder;
+  if (partyCols.length >= 2) {
+    const constant = partyCols.filter((j) => {
+      const v = lineRows.map(({ r }) => cell(r, j));
+      return lineRows.length >= 2 && v.every(Boolean) && new Set(v).size === 1;
+    });
+    if (constant.length && constant.length < partyCols.length) {
+      holder = holder ?? cell(lineRows[0].r, constant[0]);
+      for (const j of constant) partyCols.splice(partyCols.indexOf(j), 1);
+    }
+    const seenIn = new Map();
+    for (const j of partyCols) for (const { r } of lineRows) {
+      const v = cell(r, j);
+      if (!v) continue;
+      if (!seenIn.has(v)) seenIn.set(v, new Set());
+      seenIn.get(v).add(j);
+    }
+    const both = [...seenIn.entries()].filter(([, cols]) => cols.size >= 2).map(([v]) => v);
+    if (both.length) holder = holder ?? both[0];
+  }
+  const sameAsHolder = (v) => holder != null && csvKey(v) === csvKey(holder);
+  // The text columns: the one with words on the most lines first; then one that holds more than
+  // codes (a code: one word of 16 characters at most, no small letters: DBS's "Reference" holds
+  // MST, GIRO, its "Transaction Ref1" the payee); then the first named.
+  const linesOf = (family) => lineRows.filter(({ r }) => family.some((j) => /\p{L}/u.test(cell(r, j)))).length;
+  const codesOnly = (family) => lineRows.every(({ r }) => family.every((j) => {
+    const v = cell(r, j);
+    return v === '' || (/^\S{1,16}$/.test(v) && !/\p{Ll}/u.test(v));
+  }));
+  const textFamilies = c.text.map((family, n) => ({ family, n, lines: linesOf(family), codes: codesOnly(family) ? 1 : 0 }))
+    .sort((a, b) => b.lines - a.lines || a.codes - b.codes || a.n - b.n).map((t) => t.family);
+  const describing = new Set([...partyCols, ...c.text.flat()]);
+  const carriedOn = new Map();
+  let lastLine = null;
+  for (const { r, i } of candidates) {
+    if (isDateCell(cell(r, date))) { lastLine = i; continue; }
+    const filled = r.map((x, j) => [j, cleanCell(x)]).filter(([, v]) => v !== '');
+    if (lastLine != null && filled.length && filled.every(([j]) => describing.has(j))) {
+      if (!carriedOn.has(lastLine)) carriedOn.set(lastLine, []);
+      carriedOn.get(lastLine).push(filled.map(([, v]) => v).join(' '));
+    } else lastLine = null;
+  }
+
+  const keysInOrder = [];
+  const built = new Map();
+  const inTable = { opening: null, closing: null };
+  for (const { r, i: rowIndex } of lineRows) {
+    const day = csvDate(cell(r, date), order.dayFirst);
+    if (!day) continue;
+    const coded = c.coded.find((x) => cell(r, x.index) !== '');
+    const rowCode = cell(r, c.currency).toUpperCase();
+    const currency = (isCode(rowCode) ? rowCode : null) ?? coded?.code ?? fileCurrency ?? null;
+    // No currency named: the figures are in the one the review will take, the person's main one.
+    const digits = minorDigits(currency ?? mainCurrency ?? null);
+    const figure = (j) => (j == null ? null : csvAmount(cell(r, j), digits, marks.get(j) ?? null));
+    let amount;
+    if (coded) amount = figure(coded.index);
+    else if (useAmount) {
+      amount = figure(amountCol);
+      if (amount != null && signCol != null) {
+        const s = signOf(cell(r, signCol));
+        if (s !== 0) amount = s * Math.abs(amount);
+      }
+      const fee = figure(c.fee);
+      if (fee != null && amount != null) amount -= Math.abs(fee);
+    } else {
+      const o = figure(c.out);
+      const i = figure(c.in);
+      amount = o == null && i == null ? null : (i == null ? 0 : Math.abs(i)) - (o == null ? 0 : Math.abs(o));
+    }
+    if (amount == null) continue;
+    // What it was: the other side's name (not an account number, not the holder's), then the text
+    // column that says most (a later one that holds it whole, and more, instead), then any rows that
+    // carry it on.
+    const words = [];
+    const add = (w) => {
+      const v = collapse(w);
+      if (v && !sameAsHolder(v) && !words.some((x) => x.toLowerCase() === v.toLowerCase())) words.push(v);
+    };
+    for (const j of partyCols) {
+      const v = cell(r, j);
+      if (!looksLikeAccountNumber(v)) add(v);
+    }
+    const familyTexts = textFamilies.map((family) => collapse(family.map((j) => cell(r, j)).filter(Boolean).join(' · ')));
+    let said = familyTexts[0] ?? '';
+    // A later text column that holds the first whole, and more (Société Générale's "Détail de l'écriture").
+    for (const t of familyTexts.slice(1)) if (said && t.length > said.length && t.toLowerCase().includes(said.toLowerCase())) said = t;
+    // Nothing on this line yet: the first text column with words (Belfius's "Transactie" when "Mededelingen" is empty).
+    if (!said && !words.length) said = familyTexts.find(Boolean) ?? '';
+    add(said);
+    for (const more of carriedOn.get(rowIndex) ?? []) add(more);
+    if (!words.length && c.kind != null) add(cell(r, c.kind));
+    if (!words.length) for (const j of c.fallbackText ?? []) add(cell(r, j));
+    // A row of the table that is a balance or a total, not a line (Swedbank Estonia's "Algsaldo",
+    // "Käive", "Lõppsaldo"): its words are only that label.
+    const said_ = csvKey(words.join(' '));
+    if (said_ && (WORDS.opening.includes(said_) || WORDS.closing.includes(said_))) {
+      inTable[WORDS.opening.includes(said_) ? 'opening' : 'closing'] ??= amount;
+      continue;
+    }
+    if (said_ && WORDS.totals.includes(said_)) continue;
+    let running = null;
+    if (c.start != null) running = figure(c.end);
+    else if (balanceCol != null) running = balanceKind === 'before' ? (figure(balanceCol) == null ? null : figure(balanceCol) + amount) : figure(balanceCol);
+    const number = accountCol != null ? cell(r, accountCol) : '';
+    const key = `${number}|${currency ?? ''}`;
+    if (!built.has(key)) {
+      built.set(key, { number: number || null, currency, lines: [], starts: [] });
+      keysInOrder.push(key);
+    }
+    const b = built.get(key);
+    b.lines.push(line({ date: day, description: words.join(' · '), amount, running }));
+    b.starts.push(c.start != null ? figure(c.start) : null);
+  }
+  if (!keysInOrder.length) return null;
+
+  const card = cardExport(bank, headerKeys, fileName, { balance: balanceCol != null, sign: signCol != null }) || Boolean(c.maskedCard);
+  const fileNameNumber = (() => {
+    const name = baseName(fileName);
+    if (bank) {
+      const re = new RegExp(`(?<![A-Za-z])${escapeRe(bank.brand)}[ _-]?(\\d{4})(?!\\d)`, 'i');
+      const m = re.exec(name);
+      if (m) return { ref: `CSV:${bank.brand}:${m[1]}`, last4: m[1] };
+    }
+    const wise = /statement_(\d+)_/.exec(name);
+    if (wise) return { ref: `CSV:${wise[1]}`, last4: wise[1].slice(-4) };
+    const iban = ibansIn(name.replace(/[_.]/g, ' '))[0];
+    return iban ? { ref: `CSV:${iban}`, last4: iban.slice(-4), number: iban } : null;
+  })();
+  const currencies = new Set(keysInOrder.map((k) => built.get(k).currency));
+  const accounts = keysInOrder.map((k) => {
+    const b = built.get(k);
+    // Oldest first: by the dates; when the first and last share a day, by the balances.
+    const days = b.lines.map((l) => l.date);
+    const reversed = days[0] > days[days.length - 1]
+      || (days[0] === days[days.length - 1] && b.lines.length > 1 && b.lines[0].running != null
+        && runningKind(b.lines.map((l) => l.running), b.lines.map((l) => l.amount)) === 'after'
+        && !b.lines.every((l, i) => i === 0 || l.running === b.lines[i - 1].running + l.amount));
+    if (reversed) { b.lines.reverse(); b.starts.reverse(); }
+    if (card && useAmount && !c.coded.length && chargesPrintedPositive(bank, b.lines)) for (const l of b.lines) l.amount = -l.amount;
+    const number = b.number ?? facts.number ?? c.constAccount ?? fileNameNumber?.number ?? null;
+    const ref = number ? `CSV:${number.toUpperCase().replace(/\s/g, '')}` : fileNameNumber?.ref ?? null;
+    const digitsOnly = (number ?? fileNameNumber?.last4 ?? '').replace(/\D/g, '');
+    const brand = bank?.brand ?? null;
+    let name = brand ? (card && !/card/i.test(brand) ? `${brand} card` : brand) : card ? 'Card' : 'Account';
+    if (digitsOnly.length >= 4) name += ` ·· ${digitsOnly.slice(-4)}`;
+    if (currencies.size > 1 && b.currency) name += ` ${b.currency}`;
+    const acct = account({
+      ref, number, numbers: digitsOnly.length >= 8 ? [digitsOnly] : [], name,
+      type: card ? 'card' : 'current', owed: card, currency: b.currency, lines: b.lines,
+    });
+    if (headerless) acct.notes.push('read without a header: check each line');
+    const first = b.lines[0];
+    const last = b.lines[b.lines.length - 1];
+    const sum = b.lines.reduce((t, l) => t + l.amount, 0);
+    if (c.start != null && b.starts[0] != null) {
+      acct.opening = b.starts[0];
+      acct.closing = last.running;
+    } else if (first.running != null) {
+      acct.opening = card ? first.running + first.amount : first.running - first.amount;
+      acct.closing = last.running;
+    } else if (keysInOrder.length === 1 && (inTable.opening != null || inTable.closing != null)) {
+      balancesAround(acct, { ...facts, opening: null, closing: null, unlabelled: [] }, sum, b.currency ?? mainCurrency, lastDayOf(b.lines), card,
+        { opening: inTable.opening, closing: inTable.closing });
+    } else {
+      balancesAround(acct, facts, sum, b.currency ?? mainCurrency, lastDayOf(b.lines), card);
+    }
+    if (acct.closing == null) acct.notes.push('no balance in the file');
+    return acct;
+  });
+  if (!accounts.length) return null;
+  const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
+  for (const a of accounts) finishAccount(a, a.closing == null);
+  const periodDay = (s) => (s ? csvDate(s, order.dayFirst) : null);
+  return {
+    reader: 'CSV', institution: bank?.brand ?? null, country: bank?.country ?? null, general: headerless, fileName,
+    holder: holder ?? null,
+    period: { from: periodDay(facts.from) ?? lineDates[0] ?? null, to: periodDay(facts.to) ?? lineDates[lineDates.length - 1] ?? null },
+    dateOrder: order.order, dateOrderGuessed: order.guessed, accounts,
+  };
+}
+
+const lastDayOf = (lines) => lines.map((l) => l.date).filter(Boolean).sort().pop() ?? null;
+
+/**
+ * **Balances from the rows around the table**, for an account whose lines carry none: rows of the
+ * table that are its balances (`read`); the labelled opening and closing; failing those, a row of
+ * two figures the lines lead from one to the other
+ * (PNC's first row), one figure dated on or after the last line (BNP Paribas's first row), or a lone
+ * figure below the lines that isn't their total (LCL). Only the closing known: the opening is worked
+ * back from the lines (`openingWorkedOut`); only the opening: the closing is worked out.
+ */
+function balancesAround(acct, facts, sum, currency, lastDay, owed, read = {}) {
+  const digits = minorDigits(currency);
+  const amount = (s) => (s == null ? null : csvAmount(s, digits));
+  const lead = (from) => (owed ? from - sum : from + sum);
+  let opening = read.opening ?? amount(facts.opening);
+  let closing = read.closing ?? amount(facts.closing);
+  if (opening == null && closing == null) {
+    for (const u of facts.unlabelled) {
+      const values = u.figures.map((f) => amount(f));
+      if (u.place === 'above' && values.length === 2 && values.every((v) => v != null) && lead(values[0]) === values[1]) {
+        [opening, closing] = values;
+        break;
+      }
+      const dayOf = u.dates.map((d) => csvDate(d, true) ?? csvDate(d, false)).find(Boolean);
+      if (u.place === 'above' && values.length === 1 && dayOf && lastDay && dayOf >= lastDay) { closing = values[0]; break; }
+      if (u.place === 'below' && values.length === 1 && values[0] != null && values[0] !== sum) { closing = values[0]; break; }
+    }
+  }
+  if (opening != null) acct.opening = opening;
+  if (closing != null) acct.closing = closing;
+  if (opening != null && closing == null) {
+    acct.closing = lead(opening);
+    acct.closingWorkedOut = true;
+  } else if (closing != null && opening == null) {
+    acct.opening = owed ? closing + sum : closing - sum;
+    acct.openingWorkedOut = true;
+  }
+}
 
 export const CSV_READERS = [INTLWise];
 
 /**
- * One CSV file → one statement: Wise's own, then any bank's, found from its header. A statement
- * with no accounts when no reader knows its columns. `dayFirstWhenUnsure` settles dates that
- * could be read either way when nothing in the file does: false when the main currency is the
- * US dollar.
+ * **One CSV file → one statement**: Wise's own; else any bank's, read from its header (comma,
+ * semicolon, tab or bar, or what Excel's "sep=" line says), then without a header, then as
+ * `Label: value` blocks. A statement with no accounts when nothing reads it: `datesUnread` when its
+ * lines' dates couldn't be read (the phone says "Its dates couldn't be read."), `unknownCsv` always.
+ * `dayFirstWhenUnsure` and `mainCurrency` settle dates that could be read either way when nothing in
+ * the file does (see `dateOrderOf`).
  */
-export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
+export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = true, mainCurrency = null } = {}) {
   const rows = parseCsv(text);
   const reader = rows.length ? CSV_READERS.find((r) => r.recognises(rows[0])) : null;
-  if (!reader) {
-    // The separator is the one whose header reads: a comma, or the semicolon or tab of banks
-    // whose decimal mark is a comma.
-    for (const separator of [',', ';', '\t']) {
-      const statement = BankCSV.read(separator === ',' ? rows : parseCsv(text, separator), fileName, dayFirstWhenUnsure);
-      if (statement) return statement;
+  if (reader) {
+    const read = reader.read(rows, fileName);
+    for (const a of read.accounts) {
+      a.check = check(a);
+      // No lines: nothing to check and no balance known. Not a failure; not a pass either.
+      if (!a.lines.length) a.check = UNCHECKED();
     }
-    return { reader: null, fileName, accounts: [], unknownCsv: true };
+    return {
+      reader: reader.id, institution: reader.institution, country: reader.country, general: false,
+      fileName, holder: read.holder, period: read.period, accounts: read.accounts,
+    };
   }
-  const read = reader.read(rows, fileName);
-  for (const a of read.accounts) {
-    a.check = check(a);
-    // No lines: nothing to check and no balance known. Not a failure; not a pass either.
-    if (!a.lines.length) a.check = UNCHECKED();
-  }
-  return {
-    reader: reader.id, institution: reader.institution, country: reader.country, general: false,
-    fileName, holder: read.holder, period: read.period, accounts: read.accounts,
+  const options = { fileName, dayFirstWhenUnsure, mainCurrency };
+  const sep = /^\uFEFF?sep=([,;\t|])[^\S\n]*\r?\n/i.exec(text);
+  const body = sep ? text.slice(sep[0].length) : text;
+  const tables = (sep ? [sep[1]] : [',', ';', '\t', '|']).map((s) => (s === ',' && !sep ? rows : parseCsv(body, s)));
+  let datesUnread = false;
+  const tried = (statement) => {
+    if (statement?.datesUnread) datesUnread = true;
+    return statement?.accounts?.length ? statement : null;
   };
+  for (const table of tables) {
+    const layout = findHeader(table);
+    const statement = layout && tried(readTable(table, layout, options));
+    if (statement) return statement;
+  }
+  for (const table of tables) {
+    const layout = inferLayout(table);
+    const statement = layout && tried(readTable(table, layout, options));
+    if (statement) return statement;
+  }
+  const blocks = labelValueTable(body);
+  const statement = blocks && tried(readTable(blocks.rows, blocks.layout, options));
+  if (statement) return statement;
+  return { reader: null, fileName, accounts: [], unknownCsv: true, datesUnread };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1396,16 +2307,145 @@ export const isOfxName = (name) => OFX_EXTENSIONS.includes((name.split('.').pop(
 export const looksLikeOfx = (text) => text.slice(0, 2000).includes('OFXHEADER') || /<OFX>/i.test(text);
 
 /**
- * A bank file's bytes as text, as the app reads every file that isn't a PDF: UTF-8, or Windows
- * Latin-1 when the header says so or the bytes aren't UTF-8 (an older bank's MT940 or CSV).
+ * The code pages a bank's file may be in when it isn't Unicode: Windows Latin first (it wins a
+ * tie), then Central European, Cyrillic, Greek, Turkish, Baltic, ISO Latin 2, and the CJK ones.
+ * Swift: .windowsCP1252, .windowsCP1250, .windowsCP1251, .windowsCP1253, .windowsCP1254,
+ * CFStringEncodings.windowsBalticRim (1257), .isoLatin2, .shiftJIS, .japaneseEUC,
+ * CFStringEncodings.GB_18030_2000 (gbk), .big5_HKSCS_1999 (big5), .dosKorean (euc-kr, which is
+ * windows-949 on the web), each through CFStringConvertEncodingToNSStringEncoding.
  */
-export function ofxText(bytes) {
-  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 400));
-  if (!head.includes('CHARSET:1252')) {
-    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { /* not UTF-8 */ }
+const SINGLE_BYTE_PAGES = ['windows-1252', 'windows-1250', 'windows-1251', 'windows-1253', 'windows-1254', 'windows-1257', 'iso-8859-2'];
+const MULTI_BYTE_PAGES = ['shift_jis', 'euc-jp', 'gbk', 'big5', 'euc-kr'];
+
+/** UTF-16 without a byte order mark: NUL in most of one half of the first 400 bytes' pairs and almost none of the other. */
+function utf16Unmarked(bytes) {
+  const n = Math.min(bytes.length - (bytes.length % 2), 400);
+  if (n < 4) return null;
+  let even = 0;
+  let odd = 0;
+  for (let i = 0; i < n; i += 2) {
+    if (bytes[i] === 0) even++;
+    if (bytes[i + 1] === 0) odd++;
   }
-  return new TextDecoder('windows-1252').decode(bytes);
+  const pairs = n / 2;
+  if (odd >= pairs * 0.3 && even <= pairs * 0.05) return 'utf-16le';
+  if (even >= pairs * 0.3 && odd <= pairs * 0.05) return 'utf-16be';
+  return null;
 }
+
+/** The lines (up to 64 KB of them) that hold a byte of 0x80 or more: where code pages differ. */
+function linesBeyondAscii(bytes) {
+  const parts = [];
+  let size = 0;
+  let start = 0;
+  for (let i = 0; i <= bytes.length && size < 65536; i++) {
+    if (i < bytes.length && bytes[i] !== 0x0A) continue;
+    let beyond = false;
+    for (let k = start; k < i && !beyond; k++) beyond = bytes[k] >= 0x80;
+    if (beyond) {
+      parts.push(bytes.subarray(start, Math.min(i + 1, bytes.length)));
+      size += i + 1 - start;
+    }
+    start = i + 1;
+  }
+  const out = new Uint8Array(parts.reduce((t, p) => t + p.length, 0));
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.length; }
+  return out;
+}
+
+/**
+ * A letter's script, as far as telling code pages apart needs: Latin, Chinese and Japanese, Hangul,
+ * Cyrillic, Greek, or other. By Unicode's Script_Extensions, so the long vowel mark "ー" is Japanese.
+ */
+function scriptOf(c) {
+  if (/\p{scx=Latin}/u.test(c)) return 'Latin';
+  if (/[\p{scx=Han}\p{scx=Hiragana}\p{scx=Katakana}]/u.test(c)) return 'CJ';
+  if (/\p{scx=Hangul}/u.test(c)) return 'Hangul';
+  if (/\p{scx=Cyrillic}/u.test(c)) return 'Cyrillic';
+  if (/\p{scx=Greek}/u.test(c)) return 'Greek';
+  return 'Other';
+}
+
+const isLetter = (c) => c !== undefined && /\p{L}/u.test(c);
+
+/**
+ * How much a reading looks like words, over its characters beyond ASCII: +1 for a letter beside a
+ * letter of its own script; -1 for a letter of another script inside a word, or for a character
+ * that is neither a letter nor a space between two letters that aren't Chinese, Japanese or Korean
+ * ("P³atno": windows-1250's ł read as 1252); -2 for a control character or an unreadable byte (0x80
+ * to 0x9F, U+FFFD); and, for a word of three letters or more made only of accented Latin letters
+ * ("Äàòà": Cyrillic read as Latin), minus its length.
+ */
+function readingScore(text) {
+  const chars = Array.from(text);
+  let score = 0;
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
+    const code = c.codePointAt(0);
+    if (code < 0x80) continue;
+    if (code < 0xA0 || code === 0xFFFD) { score -= 2; continue; }
+    const before = chars[i - 1];
+    const after = chars[i + 1];
+    if (isLetter(c)) {
+      const script = scriptOf(c);
+      if ((isLetter(before) && scriptOf(before) === script) || (isLetter(after) && scriptOf(after) === script)) score += 1;
+      else if (isLetter(before) && isLetter(after)) score -= 1;
+    } else if (isLetter(before) && isLetter(after) && !/\p{Z}/u.test(c)
+      && !['CJ', 'Hangul'].includes(scriptOf(before)) && !['CJ', 'Hangul'].includes(scriptOf(after))) score -= 1;
+  }
+  for (const word of text.match(/\p{L}{3,}/gu) ?? []) {
+    if (/^[\u00C0-\u024F]+$/u.test(word)) score -= word.length;
+  }
+  return score;
+}
+
+/** Every heading word of `csv-words` as a key, for telling apart readings that look alike ("Číslo účtu" against "Èíslo úètu"). */
+const HEADING_KEYS = new Set(['date', 'text', 'party', 'amount', 'out', 'in', 'balance', 'currency', 'account', 'counterAccount', 'state', 'fee', 'sign']
+  .flatMap((name) => WORDS[name]));
+
+/** How many cells of the first 60 lines are heading words. */
+function headingWords(text) {
+  let n = 0;
+  for (const row of text.split('\n').slice(0, 60)) for (const cell of row.split(/[,;\t|]/)) if (HEADING_KEYS.has(csvKey(cell))) n++;
+  return n;
+}
+
+/**
+ * **A file's bytes as text**, for every text format (CSV, TSV, OFX, MT940, CAMT, QIF, .txt):
+ * 1. a byte order mark: UTF-8, UTF-16 LE or BE;
+ * 2. no mark, but NUL in alternate bytes: UTF-16 (little-endian when the NULs come second);
+ * 3. an OFX header's `CHARSET:1252` (or another Windows page, 1250 to 1258): that page;
+ * 4. valid UTF-8: UTF-8;
+ * 5. else each of the code pages above reads the lines that differ (the CJK ones refusing bytes
+ *    they can't read), and the reading with the most points wins: `readingScore`, plus 10 for each
+ *    cell of the first 60 lines that is a heading word; the first on a tie (windows-1252).
+ * The same as the app's StatementText.decode.
+ */
+export function decodeText(bytes) {
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) return new TextDecoder('utf-8').decode(b);
+  if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(b);
+  if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
+  const wide = utf16Unmarked(b);
+  if (wide) return new TextDecoder(wide).decode(b);
+  const head = new TextDecoder('windows-1252').decode(b.subarray(0, 400));
+  const charset = /CHARSET:\s*(125[0-8])/i.exec(head);
+  if (charset) return new TextDecoder(`windows-${charset[1]}`).decode(b);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { /* not UTF-8 */ }
+  const sample = linesBeyondAscii(b);
+  let best = null;
+  for (const page of [...SINGLE_BYTE_PAGES, ...MULTI_BYTE_PAGES]) {
+    let text;
+    try { text = new TextDecoder(page, { fatal: MULTI_BYTE_PAGES.includes(page) }).decode(sample); } catch { continue; }
+    const score = readingScore(text) + 10 * headingWords(text);
+    if (!best || score > best.score) best = { page, score };
+  }
+  return new TextDecoder(best ? best.page : 'windows-1252').decode(b);
+}
+
+/** A bank file's bytes as text: `decodeText`, by the name every reader has used. */
+export const ofxText = (bytes) => decodeText(bytes);
 
 const ofxUnescape = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
   .replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');

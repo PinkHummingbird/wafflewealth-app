@@ -198,3 +198,15 @@ test('only an account that can be chosen, and each once', () => {
   assert.throws(() => run(statement, [{ include: true, name: 'x', accountId: 'acc-9' }, { include: true, name: 'y', accountId: 'acc-9' }], { choosable: () => [mine] }),
     (e) => e.code === 'sameAccountTwice');
 });
+
+test('no dates: an account whose lines have none and whose statement has no last day is refused, and says so', () => {
+  const account = { ...current(), lines: [line(null, -10_000), line(null, 7_000)], opening: 100_000, closing: 97_000 };
+  const statement = { reader: 'CSV', fileName: 'export.csv', period: { from: null, to: null }, accounts: [account] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]),
+    (e) => e.code === 'noDates' && e.reason === "Mine: no dates were read from this file, so it can't be added.");
+  // Left out, nothing is asked of it.
+  assert.equal(run(statement, [{ include: false, name: 'Mine' }]).records.length, 1);
+  // A last day from the lines is enough.
+  const dated = { ...statement, accounts: [{ ...account, lines: [line('2026-09-03', -3_000)] }] };
+  assert.ok(run(dated, [{ include: true, name: 'Mine' }]).balances >= 1);
+});

@@ -361,13 +361,13 @@ let ENGINES={}; let submit2;
   // a statement read here: stub reader, the real save
   {
     const save = await import(require('url').pathToFileURL(require('path').join(__dirname,'..','statement-save.mjs')).href);
-    const made = (sha, closing) => ({ reader:'SG-UOB', institution:'Made-up Bank', fileName:'aug.csv', period:{from:'2026-08-01',to:'2026-09-30'}, sha256:sha,
+    const made = (sha, closing) => ({ reader:'SG-UOB', institution:'Made-up Bank', fileName:'aug.csv', period:{from:'2026-08-01',to:'2026-09-30'}, sha256:sha, dateOrder:'MDY', dateOrderGuessed:true,
       accounts:[{ ref:'SG-UOB:111', name:'Made-up Bank ·· 0111', type:'current', owed:false, currency:'SGD', ratePct:null, closes:null, closed:false,
         opening:100000, closing, check:{ok:true,checked:true}, lines:[
           {date:'2026-08-20',madeOn:null,description:'Made-up grocer',amount:-10000,running:null,ref:null,foreign:null,label:'out'},
           {date:'2026-09-03',madeOn:null,description:'Made-up pay',amount:closing-90000,running:null,ref:null,foreign:null,label:'in'}]}] });
     let next=made('a'.repeat(64), 95000);
-    w.WWStatementModules={ ...save, readDocument: async ()=>({statements:[next], problems:[]}) };
+    w.WWStatementModules={ ...save, readDocument: async (name, bytes, opts)=>{ w.__readOpts=opts; return {statements:[next], problems:[]}; } };
     d.getElementById('tab-documents').click();
     const up=d.getElementById('file'); Object.defineProperty(up,'files',{value:[new w.File(['made,up\n'],'aug.csv')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
     const doc1=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='aug.csv');
@@ -376,6 +376,8 @@ let ENGINES={}; let submit2;
     readBtn.click(); await sleep(150);
     ok(!d.getElementById('review').hidden && /Adds up/.test(d.getElementById('review').textContent),'statement: reviewed, the check shown: '+d.getElementById('review').textContent.replace(/\s+/g,' ').slice(0,300));
     ok(d.querySelector('[data-review-include="0:0"]').checked,'statement: kept by default');
+    ok(/The dates could be read either way: they're read month first \(09\/02 is 2 September\)\./.test(d.getElementById('review').textContent),'statement: dates that could be read either way say how they were read');
+    ok(w.__readOpts && /^[A-Z]{3}$/.test(w.__readOpts.mainCurrency) && typeof w.__readOpts.dayFirstWhenUnsure==='boolean','statement: read with the main currency: '+JSON.stringify(w.__readOpts));
     ok(!/Below zero/.test(d.getElementById('review').textContent),'statement: no overdraft note when nothing is below zero');
     setVal(d,'rv-name-0-0','My SGD account'); d.getElementById('rv-name-0-0').dispatchEvent(new w.Event('input',{bubbles:true}));
     w.__ck.atomics=[];
