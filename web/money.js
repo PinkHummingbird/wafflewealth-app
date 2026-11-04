@@ -1,14 +1,21 @@
 /* WaffleWealth on the web: money, dates and categories.
    The app's rules, in the browser: an amount is a whole number of the currency's smallest unit
-   (cents, fils), never a fraction of a float; a currency has the decimals Intl says it has, the
-   same table the iPhone uses; a date is a calendar day, YYYY-MM-DD, with no time zone. */
+   (cents, fils), never a fraction of a float; a currency has the decimals the app's currency table
+   gives it (the nine it seeds as BUILD.md has them, the rest as Intl says); a date is a calendar day, YYYY-MM-DD, with no time zone. */
 (function () {
   "use strict";
 
   const scaleCache = new Map();
 
-  /** How many decimals a currency is written with: 2 for USD, 0 for JPY, 3 for KWD. */
+  /** The nine currencies the app seeds, at the scales BUILD.md gives them: none for the yen, two for
+      the rest, the rupiah too, though newer browsers' currency data gives it none. A balance in
+      iCloud is minor units at the phone's scale, so the website must count them alike. */
+  const SEEDED = { AED: 2, USD: 2, SGD: 2, EUR: 2, GBP: 2, HKD: 2, CAD: 2, IDR: 2, JPY: 0 };
+
+  /** How many decimals a currency is written with: 2 for USD, 0 for JPY, 3 for KWD. The nine the
+      app seeds as it seeds them; every other as Intl gives it, as the phone's NumberFormatter does. */
   function scale(code) {
+    if (Object.prototype.hasOwnProperty.call(SEEDED, code)) return SEEDED[code];
     if (scaleCache.has(code)) return scaleCache.get(code);
     let digits = 2;
     try {

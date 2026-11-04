@@ -41,10 +41,19 @@ test('categories match the app', () => {
   assert.equal(M.categories.out.length, 16);
 });
 
+test('the nine currencies the app seeds count decimals as BUILD.md has them, whatever Intl says (the rupiah has two)', () => {
+  const seeded = { AED: 2, USD: 2, SGD: 2, EUR: 2, GBP: 2, HKD: 2, CAD: 2, IDR: 2, JPY: 0 };
+  for (const [code, digits] of Object.entries(seeded)) assert.equal(M.scale(code), digits, code);
+  assert.equal(M.parseAmount('10,000,000.50', 'IDR').minor, 1_000_000_050);
+  assert.equal(M.scale('KWD'), 3);
+});
+
 test('a statement is read in the decimals the phone reads it in: the readers’ table is the app’s (StatementText.minorDigits)', async () => {
   const { minorDigits } = await import('../../statements/readers.js');
   const zero = ['CLP', 'ISK', 'JPY', 'KRW', 'PYG', 'UGX', 'VND', 'XAF', 'XOF'];
   const three = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'];
   const { CSV_WORDS } = await import('../../statements/csv-words.js');
   for (const code of CSV_WORDS.isoCurrencies) assert.equal(minorDigits(code), zero.includes(code) ? 0 : three.includes(code) ? 3 : 2, code);
+  // And for the nine the app seeds, the website's money agrees.
+  for (const code of ['AED', 'USD', 'SGD', 'EUR', 'GBP', 'HKD', 'CAD', 'IDR', 'JPY']) assert.equal(minorDigits(code), M.scale(code), code);
 });
