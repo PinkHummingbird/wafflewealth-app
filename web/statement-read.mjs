@@ -7,11 +7,11 @@ import * as pdfjs from '../statements/vendor/pdfjs/pdf.min.mjs';
 import {
   pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
   ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines,
-} from '../statements/readers.js?v=26';
+} from '../statements/readers.js?v=27';
 import { fingerprint } from './statement-save.mjs?v=26';
 
 // Putting a reading right, as the app does: the same functions the statements page uses.
-export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=26';
+export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=27';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('../statements/vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
@@ -31,8 +31,11 @@ const isPdf = (bytes) => bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 
  * A bank's download is known by what is in it before its name, as in the app: banks name the
  * same file many ways. OFX first, then (for anything that isn't a PDF) CAMT, MT940 and QIF, then
  * a CSV read from its header for a file named .csv or as a bank file; a PDF last.
+ *
+ * `dayFirstWhenUnsure` settles a CSV's or QIF's dates that could be read either way when nothing
+ * in the file does: the page passes false when the main currency is the US dollar, as the app does.
  */
-export async function readDocument(name, bytes) {
+export async function readDocument(name, bytes, { dayFirstWhenUnsure = true } = {}) {
   const statements = [];
   const problems = [];
   // A bank's download (OFX, QFX, QBO) is read exactly as the bank sent it, and hashed on its bytes
@@ -51,7 +54,7 @@ export async function readDocument(name, bytes) {
     const reader = looksLikeCamt(text) ? readCamtStatement : looksLikeMt940(text) ? readMt940Statement
       : looksLikeQif(text) ? readQifStatement : kind === 'csv' || kind === 'bank' ? readCsvStatement : null;
     if (!reader) return false;
-    const statement = reader(text, { fileName });
+    const statement = reader(text, { fileName, dayFirstWhenUnsure });
     if (statement.accounts.length) statements.push({ ...statement, sha256: await fingerprint(fileName, data) });
     else problems.push(`${fileName}: ${kind === 'csv'
       ? 'its columns weren’t recognised: it needs a date and an amount, or money in and money out.'

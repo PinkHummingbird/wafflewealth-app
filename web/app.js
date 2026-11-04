@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=26"), import("./statement-save.mjs?v=26")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=27"), import("./statement-save.mjs?v=26")]);
     const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
     return { ...read, ...save, match };
   }
@@ -641,7 +641,8 @@
     try {
       const mods = await statementModules();
       const bytes = await store.documentBytes(doc);
-      const { statements, problems } = await mods.readDocument(doc.f.file_name, bytes);
+      // Dates that read either way in a bank's CSV or QIF follow the main currency, as on the phone.
+      const { statements, problems } = await mods.readDocument(doc.f.file_name, bytes, { dayFirstWhenUnsure: store.baseCurrency() !== "USD" });
       state.review = {
         doc, reading: false, problems, mods,
         statements: statements.map((st) => ({ ...st, already: store.statementRead(st.sha256) })),

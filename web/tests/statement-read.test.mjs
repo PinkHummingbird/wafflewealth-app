@@ -81,3 +81,11 @@ test('read here: what isn’t a statement says so', async () => {
   assert.match((await readDocument('notes.qif', bytes('hello'))).problems[0], /no statement was found/);
   assert.match((await readDocument('photo.heic', bytes('hello'))).problems[0], /isn’t a statement WaffleWealth reads/);
 });
+
+test('read here: dates that read either way follow the main currency the page passes in', async () => {
+  const plain = bytes('Date,Description,Amount\n09/02/2026,Shop,-5.00\n09/01/2026,Pay,10.00\n');
+  const inDollars = await readDocument('export.csv', plain, { dayFirstWhenUnsure: false });
+  assert.equal(inDollars.statements[0].accounts[0].lines[0].date, '2026-09-01');
+  const elsewhere = await readDocument('export.csv', plain);
+  assert.equal(elsewhere.statements[0].accounts[0].lines[0].date, '2026-01-09');
+});

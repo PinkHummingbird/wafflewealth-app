@@ -203,6 +203,12 @@ L[Current]
   assert.equal(account.closing, 8_000);
 });
 
+test('QIF: dates that read either way follow the main currency', () => {
+  const text = '!Type:Bank\nD09/01/2026\nT10.00\nPPay\n^\nD09/02/2026\nT-5.00\nPShop\n^\n';
+  assert.equal(readQifStatement(text, { dayFirstWhenUnsure: false }).accounts[0].lines[0].date, '2026-09-01');
+  assert.equal(readQifStatement(text).accounts[0].lines[0].date, '2026-01-09');
+});
+
 test('QIF: a bank file is its lines, with the opening it gives', () => {
   const text = `!Type:Bank
 D01/08/2026
@@ -351,6 +357,25 @@ test('CSV: a currency in the heading is the account’s', () => {
   assert.equal(account.closing, 98_770);
   assert.ok(account.check.ok);
   assert.deepEqual(descriptions(account), ['Example Studio · Salary', 'Corner Grocer']);
+});
+
+test('CSV: dates that read either way follow the bank, then the main currency', () => {
+  const chase = `Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+DEBIT,09/02/2026,"CORNER GROCER",-45.20,DEBIT_CARD,1954.80,,
+CREDIT,09/01/2026,"EXAMPLE STUDIO PAYROLL",2000.00,ACH_CREDIT,2000.00,,`;
+  const account = readCsvStatement(chase, { fileName: 'Chase1234_Activity_20260903.CSV' }).accounts[0];
+  assert.deepEqual(account.lines.map((l) => l.date), ['2026-09-01', '2026-09-02']);
+  assert.ok(account.check.ok);
+
+  const plain = 'Date,Description,Amount\n09/02/2026,Shop,-5.00\n09/01/2026,Pay,10.00\n';
+  const inDollars = readCsvStatement(plain, { fileName: 'export.csv', dayFirstWhenUnsure: false }).accounts[0];
+  assert.equal(inDollars.lines[0].date, '2026-09-01');
+  const elsewhere = readCsvStatement(plain, { fileName: 'export.csv' }).accounts[0];
+  assert.equal(elsewhere.lines[0].date, '2026-01-09');
+  // Decimal commas say the day comes first, whatever the main currency.
+  const commas = 'Date;Description;Amount\n09/02/2026;Shop;-5,00\n09/01/2026;Pay;10,00\n';
+  const european = readCsvStatement(commas, { fileName: 'export.csv', dayFirstWhenUnsure: false }).accounts[0];
+  assert.equal(european.lines[0].date, '2026-01-09');
 });
 
 test('CSV: one that isn’t a bank statement isn’t read', () => {

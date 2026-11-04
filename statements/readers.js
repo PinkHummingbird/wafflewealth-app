@@ -1147,9 +1147,10 @@ export function csvAmount(text, digits = 2) {
 /**
  * Whether dates written `a/b/yyyy` put the day first. Any first part over 12 says yes, any second
  * part over 12 says no; when every date could be either, the reading that keeps the lines in
- * order wins, and the day first when both do (most of the world writes it so).
+ * order wins, and when both do (a short file, the first days of a month) `unsure`: what the rest
+ * of the file and the person's main currency say.
  */
-export function dayFirstOf(dates) {
+export function dayFirstOf(dates, unsure = true) {
   const parts = dates.map((d) => /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(d)).filter(Boolean);
   if (parts.some((p) => +p[1] > 12)) return true;
   if (parts.some((p) => +p[2] > 12)) return false;
@@ -1158,8 +1159,16 @@ export function dayFirstOf(dates) {
     const up = [...days].sort();
     return days.every((d, i) => d === up[i]) || days.every((d, i) => d === up[up.length - 1 - i]);
   };
-  return ordered(true) || !ordered(false);
+  const dayFirst = ordered(true);
+  const monthFirst = ordered(false);
+  return dayFirst === monthFirst ? unsure : dayFirst;
 }
+
+/** Banks that write the month first. Their name in the file settles a date either way. */
+const MONTH_FIRST_BRANDS = new Set(['Chase', 'Capital One', 'Wells Fargo', 'Bank of America']);
+
+/** Amounts with a decimal comma (`12,50`): a sign of the day written first. */
+const decimalComma = (amounts) => amounts.some((a) => /\d,\d{2}\)?-?\s*$/.test(a) && !a.includes('.'));
 
 /** ISO 4217 codes in use, for telling a currency at the end of a heading from any three capitals. */
 const ISO_CURRENCIES = (() => {
@@ -1211,7 +1220,7 @@ const BankCSV = {
   feeNames: ['fee', 'fees'],
   // Brands that name themselves in their file's name or header: the account is called after them.
   brands: ['Monzo', 'Revolut', 'N26', 'PayPal', 'Starling', 'Barclays', 'Lloyds', 'NatWest', 'Halifax',
-    'Santander', 'Nationwide', 'HSBC', 'Chase', 'Capital One', 'ING', 'Rabobank', 'ABN AMRO',
+    'Santander', 'Nationwide', 'HSBC', 'Chase', 'Capital One', 'Wells Fargo', 'Bank of America', 'ING', 'Rabobank', 'ABN AMRO',
     'DBS', 'OCBC', 'UOB', 'Emirates NBD', 'Mashreq', 'ADCB', 'FAB', 'Wio', 'ICICI', 'HDFC', 'Axis'],
 
   key: (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
@@ -1249,20 +1258,31 @@ const BankCSV = {
     return null;
   },
 
-  /** Rows → a statement, or null when no header row names a date and an amount. */
-  read(rows, fileName) {
+  /**
+   * Rows → a statement, or null when no header row names a date and an amount.
+   * `dayFirstWhenUnsure` settles dates that could be read either way when nothing in the file does.
+   */
+  read(rows, fileName, dayFirstWhenUnsure = true) {
     const found = BankCSV.header(rows);
     if (!found) return null;
     const [at, c] = found;
     const header = rows[at];
     const body = rows.slice(at + 1).filter((r) => r.length > c.date && trimSpaces(r[c.date]) !== '');
     const cell = (row, i) => (i == null || i >= row.length ? '' : trimSpaces(row[i]));
-    const dayFirst = dayFirstOf(body.map((r) => cell(r, c.date).slice(0, 10)));
+    const dates = body.map((r) => cell(r, c.date).slice(0, 10));
     const brand = BankCSV.brands.find((name) => {
       // A whole word, and exactly as written when short: "ING" isn't the end of "Spending".
       const re = new RegExp(`(?<![A-Za-z])${escapeRe(name)}(?![A-Za-z])`, name.length > 4 ? 'i' : '');
       return [fileName ?? '', header.join(' ')].some((t) => re.test(t));
     }) ?? (header.includes('Emoji') ? 'Monzo' : header.includes('Started Date') ? 'Revolut' : null);
+    // Dates either way round: a US bank or dollars put the month first, decimal commas the day,
+    // and failing those the person's main currency decides.
+    const amounts = body.flatMap((row) => [c.amount, c.moneyOut, c.moneyIn].map((i) => cell(row, i))).filter(Boolean);
+    const dollars = body.some((row) => cell(row, c.currency).toUpperCase() === 'USD')
+      || [c.amount, c.moneyOut, c.balance].some((i) => i != null && i < header.length && currencyIn(header[i]) === 'USD');
+    const unsure = brand != null ? !MONTH_FIRST_BRANDS.has(brand) && !dollars
+      : dollars ? false : decimalComma(amounts) ? true : dayFirstWhenUnsure;
+    const dayFirst = dayFirstOf(dates, unsure);
 
     const order = [];
     const built = new Map();
@@ -1327,11 +1347,11 @@ const BankCSV = {
       return acct;
     });
     if (!accounts.length) return null;
-    const dates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
+    const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
     for (const a of accounts) finishAccount(a, a.closing == null);
     return {
       reader: BankCSV.id, institution: brand, country: null, general: false, fileName, holder: null,
-      period: { from: dates[0] ?? null, to: dates[dates.length - 1] ?? null }, accounts,
+      period: { from: lineDates[0] ?? null, to: lineDates[lineDates.length - 1] ?? null }, accounts,
     };
   },
 };
@@ -1340,16 +1360,18 @@ export const CSV_READERS = [INTLWise];
 
 /**
  * One CSV file → one statement: Wise's own, then any bank's, found from its header. A statement
- * with no accounts when no reader knows its columns.
+ * with no accounts when no reader knows its columns. `dayFirstWhenUnsure` settles dates that
+ * could be read either way when nothing in the file does: false when the main currency is the
+ * US dollar.
  */
-export function readCsvStatement(text, { fileName = null } = {}) {
+export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
   const rows = parseCsv(text);
   const reader = rows.length ? CSV_READERS.find((r) => r.recognises(rows[0])) : null;
   if (!reader) {
     // The separator is the one whose header reads: a comma, or the semicolon or tab of banks
     // whose decimal mark is a comma.
     for (const separator of [',', ';', '\t']) {
-      const statement = BankCSV.read(separator === ',' ? rows : parseCsv(text, separator), fileName);
+      const statement = BankCSV.read(separator === ',' ? rows : parseCsv(text, separator), fileName, dayFirstWhenUnsure);
       if (statement) return statement;
     }
     return { reader: null, fileName, accounts: [], unknownCsv: true };
@@ -1877,8 +1899,12 @@ export function looksLikeQif(text) {
 /** Quicken writes `1/ 5'26` and `12/31'2025`: the apostrophe is the year's slash, spaces pad. */
 const qifDate = (s) => s.replace(/'/g, '/').replace(/ /g, '');
 
-/** One QIF file → one statement with one account, or a statement with no accounts when it has no bank or card lines. */
-export function readQifStatement(text, { fileName = null } = {}) {
+/**
+ * One QIF file → one statement with one account, or a statement with no accounts when it has no
+ * bank or card lines. `dayFirstWhenUnsure` settles dates that could be read either way when
+ * nothing in the file does: false when the main currency is the US dollar.
+ */
+export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
   const none = { reader: null, fileName, accounts: [], unknownQif: true };
   if (!looksLikeQif(text)) return none;
   let section = '';
@@ -1922,7 +1948,11 @@ export function readQifStatement(text, { fileName = null } = {}) {
   if (current.amount != null) records.push(current);
   if (!records.length) return none;
 
-  const dayFirst = dayFirstOf(records.filter((r) => r.date != null).map((r) => qifDate(r.date)));
+  // Quicken's apostrophe year is American, month first; decimal commas put the day first.
+  const rawDates = records.filter((r) => r.date != null).map((r) => r.date);
+  const unsure = rawDates.some((d) => d.includes("'")) ? false
+    : decimalComma(records.filter((r) => r.amount != null).map((r) => r.amount)) ? true : dayFirstWhenUnsure;
+  const dayFirst = dayFirstOf(rawDates.map(qifDate), unsure);
   let opening = null;
   let lines = [];
   for (const record of records) {
