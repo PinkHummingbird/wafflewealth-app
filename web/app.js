@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=27"), import("./statement-save.mjs?v=26")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=28"), import("./statement-save.mjs?v=27")]);
     const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
     return { ...read, ...save, match };
   }
@@ -647,13 +647,19 @@
         doc, reading: false, problems, mods,
         statements: statements.map((st) => ({ ...st, already: store.statementRead(st.sha256) })),
       };
+      // A file that names no currency takes the main one, as the app's review does, open to change;
+      // one with lines and no balance waits for the balance on its last day to be typed.
+      const main = store.baseCurrency();
       state.review.choices = state.review.statements.map((st) => st.accounts.map((a) => ({
         include: !st.already && mods.includedByDefault(a),
         name: a.name,
         keepBelowZero: false,
         accountId: null,
+        currency: a.currency ? null : main,
+        balanceText: "",
       })));
-      state.review.candidates = state.review.statements.map((st) => st.accounts.map((a) => (st.already ? [] : matchCandidates(mods, store, a, st))));
+      state.review.candidates = state.review.statements.map((st, si) => st.accounts.map((a, ai) => (st.already ? []
+        : matchCandidates(mods, store, reviewAccount(state.review, si, ai), st))));
       state.review.candidates.forEach((lists, si) => {
         if (!mods.match) return;
         mods.match.preselectedFor(lists).forEach((id, ai) => { state.review.choices[si][ai].accountId = id; });
@@ -662,6 +668,27 @@
       state.review = { doc, reading: false, statements: [], choices: [], problems: [C.explain(error)] };
     }
     renderReview();
+  }
+
+  /** A balance typed in the review → minor units (a minus allowed, for an account below zero), or
+      null with the reason when it isn't a figure yet. */
+  function typedBalance(text, currency) {
+    const t = String(text || "").trim();
+    const negative = /^[-−]/.test(t);
+    const parsed = M.parseAmount(negative ? t.slice(1) : t, currency);
+    if (!parsed.ok) return { minor: null, reason: parsed.reason === "empty" ? "" : parsed.reason };
+    return { minor: negative ? -parsed.minor : parsed.minor, reason: "" };
+  }
+
+  /** One account of the review as it would be saved: with the currency chosen, and the balance
+      typed when its file has lines and none (statement-save.mjs, accountToSave). */
+  function reviewAccount(r, si, ai) {
+    const a = r.statements[si].accounts[ai];
+    const choice = r.choices[si] && r.choices[si][ai];
+    if (!choice || !r.mods || !r.mods.accountToSave) return a;
+    const currency = a.currency || choice.currency;
+    const closing = r.mods.needsBalance(a) && currency ? typedBalance(choice.balanceText, currency).minor : null;
+    return r.mods.accountToSave(a, { currency, closing });
   }
 
   /** The lines of one account read from a statement, each one open to putting right, as the app's review does. */
@@ -720,36 +747,39 @@
     if (r.reading) { box.innerHTML = `<h2>Reading ${esc(r.doc.f.file_name)}…</h2><p class="cap">Here in your browser. The file isn't sent anywhere to be read.</p>`; return; }
     let html = `<h2>${esc(r.doc.f.file_name)}</h2>`;
     if (r.problems.length) html += `<ul class="error" style="margin:8px 0;padding-left:20px">${r.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
-    let anything = false, unconfirmed = false;
+    let anything = false, unconfirmed = false, waiting = false;
     r.statements.forEach((st, si) => {
       const period = st.period && st.period.to ? `${st.period.from ? M.dayLabel(st.period.from) + " to " : "To "}${M.dayLabel(st.period.to)}` : "Dates not found";
       html += `<div class="month"><h3>${esc(st.institution || "Statement")} · ${esc(period)}</h3></div>`;
       if (st.already) { html += `<p class="empty">Already added to your money, here or on your iPhone.</p>`; return; }
-      st.accounts.forEach((a, ai) => {
+      st.accounts.forEach((read, ai) => {
         const choice = r.choices[si][ai];
-        // Lines and no balance, or no currency: the phone asks for them; this page doesn't, so it's left to the phone.
-        if (r.mods && r.mods.needsPhone && r.mods.needsPhone(a)) {
-          html += `<div class="review-acct">
-          <input type="checkbox" id="rv-${si}-${ai}" disabled aria-label="${esc(a.name)} can't be added here">
-          <div class="main"><label class="t" for="rv-${si}-${ai}">${esc(a.name)}</label>
-            <span class="note">${a.owed ? "Owed · " : ""}${a.lines.length} line${a.lines.length === 1 ? "" : "s"}</span>
-            <span class="note">No balance in the file: add this one on the phone.</span>
-          </div>
-          <div class="end"><span class="amt">${a.closing != null && a.currency ? esc(M.format(a.closing, a.currency)) : "No balance"}</span></div>
-        </div>`;
-          return;
-        }
+        // As it would be saved: the currency chosen when the file names none, the typed balance when it gives none.
+        const a = reviewAccount(r, si, ai);
+        const asksBalance = Boolean(r.mods && r.mods.needsBalance && r.mods.needsBalance(read));
         const known = a.ref ? store.accountByRef(a.ref) : null;
         if (choice.include) anything = true;
+        if (choice.include && asksBalance && a.closing == null) waiting = true;
         if (choice.include && a.belowZero && !a.owed && !choice.keepBelowZero) unconfirmed = true;
         const closing = a.closing != null && a.currency ? M.format(a.closing, a.currency) : "No closing balance";
+        const lastDay = (st.period && st.period.to) || (read.lines.length ? read.lines[read.lines.length - 1].date : null);
+        const typed = asksBalance ? typedBalance(choice.balanceText, a.currency) : null;
+        const currencyField = read.currency ? "" : `<div class="field"><label for="rv-cur-${si}-${ai}">Currency</label><select id="rv-cur-${si}-${ai}" data-review-currency="${si}:${ai}">
+            ${M.currencies().map((c) => `<option value="${c}" ${c === a.currency ? "selected" : ""}>${c} · ${esc(M.currencyName(c))}</option>`).join("")}</select>
+            <span class="note">The file doesn't say which currency: your main one is taken. Change it if this account is in another.</span></div>`;
+        const balanceField = !asksBalance ? "" : `<div class="field"><label for="rv-bal-${si}-${ai}">${a.owed ? "Owed" : "Balance"} on ${esc(lastDay ? M.dayLabel(lastDay) : "the last day")} (${esc(a.currency)})</label>
+            <input id="rv-bal-${si}-${ai}" data-review-balance="${si}:${ai}" inputmode="decimal" autocomplete="off" value="${esc(choice.balanceText)}" placeholder="As your bank shows it">
+            <span class="err" id="rv-bal-err-${si}-${ai}">${esc(typed && typed.reason ? typed.reason : "")}</span>
+            <span class="note">No balance in the file: type the one your bank shows for that day${a.owed ? "" : " (a minus if it was overdrawn)"}. The earlier ones are worked out from the lines.</span></div>`;
         html += `<div class="review-acct">
           <input type="checkbox" id="rv-${si}-${ai}" data-review-include="${si}:${ai}" ${choice.include ? "checked" : ""} aria-label="Add ${esc(a.name)}">
           <div class="main">
             ${known ? `<label class="t" for="rv-${si}-${ai}">${esc(known.f.name)}</label><span class="note">Adds to this account, as last time.</span>`
               : reviewTarget(a, si, ai, choice)}
+            ${currencyField}
+            ${balanceField}
             <span class="note">${a.owed ? "Owed · " : ""}<button type="button" class="linkbtn" data-rl-open="${si}:${ai}">${a.lines.length} line${a.lines.length === 1 ? "" : "s"}${a.check && a.check.checked && !a.check.ok ? ": put them right" : ""}</button></span>
-            ${checkNote(a)}
+            ${asksBalance ? "" : checkNote(a)}
             ${a.belowZero && !a.owed ? `<span class="note bad">Below zero on this statement: the account was overdrawn.</span>
               <label class="keep"><input type="checkbox" data-review-keep="${si}:${ai}" ${choice.keepBelowZero ? "checked" : ""}> Keep it below zero</label>` : ""}
           </div>
@@ -759,8 +789,9 @@
       });
     });
     html += `<div class="formacts" style="margin-top:12px">
-      ${r.statements.some((st) => !st.already) ? `<button type="button" class="btn" id="review-add" ${anything && !unconfirmed ? "" : "disabled"}>Add to your money</button>` : ""}
+      ${r.statements.some((st) => !st.already) ? `<button type="button" class="btn" id="review-add" ${anything && !unconfirmed && !waiting ? "" : "disabled"}>Add to your money</button>` : ""}
       ${unconfirmed ? `<p class="cap">An account went below zero: switch on “Keep it below zero”, or leave it out.</p>` : ""}
+      ${waiting ? `<p class="cap" id="review-waiting">Type the balance for each account that asks for one, or leave it out.</p>` : ""}
       <button type="button" class="linkbtn" id="review-cancel">${r.statements.some((st) => !st.already) ? "Cancel" : "Close"}</button>
     </div><p class="error" id="review-error" role="alert" hidden></p>`;
     box.innerHTML = html;
@@ -781,13 +812,26 @@
         }
       }
     }
+    for (const [si, list] of r.choices.entries()) {
+      for (const [ai, choice] of list.entries()) {
+        const read = r.statements[si].accounts[ai];
+        if (!choice.include || r.statements[si].already || !r.mods.needsBalance(read)) continue;
+        if (reviewAccount(r, si, ai).closing == null) {
+          $("review-error").hidden = false;
+          $("review-error").textContent = `Type the balance of ${choice.name || read.name} on the statement's last day, or leave it out.`;
+          return;
+        }
+      }
+    }
     $("review-add").disabled = true;
     try {
       const records = [];
       const totals = { created: [], updated: [], balances: 0, lines: 0 };
       let order = store.nextDisplayOrder();
-      r.statements.forEach((st, si) => {
-        if (st.already) return;
+      r.statements.forEach((read, si) => {
+        if (read.already) return;
+        // Each account as it is saved: the currency chosen, the balance typed (accountToSave).
+        const st = { ...read, accounts: read.accounts.map((_, ai) => reviewAccount(r, si, ai)) };
         const out = r.mods.recordsForStatement({
           statement: st, choices: r.choices[si], sha256: st.sha256,
           known: {
@@ -811,7 +855,7 @@
       $("upload-ok").textContent = `Added to your money: ${parts.join(", ")}.` + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Your iPhone has them the next time WaffleWealth opens.");
     } catch (error) {
       $("review-error").hidden = false;
-      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable", "needsPhone"].includes(error.code) ? error.reason : C.explain(error);
+      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable", "needsBalance", "needsCurrency"].includes(error.code) ? error.reason : C.explain(error);
       $("review-add").disabled = false;
       if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
     }
@@ -1398,6 +1442,32 @@
         renderReview();
         return;
       }
+      // Another currency for a file that names none: the accounts it could go into are found again.
+      const currency = e.target.closest("[data-review-currency]");
+      if (currency && state.review) {
+        const r = state.review;
+        const [si, ai] = currency.getAttribute("data-review-currency").split(":").map(Number);
+        r.choices[si][ai].currency = currency.value;
+        r.choices[si][ai].accountId = null;
+        if (r.candidates && r.candidates[si]) {
+          const list = matchCandidates(r.mods, state.store, reviewAccount(r, si, ai), r.statements[si]);
+          r.candidates[si][ai] = list;
+          // Pre-selected as on reading, unless another account of this statement already goes there.
+          const id = r.mods.match ? r.mods.match.preselected(list) : null;
+          const taken = r.choices[si].filter((_, aj) => aj !== ai).map((c) => c.accountId);
+          r.choices[si][ai].accountId = id && !taken.includes(id) ? id : null;
+        }
+        renderReview();
+        return;
+      }
+      // The typed balance is taken in full when the field is left, so the notes and the figure follow it.
+      const balance = e.target.closest("[data-review-balance]");
+      if (balance && state.review) {
+        const [si, ai] = balance.getAttribute("data-review-balance").split(":").map(Number);
+        state.review.choices[si][ai].balanceText = balance.value;
+        renderReview();
+        return;
+      }
       const box = e.target.closest("[data-review-include]");
       if (!box || !state.review) return;
       const [si, ai] = box.getAttribute("data-review-include").split(":").map(Number);
@@ -1405,6 +1475,26 @@
       renderReview();
     });
     review.addEventListener("input", (e) => {
+      // While a balance is being typed, only the button and the field's own message follow it,
+      // so the field keeps its place and focus.
+      const balance = e.target.closest("[data-review-balance]");
+      if (balance && state.review) {
+        const r = state.review;
+        const [si, ai] = balance.getAttribute("data-review-balance").split(":").map(Number);
+        r.choices[si][ai].balanceText = balance.value;
+        const a = reviewAccount(r, si, ai);
+        const err = $(`rv-bal-err-${si}-${ai}`);
+        if (err) err.textContent = typedBalance(balance.value, a.currency).reason;
+        const waiting = r.statements.some((st, sj) => !st.already && st.accounts.some((read, aj) => r.choices[sj][aj].include
+          && r.mods.needsBalance(read) && reviewAccount(r, sj, aj).closing == null));
+        const unconfirmed = r.statements.some((st, sj) => !st.already && st.accounts.some((read, aj) => {
+          const filled = reviewAccount(r, sj, aj);
+          return r.choices[sj][aj].include && filled.belowZero && !filled.owed && !r.choices[sj][aj].keepBelowZero;
+        }));
+        const anything = r.choices.some((list, sj) => !r.statements[sj].already && list.some((c) => c.include));
+        if ($("review-add")) $("review-add").disabled = !(anything && !unconfirmed && !waiting);
+        return;
+      }
       const input = e.target.closest("[data-review-name]");
       if (!input || !state.review) return;
       const [si, ai] = input.getAttribute("data-review-name").split(":").map(Number);

@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, webcrypto } from 'node:crypto';
-import { balancePoints, includedByDefault, needsPhone, recordsForStatement, fingerprint } from '../statement-save.mjs';
+import { balancePoints, includedByDefault, needsBalance, accountToSave, recordsForStatement, fingerprint } from '../statement-save.mjs';
 
 const line = (date, amount, description = 'Made up', extra = {}) => ({ date, madeOn: null, description, amount, running: null, ref: null, foreign: null, label: amount >= 0 ? 'in' : 'out', ...extra });
 
@@ -91,26 +91,59 @@ test('a deposit: its rate paid yearly, out of reach until it ends; a card is owe
   assert.ok(!saved.records.some((r) => r.f.account_id && !accounts.some((a) => a.name === r.f.account_id)), 'nothing for the account left out');
 });
 
-test('kept by default: a closing balance, not a closed deposit, not an empty nothing', () => {
+test('kept by default: a closing balance or lines, not a closed deposit, not an empty nothing (the app’s includedByDefault)', () => {
   assert.equal(includedByDefault(current()), true);
-  assert.equal(includedByDefault({ ...current(), closing: null }), false);
+  assert.equal(includedByDefault({ ...current(), closing: null }), true, 'lines and no balance: kept, waiting for the balance');
+  assert.equal(includedByDefault({ ...current(), closing: null, lines: [] }), false, 'an empty Wise currency: nothing to add');
   assert.equal(includedByDefault({ ...current(), closed: true }), false);
   assert.equal(includedByDefault({ ...current(), closing: 0, lines: [] }), false);
 });
 
-test('lines with no balance, or no currency (a QIF file, many banks’ CSVs), wait for the phone', () => {
+test('lines and no balance (a QIF file, many banks’ CSVs): the balance typed on the last day, the opening worked back', () => {
   const noBalance = { ...current(), opening: null, closing: null };
-  const noCurrency = { ...current(), currency: null };
-  assert.equal(needsPhone(current()), false);
-  assert.equal(needsPhone(noBalance), true);
-  assert.equal(needsPhone(noCurrency), true);
-  // An empty Wise currency: nothing in it to add, here or on the phone; left as it was.
-  assert.equal(needsPhone({ ...current(), opening: null, closing: null, lines: [] }), false);
-  assert.equal(includedByDefault(noBalance), false);
-  assert.equal(includedByDefault(noCurrency), false);
+  assert.equal(needsBalance(current()), false);
+  assert.equal(needsBalance(noBalance), true);
+  assert.equal(needsBalance({ ...noBalance, lines: [] }), false);
+  // The lines come to -5,000: typed 95,000 on the last day, so 100,000 before the first line.
+  const filled = accountToSave(noBalance, { closing: 95_000 });
+  assert.deepEqual([filled.opening, filled.closing, filled.openingWorkedOut, filled.belowZero], [100_000, 95_000, true, false]);
+  assert.equal(noBalance.closing, null, 'the account read is left as it was');
+  // Not typed yet: as read, and nothing is saved for it.
+  assert.equal(accountToSave(noBalance).closing, null);
   const statement = { reader: 'QIF', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [noBalance] };
-  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]), (e) => e.code === 'needsPhone' && /Add this one on the phone/.test(e.reason));
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]), (e) => e.code === 'needsBalance' && /balance/.test(e.reason));
   assert.equal(run(statement, [{ include: false, name: 'Mine' }]).records.length, 1, 'left out: the statement alone');
+  // Typed: the same balances the app keeps, a month end inside the statement and its last day.
+  const saved = run({ ...statement, accounts: [filled] }, [{ include: true, name: 'Mine' }]);
+  assert.deepEqual(saved.records.filter((r) => r.type === 'Balance').map((b) => [b.f.as_of_date, b.f.value_minor]),
+    [['2026-08-31', 90_000], ['2026-09-30', 95_000]]);
+});
+
+test('a card with no balance in its file: the typed amount owed, the opening owed worked back', () => {
+  // Spent 4,000 and paid 1,500: owing 7,500 at the end means 5,000 owed before the first line.
+  const card = { ...current(), ref: null, type: 'card', owed: true, opening: null, closing: null,
+    lines: [line('2026-09-02', -4_000), line('2026-09-20', 1_500)] };
+  const filled = accountToSave(card, { closing: 7_500 });
+  assert.deepEqual([filled.opening, filled.closing, filled.belowZero], [5_000, 7_500, false]);
+});
+
+test('typed below zero: an account you own was overdrawn, and Keep it below zero is asked', () => {
+  const noBalance = { ...current(), opening: null, closing: null };
+  const filled = accountToSave(noBalance, { closing: -1_000 });
+  assert.equal(filled.belowZero, true);
+  const statement = { reader: 'CSV', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [filled] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]), (e) => e.code === 'belowZeroNotConfirmed');
+  assert.ok(run(statement, [{ include: true, name: 'Mine', keepBelowZero: true }]).records.some((r) => r.type === 'Balance' && r.f.value_minor === -1_000));
+});
+
+test('no currency in the file (a QIF file, many banks’ CSVs): the one chosen in the review, the main one unless changed', () => {
+  const noCurrency = { ...current(), currency: null };
+  assert.equal(accountToSave(noCurrency, { currency: 'GBP' }).currency, 'GBP');
+  assert.equal(accountToSave(current(), { currency: 'GBP' }).currency, 'SGD', 'a currency the file names stays');
+  const statement = { reader: 'CSV', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [noCurrency] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]), (e) => e.code === 'needsCurrency');
+  const saved = run({ ...statement, accounts: [accountToSave(noCurrency, { currency: 'GBP' })] }, [{ include: true, name: 'Mine' }]);
+  assert.equal(saved.records.find((r) => r.type === 'Account').f.currency_code, 'GBP');
 });
 
 test('fingerprint: the bytes, and for a CSV its name first, as the app makes it', async () => {
