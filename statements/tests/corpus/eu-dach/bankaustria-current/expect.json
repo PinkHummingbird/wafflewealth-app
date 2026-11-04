@@ -1,0 +1,45 @@
+{
+  "bank": "UniCredit Bank Austria",
+  "country": "AT",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "Umsatzliste_AT291200000123456789_20261104.csv",
+  "layout_sources": [
+    "No help page, importer config or sample of the Bank Austria Online Banking CSV could be reached in this session; the layout is reconstructed from Austrian bank exports in general (George, Raiffeisen ELBA: semicolons, dd.mm.yyyy, German number format)"
+  ],
+  "layout_confidence": 20,
+  "notes": "Reconstructed, low confidence: Online Banking \"Umsätze exportieren\" as CSV with one header row of German names, semicolons, Windows-1252, CRLF, dd.mm.yyyy, the counterparty with IBAN/BIC, Buchungstext, Zahlungsreferenz and Verwendungszweck, a signed Betrag with dot thousands and a comma decimal, and a Währung column; newest first; no balance. Replace with a real export when one is available.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -109500,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-13",
+            "amount": -8640,
+            "text": "beispiel versicherung"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -2967,
+            "text": "nahversorger lindengasse"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": 251290,
+            "text": "beispiel handels"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "bank": "ASB",
+  "country": "NZ",
+  "product": "Streamline everyday account",
+  "format": "csv",
+  "file": "Export20261104091231.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of ASB FastNet Classic \"Export transactions: CSV-Generic\"."
+  ],
+  "layout_confidence": 50,
+  "notes": "ASB CSV-Generic export: six preamble lines (\"Created date / time : …\", \"Bank 12; Branch 3456; Account …\", \"From date yyyymmdd\", \"To date yyyymmdd\", \"Avail Bal : … as of yyyymmdd\", \"Ledger Balance : … as of yyyymmdd\"), then the header \"Date,Unique Id,Tran Type,Cheque Number,Payee,Memo,Amount\", then an EMPTY line, then the rows. Dates are YYYY/MM/DD; Unique Id is the date plus a sequence; Payee and Memo quoted; one signed Amount; no balance column. Oldest first. Closing is the Ledger Balance stated as of the To date (the period end); opening not stated. File name ExportYYYYMMDDhhmmss.csv. All from memory, unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

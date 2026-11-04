@@ -1,0 +1,52 @@
+{
+  "bank": "Scotiabank",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "Preferred_Package_1234_093026.csv",
+  "layout_sources": [
+    "https://github.com/johnbuonassisi/finance-tracker (2026: cmd/normalize/testdata/scotia_txns_input.csv and three Scotiabank downloads kept as csvs/Ultimate_Package_4624_MMDDYY.csv; only the structure was read: BOM, header, quoting, Filter values, Debit/Credit, signed amounts, balance chain, newest first, no final line end)",
+    "https://fininja.ca/banks/scotiabank/ (Filter, Date, Description, Sub-description, Type of Transaction, Amount, Balance; the leading column mostly empty and describing the statement period)",
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/scotiabank (2022: the older headerless layout, date, amount, -, type, description; replaced by this one)"
+  ],
+  "layout_confidence": 85,
+  "notes": "UTF-8 with a BOM, LF, no line end after the last row. Header unquoted: Filter,Date,Description,Sub-description,Type of Transaction,Amount,Balance. Every data field quoted. Filter holds the filter used on the first row only (\"Current statement period\", or \"All available transactions (up to 2 years), From date=YYYY-MM-DD\"), empty after. ISO dates. Description is Scotiabank's lowercase label (\"deposit\", \"mortgage payment\", \"customer transfer dr.\", \"credit memo\"); Sub-description, padded with a trailing space, carries the payer, payee or reference, so a correct reading keeps both. Type of Transaction Debit or Credit; Amount signed (money out negative); Balance after each line; no thousands separator. Newest first. File named <account name>_<last 4>_<MMDDYY>.csv.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 182035,
+        "closing": 278385,
+        "lines": [
+          {
+            "date": "2026-09-03",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-08",
+            "amount": -30000,
+            "text": "customer transfer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -128460,
+            "text": "mortgage payment"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 7500,
+            "text": "interac e-transfer"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": 2310,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

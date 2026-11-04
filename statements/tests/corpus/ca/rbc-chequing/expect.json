@@ -1,0 +1,70 @@
+{
+  "bank": "RBC Royal Bank",
+  "country": "CA",
+  "product": "chequing account (with a US dollar account in the same download)",
+  "format": "csv",
+  "file": "csv48213.csv",
+  "layout_sources": [
+    "https://github.com/johnbuonassisi/finance-tracker (2026: cmd/normalize/testdata/rbc_txns_input.csv and RBC downloads kept as csvs/csvNNNNN.csv; header, unquoted type/account/date, quoted descriptions, M/D/YYYY, trailing empty field, a USD account's amounts under USD$, LF, no BOM; only the structure was read, not the content)",
+    "https://gist.github.com/cphoward/50d6218771f234f96f6d73351de659c9 (Feb 2025 beangulp importer: identifies the file by the quoted header row, %m/%d/%Y, joins Description 1 and 2, amount from CAD$; \"RBC exports all accounts in one CSV\")",
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/rbc (2024: eight columns, date n/j/Y, CAD amount, USD ignored)"
+  ],
+  "layout_confidence": 85,
+  "notes": "Header row of eight quoted names: \"Account Type\",\"Account Number\",\"Transaction Date\",\"Cheque Number\",\"Description 1\",\"Description 2\",\"CAD$\",\"USD$\". Data rows unquoted except the two descriptions; Description 2 padded with a trailing space and left empty (unquoted) for fees. M/D/YYYY with no leading zeros. One signed amount (money out negative) in CAD$ for a Canadian-dollar account, or in USD$ (CAD$ empty) for a US-dollar account; no thousands separator. Every data row ends with an extra empty field (nine fields under an eight-name header); a 2025 importer expected a trailing comma on the header too. All of the person's accounts come in one file, one block per account, each oldest first. No balance. LF, ASCII, file named csvNNNNN.csv.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CAD",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 12000,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -495,
+            "text": "monthly fee"
+          }
+        ]
+      },
+      {
+        "currency": "USD",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-10",
+            "amount": 120000,
+            "text": "fgn exchange"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -300,
+            "text": "monthly fee"
+          }
+        ]
+      }
+    ]
+  }
+}

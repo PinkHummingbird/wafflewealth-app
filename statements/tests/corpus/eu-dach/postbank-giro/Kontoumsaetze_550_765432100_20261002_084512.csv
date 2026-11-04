@@ -1,0 +1,9 @@
+Umsätze Postbank Giro plus;Kundennummer: 765 4321000
+01.09.2026 - 30.09.2026
+
+Buchungstag;Wert;Umsatzart;Begünstigter / Auftraggeber;Verwendungszweck;IBAN / Kontonummer;BIC;Kundenreferenz;Mandatsreferenz;Gläubiger ID;Fremde Gebühren;Betrag;Abweichender Empfänger;Anzahl der Aufträge;Anzahl der Schecks;Soll;Haben;Währung
+29.09.2026;29.09.2026;SEPA-Überweisung von;Beispiel Pflegedienst gGmbH;Gehalt 09/2026;DE37370205000001234567;EXMPDE33XXX;GEHALT-092026-77;;;;;;;;;2.415,80;EUR
+18.09.2026;18.09.2026;Kartenzahlung;Tankstelle Am Ring//Musterstadt/DE;2026-09-17 Debitk.2 VISA Debit;;;;;;;;;;;-61,23;;EUR
+14.09.2026;14.09.2026;SEPA-Lastschrift von;Beispiel Krankenversicherung a.G.;Beitrag 09/2026 Versicherungsnr. 123456789;DE13700202700012345000;EXMPDEMMXXX;KV-2026-09-123456789;KV123456789;DE12ZZZ00000012345;;;;;;-189,40;;EUR
+01.09.2026;01.09.2026;SEPA-Dauerauftrag an;Wohnbau Lindenhof eG;Nutzungsgebühr September Whg. 12;DE89250501800007654321;EXMPDE2HXXX;NOTPROVIDED;;;;;;;;-1.085,00;;EUR
+Kontostand;30.09.2026;;;1.876,54;EUR

@@ -1,0 +1,47 @@
+{
+  "bank": "Volksbank Raiffeisenbank (VR, Atruvia banking)",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "Umsaetze_DE05123600000004711815_2026.11.04.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/volksbank/stuttgart/import.json (2022: the 19 columns in this order: account name, IBAN, BIC, bank name, Buchungstag, Valutadatum, counterparty name/IBAN/BIC, Buchungstext, Verwendungszweck, Betrag, Waehrung, Saldo nach Buchung, Bemerkung, Kategorie, Steuerrelevant, Gläubiger ID, Mandatsreferenz; semicolon; d.m.Y)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/raiffeisenbank/bonn-rhein-sieg/csv-giro.json (2025: the same 19 columns)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE Fiducia (Volksbank, Sparda-Bank, ...)] (file name Umsaetze_<IBAN>_<yyyy.mm.dd>; the older 13-row-preamble format it describes is gone)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Export of the Atruvia online banking used by Volksbanken and Raiffeisenbanken since 2022: one header row with ASCII-spelt names (Waehrung, Glaeubiger ID), the own account in the first four columns of every line, dd.mm.yyyy, a signed Betrag and \"Saldo nach Buchung\" (the balance after each line) in German number format with dot thousands, semicolons, no quotes. Windows-1252, CRLF and newest-first order assumed (not confirmed). Opening = the oldest line's balance less its amount; closing = the newest line's balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 189731,
+        "closing": 342266,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-13",
+            "amount": -1265,
+            "text": "bäckerei körnerbrot"
+          },
+          {
+            "date": "2026-10-19",
+            "amount": -7200,
+            "text": "stadtwerke musterstadt"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 276000,
+            "text": "beispiel maschinenbau"
+          }
+        ]
+      }
+    ]
+  }
+}

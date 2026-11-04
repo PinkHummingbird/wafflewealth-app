@@ -1,0 +1,45 @@
+{
+  "bank": "Consorsbank",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "Umsatzübersicht_123456789.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE Consorsbank checking] (file name Umsatzübersicht_<9 digits>, semicolon, one header row, %d.%m.%Y; its 8 columns are the format before Kategorie/Stichwörter/Umsatz geteilt were added)"
+  ],
+  "layout_confidence": 40,
+  "notes": "Umsatzübersicht CSV: one header row, semicolons, dd.mm.yyyy, Buchung and Valuta, the counterparty with IBAN/BIC, Buchungstext and Verwendungszweck, then Kategorie, Stichwörter and \"Umsatz geteilt\" (added to the older 8-column file when categories came in), and a signed \"Betrag in EUR\" in German number format. Windows-1252, CRLF, newest first and the thousands mark are assumed. Column names after Verwendungszweck are from memory of user reports, not a source checked here. No balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-12",
+            "amount": -1799,
+            "text": "funkwelt mobil"
+          },
+          {
+            "date": "2026-10-21",
+            "amount": -4218,
+            "text": "biomarkt koernerbrot"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": 263510,
+            "text": "beispiel medien"
+          }
+        ]
+      }
+    ]
+  }
+}

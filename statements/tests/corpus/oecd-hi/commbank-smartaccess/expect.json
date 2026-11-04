@@ -1,0 +1,52 @@
+{
+  "bank": "Commonwealth Bank (CommBank)",
+  "country": "AU",
+  "product": "Smart Access transaction account",
+  "format": "csv",
+  "file": "CSVData.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/au/commonwealth-bank/default.json (comma, headers false, date j/m/Y, four columns: date, amount, description, ignored)",
+    "https://www.npmjs.com/package/node-cba-netbank (seen via search summary: one signed amount, card and value date inside the description, e.g. \"...; Card xx4341; Value Date: 30/06/2017\")",
+    "https://statement-converter.pages.dev/blog/how-to-download-commbank-statement-csv (seen via search summary only, host blocked: CSV has date, amount, description, running balance)"
+  ],
+  "layout_confidence": 65,
+  "notes": "NetBank \"Export\" CSV (CSVData.csv): NO header row; four columns: date DD/MM/YYYY, amount, description, balance after the line. Amount and balance are quoted and always carry a sign (\"+2150.00\", \"-23.40\", \"+3307.90\"); no thousands mark; the description is quoted and card lines end \"Card xx1234 Value Date: dd/mm/yyyy\". Newest first. No currency named. The explicit plus sign and quoting are the most widely reported form; CRLF line endings and the exact wording of transfer/direct-credit descriptions are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 235049,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

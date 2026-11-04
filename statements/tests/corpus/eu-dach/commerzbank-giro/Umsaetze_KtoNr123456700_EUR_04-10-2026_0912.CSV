@@ -1,0 +1,6 @@
+﻿Buchungstag;Wertstellung;Umsatzart;Buchungstext;Betrag;Währung;Auftraggeberkonto;Bankleitzahl Auftraggeberkonto;IBAN Auftraggeberkonto;Kategorie
+30.09.2026;30.09.2026;Gutschrift;"Beispiel Logistik AG Gehalt September 2026 End-to-End-Ref.: GEH-2026-09-4711 Kundenreferenz: NSCT2609300001234567";2650,00;EUR;123456700;12340000;DE59123400000123456700;Gehalt / Lohn
+24.09.2026;24.09.2026;Lastschrift;"Kartenzahlung Café Morgenrot 412345//Musterstadt 2026-09-23T08:41:07 KFN 1 VJ 2912";-4,80;EUR;123456700;12340000;DE59123400000123456700;Unkategorisierte Ausgaben
+15.09.2026;15.09.2026;Lastschrift;"Stadtwerke Musterstadt Abschlag Strom 09/2026 Vertragskonto 400123456 End-to-End-Ref.: ABS-2026-09-123456 Mandatsref: MD-0815-2024 Gläubiger-ID: DE98ZZZ09999999999 SEPA-BASISLASTSCHRIFT wiederholend";-72,50;EUR;123456700;12340000;DE59123400000123456700;Unkategorisierte Ausgaben
+08.09.2026;08.09.2026;Gutschrift;"Onlinehandel Beispiel GmbH Erstattung Bestellung 302-1234567 End-to-End-Ref.: NOTPROVIDED";29,99;EUR;123456700;12340000;DE59123400000123456700;Unkategorisierte Ausgaben
+01.09.2026;01.09.2026;Dauerauftrag;"Hausverwaltung Sonnenhof GmbH Miete September Whg. 3 End-to-End-Ref.: NOTPROVIDED Dauerauftrag";-1150,00;EUR;123456700;12340000;DE59123400000123456700;Unkategorisierte Ausgaben

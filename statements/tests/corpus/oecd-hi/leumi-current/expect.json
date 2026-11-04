@@ -1,0 +1,50 @@
+{
+  "bank": "Bank Leumi (בנק לאומי)",
+  "country": "IL",
+  "product": "עו\"ש current account",
+  "format": "xls-html",
+  "file": "leumi-transactions.xls",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 20,
+  "notes": "Low-confidence layout: Leumi's \"ייצוא לאקסל\" of the account movements, taken to be the HTML-table-named-.xls that several Israeli banks have served (Windows-1255, a <meta> charset, right-to-left), with title and account rows, then \"תאריך | תאריך ערך | תיאור | אסמכתא | בחובה | בזכות | היתרה בש\"ח\"; dates DD/MM/YY; amounts with a thousands comma; running balance in shekels (ILS named in the header). Oldest first. Whether today's Leumi site gives this or a real .xlsx, and the header words, are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "ILS",
+        "owed": false,
+        "opening": 500000,
+        "closing": 1229570,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -1800,
+            "text": "קפה פול קטן"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -480000,
+            "text": "ישראל ישראלי"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1245000,
+            "text": "סטודיו דוגמה"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -24990,
+            "text": "אנרגיה צפונית"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -8640,
+            "text": "מכולת הפינה"
+          }
+        ]
+      }
+    ]
+  }
+}

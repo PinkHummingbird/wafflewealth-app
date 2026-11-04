@@ -1,0 +1,47 @@
+{
+  "bank": "Postbank",
+  "country": "DE",
+  "product": "Postbank Giro plus (current account)",
+  "format": "csv",
+  "file": "Kontoumsaetze_550_765432100_20261002_084512.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/deutschebank/Readme.md (the Deutsche Bank platform's header, with \"IBAN / Kontonummer\"; summary row below the table)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE Deutsche Bank] (rows above and one footer row; Soll/Haben)",
+    "Postbank accounts moved to the Deutsche Bank platform (\"Unity\") in 2023; the Postbank CSV now follows the Deutsche Bank export"
+  ],
+  "layout_confidence": 35,
+  "notes": "Postbank online banking runs on the Deutsche Bank platform since the 2023 migration, so its CSV export is taken to be Deutsche Bank's: Windows-1252, CRLF, semicolons, a title row, the period and an empty row above the 18-column header, money in Soll (negative) or Haben (positive) with a dot for thousands, newest first, and a \"Kontostand;<date>;;;<amount>;EUR\" summary row at the end. The pre-2023 Postbank CSV (Buchungsdatum;Wertstellung;Umsatzart;Buchungsdetails;Auftraggeber;Empfänger;Betrag (€);Saldo (€)) is obsolete. Low confidence: no Postbank-specific sample was found; the title row and file name are reconstructed. Closing from the Kontostand row.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": 187654,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -108500,
+            "text": "wohnbau lindenhof"
+          },
+          {
+            "date": "2026-09-14",
+            "amount": -18940,
+            "text": "beispiel krankenversicherung"
+          },
+          {
+            "date": "2026-09-18",
+            "amount": -6123,
+            "text": "tankstelle am ring"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": 241580,
+            "text": "beispiel pflegedienst"
+          }
+        ]
+      }
+    ]
+  }
+}

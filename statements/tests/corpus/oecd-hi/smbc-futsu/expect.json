@@ -1,0 +1,50 @@
+{
+  "bank": "SMBC (三井住友銀行)",
+  "country": "JP",
+  "product": "普通預金 (ordinary deposit account)",
+  "format": "csv",
+  "file": "meisai.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 35,
+  "notes": "SMBC Direct \"入出金明細\" CSV (meisai.csv): Shift_JIS, CRLF, unquoted; header \"年月日,お引出し,お預入れ,お取り扱い内容,残高,メモ,ラベル\"; dates YYYY/MM/DD; withdrawals and deposits in separate columns as plain whole yen; running 残高. Oldest first. No currency named. Older exports wrote the date in the Japanese era (e.g. \"H30.11.20\"); the Western form is used here. Header, amount form and order are from memory, unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 400000,
+        "closing": 566161,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -6499,
+            "text": "口座振替"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -85000,
+            "text": "振込"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -20000,
+            "text": "カード"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 280000,
+            "text": "給与"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -2340,
+            "text": "デビット"
+          }
+        ]
+      }
+    ]
+  }
+}

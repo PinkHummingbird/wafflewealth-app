@@ -1,0 +1,50 @@
+{
+  "bank": "Al Rajhi Bank (مصرف الراجحي)",
+  "country": "SA",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "alrajhi-statement.xlsx",
+  "layout_sources": [
+    "None confirmed. The open-source extractor found (https://pypi.org/project/bankstatementextractor-sau/) reads Al Rajhi PDF statements (English labels: Customer Name, Account Number, IBAN Number, Opening/Closing Balance … SAR)."
+  ],
+  "layout_confidence": 15,
+  "notes": "PLACEHOLDER, not a confirmed layout: an Arabic right-to-left Excel statement (title كشف حساب, account number, IBAN, currency ريال سعودي) above \"التاريخ | الوصف | مدين | دائن | الرصيد\"; Gregorian dates as date cells; debit/credit apart as positive numbers; running balance; newest first; Arabic and English mixed in descriptions. The currency row names the Saudi riyal (SAR). Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "SAR",
+        "owed": false,
+        "opening": 612500,
+        "closing": 1372070,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -1800,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -450000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -24990,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -8640,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

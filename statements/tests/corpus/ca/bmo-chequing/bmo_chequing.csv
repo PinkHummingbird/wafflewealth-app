@@ -1,0 +1,11 @@
+Following data is valid as of 20261001091522 (Year/Month/Day/Hour/Minute/Second)
+
+
+First Bank Card,Transaction Type,Date Posted, Transaction Amount,Description
+
+
+'5000001234567890',CREDIT,20260901,2450.0,[DN]EXAMPLE STUDIO  PAY/PAY                                                    
+'5000001234567890',DEBIT,20260904,-86.43,[DS]CORNER GROCER #12                                                          
+'5000001234567890',DEBIT,20260915,-1650.0,[IB]MAPLE ST PROPERTIES                                                        
+'5000001234567890',DEBIT,20260922,-94.5,[CW]PRAIRIE HYDRO                                                              
+'5000001234567890',DEBIT,20260930,-17.95,[SC]PLAN FEE                                                                   

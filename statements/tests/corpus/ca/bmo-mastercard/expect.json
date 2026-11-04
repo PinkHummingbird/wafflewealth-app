@@ -1,0 +1,56 @@
+{
+  "bank": "BMO Bank of Montreal",
+  "country": "CA",
+  "product": "Mastercard credit card",
+  "format": "csv",
+  "file": "bmo_mastercard.csv",
+  "layout_sources": [
+    "https://github.com/deb-sig/double-entry-generator/blob/master/example/bmo/credit/example-bmo-records.csv (preamble line, Item #,Card #,Transaction Date,Posting Date,Transaction Amount,Description; apostrophe-wrapped card number; YYYYMMDD; amounts like 6.0)",
+    "https://github.com/deb-sig/double-entry-generator/blob/master/pkg/provider/bmo/util.go (credit card: an amount starting with \"-\" is money received, anything else a purchase)"
+  ],
+  "layout_confidence": 55,
+  "notes": "Same preamble as BMO's chequing download (\"Following data is valid as of ... (Year/Month/Day/Hour/Minute/Second)\"); the one card sample has an edited first line and a single blank line, so the two blank lines either side of the header are assumed from the chequing file. Header Item #,Card #,Transaction Date,Posting Date,Transaction Amount,Description. Item # counts from 1; Card # in apostrophes; both dates YYYYMMDD (expect.json uses the transaction date). Purchases positive, payments and refunds negative, as BMO sees the card; written as floats without trailing zeros (1268.4, -1500.0), no thousands separator. Oldest first. No balance. CRLF and the file name are assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": true,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-04",
+            "amount": -6418,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-11",
+            "amount": -126840,
+            "text": "skyline airways"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": 150000,
+            "text": "trsf from/de acct"
+          },
+          {
+            "date": "2026-09-19",
+            "amount": -2275,
+            "text": "blue door cafe"
+          },
+          {
+            "date": "2026-09-23",
+            "amount": 3500,
+            "text": "gadgethaus"
+          },
+          {
+            "date": "2026-09-27",
+            "amount": -1549,
+            "text": "example streaming"
+          }
+        ]
+      }
+    ]
+  }
+}

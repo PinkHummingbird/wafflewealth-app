@@ -1,0 +1,50 @@
+{
+  "bank": "OP (Osuuspankki)",
+  "country": "FI",
+  "product": "käyttötili (current account)",
+  "format": "csv",
+  "file": "tapahtumat20261001-20261031.csv",
+  "layout_sources": [
+    "https://github.com/koodaamo/banking.statements.osuuspankki/blob/HEAD/banking/statements/osuuspankki/parser.py (SIGNATURES: the header lines OP has used, the newest \"Kirjauspäivä;Arvopäivä;Määrä EUROA;Laji;Selitys;Saaja/Maksaja;Saajan tilinumero ja pankin BIC;Viite;Viesti;Arkistointitunnus;\"; semicolon; %d.%m.%Y; comma decimal) and plugin.py (read as iso-8859-1)"
+  ],
+  "layout_confidence": 55,
+  "notes": "OP \"Tilitapahtumat\" CSV (file tapahtumat<from>-<to>.csv, from memory). Semicolon-separated, unquoted, a trailing ; on every line, ISO-8859-1/Windows-1252, CRLF. Dates DD.MM.YYYY; \"Määrä EUROA\" signed with a comma decimal, money in shown with a + (from memory), no thousands mark; Laji is the transaction code, Selitys its name. No balance column. The heading names the currency as \"EUROA\" (euros), so the expected currency is EUR. Later OP exports may split \"Saajan tilinumero\" and \"Saajan pankin BIC\" into two columns or use other date forms; not confirmed. Oldest first assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -4215,
+            "text": "k-supermarket esimerkki"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -115000,
+            "text": "esimerkki asunnot"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 265000,
+            "text": "esimerkki oy"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -1990,
+            "text": "esimerkki tele"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": 3500,
+            "text": "meikäläinen"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "bank": "Kiwibank",
+  "country": "NZ",
+  "product": "Everyday account",
+  "format": "csv",
+  "file": "38-9000-0123456-00_04Nov2026.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/nz/Kiwibank/default.json (comma, headers true, date d-m-Y; sixteen columns: account number, date, description, seven ignored, OP name, OP bank account number, two ignored, amount, ignored)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Kiwibank internet banking \"full\" CSV export: header \"Account number,Date,Memo/Description,Source Code (payment type),TP ref,TP part,TP code,OP ref,OP part,OP code,OP name,OP Bank Account Number,Amount (credit),Amount (debit),Amount,Balance\" (TP = this party, OP = other party); dates DD-MM-YYYY with hyphens; the description is only in \"Memo/Description\", often ending \" ;\"; signed Amount plus the split credit/debit columns; running Balance. Header words are from memory, column roles from Firefly. Oldest first, positive figures in the debit column, the file name and CRLF are unconfirmed. Kiwibank also offers a basic CSV without this header. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 235049,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "bank": "Zürcher Kantonalbank",
+  "country": "CH",
+  "product": "Privatkonto (personal account)",
+  "format": "csv",
+  "file": "Erweiterte Suche - Kontoauszug, Buchungen 20261104101530.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [CH ZKB Erweiterte Suche] (file name \"Erweiterte Suche - Kontoauszug, Buchungen <yyyymmddhhmmss>.csv\", one header row, Datum and Buchungstext first, Belastung as outflow and Gutschrift as inflow, %d.%m.%Y, semicolon)"
+  ],
+  "layout_confidence": 45,
+  "notes": "eBanking \"Erweiterte Suche\" export: one header row of 12 quoted names (Datum, Buchungstext, Whg, Betrag Detail, ZKB-Referenz, Referenznummer, Belastung CHF, Gutschrift CHF, Valuta, Saldo CHF, Zahlungszweck, Details), every field double-quoted, semicolons, dd.mm.yyyy, money out as a positive figure under Belastung and money in under Gutschrift, a dot decimal and no thousands mark, the balance after each line, newest first; Whg and Betrag Detail are only filled for collective orders and foreign currency. The full column list is from memory of user reports (bank2ynab only confirms the first six roles); UTF-8 with BOM and CRLF assumed. Opening = the oldest line's balance less its amount; closing = the newest line's balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CHF",
+        "owed": false,
+        "opening": 412895,
+        "closing": 902980,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -185000,
+            "text": "immobilien sonnenhof"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": -41280,
+            "text": "krankenkasse beispiel"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -8635,
+            "text": "quartierladen brunnenhof"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 725000,
+            "text": "beispiel engineering"
+          }
+        ]
+      }
+    ]
+  }
+}

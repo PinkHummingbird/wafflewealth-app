@@ -1,0 +1,50 @@
+{
+  "bank": "Lunar",
+  "country": "DK",
+  "product": "current account (DKK)",
+  "format": "csv",
+  "file": "Lunar_transaktioner_2026-10.csv",
+  "layout_sources": [
+    "None found: the web search budget for this run was used up before Lunar could be looked up, and no importer config for Lunar was in the sources fetched (bank2ynab, Firefly III import-configurations, ofxstatement plugin list). The layout follows Danish bank CSV conventions (Danske, Bankdata: Dato;Tekst;Beløb;Saldo)."
+  ],
+  "layout_confidence": 15,
+  "notes": "UNVERIFIED. Lunar's in-app \"export transactions\" CSV is assumed to follow Danish bank conventions: semicolon-separated, UTF-8 with BOM, DD-MM-YYYY dates, Danish amounts (\"-9.250,00\"), a currency column and the balance after each line, newest first. Treat as a placeholder until checked against a real export. Closing = the newest Saldo; opening = the oldest Saldo minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "DKK",
+        "owed": false,
+        "opening": 412550,
+        "closing": 2592775,
+        "lines": [
+          {
+            "date": "2026-10-03",
+            "amount": -21875,
+            "text": "netto eksempelvej"
+          },
+          {
+            "date": "2026-10-10",
+            "amount": 15000,
+            "text": "eksempel anna"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -925000,
+            "text": "eksempel bolig"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 3125000,
+            "text": "løn eksempel"
+          },
+          {
+            "date": "2026-10-31",
+            "amount": -12900,
+            "text": "eksempel streaming"
+          }
+        ]
+      }
+    ]
+  }
+}

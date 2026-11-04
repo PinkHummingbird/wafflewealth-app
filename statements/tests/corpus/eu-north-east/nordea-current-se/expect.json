@@ -1,0 +1,57 @@
+{
+  "bank": "Nordea",
+  "country": "SE",
+  "product": "personkonto (current account)",
+  "format": "csv",
+  "file": "PERSONKONTO 1234 56 78901 - 2026-11-04 10.15.30.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [SE Nordea - netbank.nordea.se] (header Bokföringsdag;Belopp;Avsändare;Mottagare;Namn;Rubrik;Saldo;Valuta, semicolon, file name \"<account> - YYYY.MM.DD HH.MM\")",
+    "Real exports kept in public repos: https://github.com/robinandreeklund-collab/Hembudget/tree/HEAD/data/Nordea (\"PERSONKONTO 1722 20 34439 - 2026-04-21 12.46.46.csv\"), https://github.com/albinrydberg/ynab-converter/blob/HEAD/testfiles/nordea-input-2024.csv, https://github.com/robinandreeklund-collab/Insights (\"PERSONKONTO ... - 2025-10-21 15.38.56.csv\"): UTF-8 with BOM, LF, a trailing ; on every line, YYYY/MM/DD, comma decimal with no thousands mark, newest first, Saldo after each line",
+    "https://github.com/kjelloh/cratchit/blob/HEAD/src/test/data/account_statements_csv.hpp (a newer 10-column variant, Bokföringsdag;Belopp;Avsändare;Mottagare;Namn;Ytterligare detaljer;Meddelande;Egna anteckningar;Saldo;Valuta;, seen from late 2025)"
+  ],
+  "layout_confidence": 85,
+  "notes": "Nordea Netbank (Sweden) \"Exportera\" as CSV. Semicolon-separated, no quoting, every line (header too) ends with a ;, UTF-8 with a BOM, LF line ends. Dates YYYY/MM/DD; Belopp signed with a comma decimal and no thousands mark; Saldo is the balance after each line; Valuta SEK. Newest first. Avsändare is your own account on money out, Mottagare on money in; Namn is often empty and Rubrik carries the text. Pending card lines would come first with \"Reserverat\" in the date column and no Saldo; this October export has none. Closing = the newest line's Saldo; opening = the oldest line's Saldo minus its amount. Since late 2025 some exports add Ytterligare detaljer/Meddelande/Egna anteckningar columns (the user can choose columns); the 8-column form is the one most often seen.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "SEK",
+        "owed": false,
+        "opening": 231235,
+        "closing": 2230885,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -3500,
+            "text": "vardagspaket"
+          },
+          {
+            "date": "2026-10-03",
+            "amount": -18950,
+            "text": "exempelbutiken"
+          },
+          {
+            "date": "2026-10-24",
+            "amount": 2845000,
+            "text": "exempelbolaget"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -845000,
+            "text": "exempel bostad"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -12900,
+            "text": "exempelstream"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 35000,
+            "text": "exempel,anna"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "bank": "N26",
+  "country": "DE",
+  "product": "main account",
+  "format": "csv",
+  "file": "20261001-20261031.csv",
+  "layout_sources": [
+    "https://github.com/siddhantgoel/beancount-n26 (HEADER_FIELDS and tests/test_n26_importer.py test_extract_updated_header: the current header with Type unquoted, rows with ISO dates, \"Main Account\" quoted, \"-12.34\")",
+    "https://github.com/reubano/csv2ofx/blob/master/csv2ofx/mappings/n26.py (comma separated, Amount (EUR))",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE N26] (file name <yyyymmdd>-<yyyymmdd>.csv, %Y-%m-%d)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Current N26 CSV (English headers whatever the app language): comma separated, header names quoted except Type, rows unquoted except \"Main Account\", ISO dates, a signed \"Amount (EUR)\" with a dot decimal and no thousands mark, card payments also carry Original Amount/Currency and an Exchange Rate. UTF-8 without BOM, LF and oldest-first order assumed; the file name is the older documented one. No balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-09",
+            "amount": -2347,
+            "text": "biomarkt koernerbrot"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": -1799,
+            "text": "funkwelt mobil"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": 287143,
+            "text": "beispiel digital"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": 3875,
+            "text": "max mustermann"
+          }
+        ]
+      }
+    ]
+  }
+}

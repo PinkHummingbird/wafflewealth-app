@@ -1,0 +1,51 @@
+{
+  "bank": "SEB",
+  "country": "SE",
+  "product": "privatkonto (current account)",
+  "format": "csv",
+  "file": "kontoutdrag.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [SE SEB Skandinaviska Enskilda Banken] (file \"kontoutdrag\", semicolon, one header row, 6 columns Date,skip,skip,Payee,Inflow,skip, %Y-%m-%d)",
+    "https://github.com/gerasiov/ofxstatement-seb/blob/HEAD/ofxstatement/plugins/seb.py (the same six headings, exactly: Bokföringsdatum, Valutadatum, Verifikationsnummer, Text/mottagare, Belopp, Saldo; card lines end \"/YY-MM-DD\" with the purchase day; that plugin reads the Excel export Export.xlsx)"
+  ],
+  "layout_confidence": 45,
+  "notes": "SEB internet bank \"kontoutdrag\" CSV. Semicolon-separated, unquoted, one header row, dates YYYY-MM-DD, Belopp signed, Saldo after each line, newest first. Not confirmed: the decimal form (a comma decimal with no thousands mark is assumed; some reports mention a point), the encoding (Windows-1252 assumed for Bokföringsdatum/LÖN) and CRLF. SEB also offers an Excel download (Export.xlsx) with the same columns under a summary block. The currency is not named in the file (SEK). Closing = the newest line's Saldo; opening = the oldest line's Saldo minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 521040,
+        "closing": 2699550,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -24590,
+            "text": "exempelbutiken"
+          },
+          {
+            "date": "2026-10-12",
+            "amount": 40000,
+            "text": "swish exempel anna"
+          },
+          {
+            "date": "2026-10-25",
+            "amount": 3125000,
+            "text": "exempelbolaget"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -950000,
+            "text": "exempel bostad"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": -11900,
+            "text": "exempelstream"
+          }
+        ]
+      }
+    ]
+  }
+}

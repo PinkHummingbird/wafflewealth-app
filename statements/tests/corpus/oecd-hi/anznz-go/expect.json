@@ -1,0 +1,51 @@
+{
+  "bank": "ANZ New Zealand",
+  "country": "NZ",
+  "product": "Go everyday account",
+  "format": "csv",
+  "file": "anz-nz-go.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/nz/anz/default.json (comma, headers true, d/m/Y; nine columns: type, details, particulars, code, reference, amount, date, two ignored)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/nz/anz/README.md (Export tab, \"CSV - Comma Separated Values\", option to include column headings)"
+  ],
+  "layout_confidence": 65,
+  "notes": "ANZ NZ internet banking CSV with column headings switched on: \"Type,Details,Particulars,Code,Reference,Amount,Date,ForeignCurrencyAmount,ConversionCharge\" (header words from memory, column roles confirmed by Firefly). The date comes AFTER the amount, DD/MM/YYYY; one signed Amount; no balance; the NZ payment reference trio Particulars/Code/Reference. Newest first and CRLF are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

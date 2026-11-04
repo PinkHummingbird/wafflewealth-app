@@ -1,0 +1,51 @@
+{
+  "bank": "Landsbankinn",
+  "country": "IS",
+  "product": "veltureikningur (current account, ISK)",
+  "format": "csv",
+  "file": "Faerslur_0133-26-012345.csv",
+  "layout_sources": [
+    "None found for Landsbankinn: the web search budget for this run was used up and no importer config for it was among the sources fetched.",
+    "Icelandic conventions only, from https://github.com/Dagur/ofxstatement-is-arionbanki/blob/HEAD/src/ofxstatement/plugins/arionbanki.py (Arion banki: Dagsetning DD.MM.YYYY, Tilvisun, Skyring, Upphaed with a dot for thousands and a comma decimal)"
+  ],
+  "layout_confidence": 15,
+  "notes": "UNVERIFIED placeholder. Landsbankinn netbanki transaction download assumed as: three labelled rows above the table (account, currency ISK, period) and a blank line, semicolon-separated, Windows-1252 (ð, æ, ó), CRLF, dates DD.MM.YYYY, whole krónur with a dot for thousands (\"-245.000\"), balance after each line (Staða), newest first. ISK has no minor unit, so the expected amounts are whole krónur. Opening = the oldest Staða minus its amount; closing = the newest Staða.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "ISK",
+        "owed": false,
+        "opening": 185420,
+        "closing": 543740,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -245000,
+            "text": "dæmi ehf"
+          },
+          {
+            "date": "2026-10-08",
+            "amount": -12890,
+            "text": "bónus"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 612500,
+            "text": "laun dæmi"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -1290,
+            "text": "kaffihús"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 5000,
+            "text": "jón jónsson"
+          }
+        ]
+      }
+    ]
+  }
+}

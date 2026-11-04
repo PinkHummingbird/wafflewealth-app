@@ -1,0 +1,53 @@
+{
+  "bank": "Simplii Financial",
+  "country": "CA",
+  "product": "no fee chequing account",
+  "format": "csv",
+  "file": "SIMPLII_1234_20261001.csv",
+  "layout_sources": [
+    "https://github.com/beancount/smart_importer/issues/43 (Simplii importer: contents regexp \".*Date, Transaction Details, Funds Out, Funds In\", file SIMPLII_\\d{4}_.*\\.csv)",
+    "https://github.com/beancount/fava/issues/813 (same header and file name pattern; Funds Out debit, Funds In credit)",
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/simplii (2022: header row, m/d/Y, date, description, debit, credit)",
+    "https://financialcrooks.com/how-download-pc-financial-account-transactions-history-to-pc/ (the PC Financial predecessor: Funds Out and Funds In, plain figures, a payee comma spilling into Funds Out, so fields are not quoted)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Header \"Date, Transaction Details, Funds Out, Funds In\" with a space after each comma. MM/DD/YYYY. Unsigned amounts in Funds Out or Funds In, no thousands separator, no currency sign. Unquoted fields. No balance. Data rows without the header's spaces, newest first, LF and the date part of the file name are assumed; descriptions follow CIBC's wording (Simplii runs on CIBC's systems).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 12000,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-28",
+            "amount": -20000,
+            "text": "internet transfer"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "bank": "MUFG Bank (三菱UFJ銀行)",
+  "country": "JP",
+  "product": "普通預金 (ordinary deposit account)",
+  "format": "csv",
+  "file": "mufg_meisai.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 40,
+  "notes": "Eco通帳 \"入出金明細\" CSV download: Shift_JIS, CRLF, every field quoted; header \"日付\",\"摘要\",\"摘要内容\",\"支払い金額\",\"預かり金額\",\"差引残高\",\"メモ\",\"未資金化区分\",\"入払区分\"; dates YYYY/MM/DD; yen with a thousands comma inside the quotes (\"85,000\"), no decimals; money out and in in separate columns; running 差引残高; 入払区分 says 支払い (out) or 預かり (in); payee names in half-width katakana. Oldest first. No currency named (yen implied: amounts are whole yen, so minor units = yen). Zero-padded dates and the exact header are from memory, unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 400000,
+        "closing": 566161,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -6499,
+            "text": "口座振替"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -85000,
+            "text": "振込"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -20000,
+            "text": "カード"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 280000,
+            "text": "給料"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -2340,
+            "text": "デビット"
+          }
+        ]
+      }
+    ]
+  }
+}

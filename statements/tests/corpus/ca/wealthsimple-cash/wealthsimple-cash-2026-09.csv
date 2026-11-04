@@ -1,0 +1,6 @@
+date,transaction,description,amount,balance,currency
+2026-09-01,AFT_IN,Direct deposit from EXAMPLE STUDIO,2450.00,3120.40,CAD
+2026-09-04,SPEND,CORNER GROCER,-86.43,3033.97,CAD
+2026-09-15,E_TRFOUT,Interac e-Transfer to Maple St Properties,-1650.00,1383.97,CAD
+2026-09-21,E_TRFIN,Interac e-Transfer from Sam Example,120.00,1503.97,CAD
+2026-09-30,INT,Interest earned,3.12,1507.09,CAD

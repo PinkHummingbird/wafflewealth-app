@@ -1,0 +1,50 @@
+{
+  "bank": "Hang Seng Bank",
+  "country": "HK",
+  "product": "Integrated Account (savings)",
+  "format": "csv",
+  "file": "hangseng-transactions.csv",
+  "layout_sources": [
+    "None confirmed. The only open-source Hang Seng importer found (https://pypi.org/project/beancount-hangseng/) reads the PDF e-Statement, which suggests many customers have no better download."
+  ],
+  "layout_confidence": 15,
+  "notes": "PLACEHOLDER, not the confirmed layout: an English transaction-history CSV in the style HK banks commonly use (header \"Transaction Date,Transaction Details,Deposit,Withdrawal,Balance\", DD/MM/YYYY, quoted text and amounts with thousands commas, running balance, newest first). Whether Hang Seng e-Banking offers a CSV at all is unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 1823049,
+        "closing": 2780459,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -4200,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -1100000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 2150000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -64990,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -23400,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

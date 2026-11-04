@@ -1,0 +1,10 @@
+Umsätze Girokonto;Kundennummer: 123 4567800
+01.10.2026 - 31.10.2026
+
+Buchungstag;Wert;Umsatzart;Begünstigter / Auftraggeber;Verwendungszweck;IBAN / Kontonummer;BIC;Kundenreferenz;Mandatsreferenz;Gläubiger ID;Fremde Gebühren;Betrag;Abweichender Empfänger;Anzahl der Aufträge;Anzahl der Schecks;Soll;Haben;Währung
+30.10.2026;30.10.2026;SEPA-Überweisung von;Beispiel Logistik AG;Lohn/Gehalt 10/2026 Personalnummer 0815;DE77200700000099887766;EXMPDEFFXXX;LOHN-2026-10-0815;;;;;;;;;3.120,45;EUR
+22.10.2026;22.10.2026;Kartenzahlung;Café Morgenrot//Musterstadt/DE;2026-10-21 Debitk.1 VISA Debit;;;;;;;;;;;-18,90;;EUR
+16.10.2026;16.10.2026;SEPA-Lastschrift von;Stadtwerke Musterstadt;Abschlag Strom Oktober 2026 Vertragskonto 400123456;DE17123456780004711000;EXMPDEFFXXX;ABS-2026-10-123456;MD-0815-2024;DE98ZZZ09999999999;;;;;;-72,50;;EUR
+02.10.2026;02.10.2026;SEPA-Dauerauftrag an;Hausverwaltung Sonnenhof GmbH;Miete Oktober Whg. 3;DE94543210980011223344;EXMPDEFFXXX;NOTPROVIDED;;;;;;;;-1.150,00;;EUR
+01.10.2026;01.10.2026;SEPA-Überweisung an;Max Mustermann;Geschenk Geburtstag Oma;DE83100200300055443322;EXMPDEBBXXX;NOTPROVIDED;;;;;;;;-50,00;;EUR
+Kontostand;31.10.2026;;;2.345,67;EUR

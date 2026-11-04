@@ -1,0 +1,53 @@
+{
+  "bank": "Nordea",
+  "country": "FI",
+  "product": "käyttötili (current account)",
+  "format": "csv",
+  "file": "KÄYTTÖTILI FI21 1234 5600 0007 85 - 2026-11-04 10.15.30.csv",
+  "layout_sources": [
+    "https://github.com/hanzki/ynab-formatter/blob/HEAD/src/parsers/nordea-csv-parser.ts (2023 export: Kirjauspäivä;Määrä;Maksaja;Maksunsaaja;Nimi;Otsikko;Viitenumero;Valuutta, YYYY/MM/DD, \"Varaus\" for pending lines)",
+    "https://github.com/mkkvkmn/fire/blob/HEAD/data/source_files/nordea.csv (2024 export, same 8 columns with a trailing ;) and https://github.com/janikononen/toDoLista (a 2023 export: incoming lines leave Maksaja empty and put your IBAN in Maksunsaaja, the payer in Otsikko)",
+    "https://github.com/laurilarjo/expense-tracking-gsheet-importer/blob/HEAD/test-fixtures/nordea-fi-sample.csv (a variant with Viesti and Saldo columns)",
+    "Nordea SE exports from the same Netbank platform (UTF-8 with BOM, LF): see the nordea-current-se layout"
+  ],
+  "layout_confidence": 75,
+  "notes": "Nordea Netbank (Finland) CSV, the same engine as Sweden's in Finnish. Semicolon-separated, unquoted, a trailing ; on every line, YYYY/MM/DD, Määrä signed with a comma decimal and no thousands mark, Valuutta EUR, newest first. This common 8-column form has no balance column, so no opening or closing. The BOM and LF are assumed from the Swedish exports of the same platform (one Finnish sample in a repo is CRLF without BOM, but it was hand-edited). Some exports carry Viesti and Saldo columns as well (columns can be chosen); this file uses the form most often seen in 2023-2024 exports.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -780,
+            "text": "kahvila esimerkki"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -2390,
+            "text": "esimerkki stream"
+          },
+          {
+            "date": "2026-10-24",
+            "amount": 285000,
+            "text": "esimerkki oy"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -125000,
+            "text": "esimerkki asunnot"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -5420,
+            "text": "k-market esimerkki"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "bank": "OCBC Bank",
+  "country": "SG",
+  "product": "360 Account",
+  "format": "csv",
+  "file": "TransactionHistory_20261104101530.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/test/test-data/TransactionHistory_20180418043121.csv (a real export: the preamble lines, \"Transaction History \" with a trailing space, the header, and each line's details on a second row that starts \",,\")",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf ([SG OCBC Bank]: TransactionHistory_<14 digits>, Header Rows = 6, Footer Rows = 2, %d/%m/%Y)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/plugins/OCBC_Bank_SG.py (joins every row starting with \",\" onto the line before it)"
+  ],
+  "layout_confidence": 60,
+  "notes": "OCBC internet banking CSV: \"Account details for:,…\", Available Balance,\"3,307.90\", \"Ledger Balance,…\", an empty line, \"Transaction History \" (trailing space), then \"Transaction date,Value date,Description,Withdrawals (SGD),Deposits (SGD)\". Each line is TWO rows: dates, the transaction type, the amount; then \",,\" and the details (merchant, card date) on the next row. DD/MM/YYYY; positive amounts in Withdrawals or Deposits; balances quoted with a thousands comma (amounts of 1,000 or more are taken to be written so too). Newest first; LF; one empty line at the end. No running balance; closing = the Ledger Balance (the balance when the file was made, after the newest line). Shape from bank2ynab's real 2018 export; the newer OCBC digital banking may differ. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "SGD",
+        "owed": false,
+        "opening": null,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

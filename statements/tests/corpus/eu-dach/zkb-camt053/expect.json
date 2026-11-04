@@ -1,0 +1,52 @@
+{
+  "bank": "Zürcher Kantonalbank",
+  "country": "CH",
+  "product": "Privatkonto, camt.053 statement",
+  "format": "camt",
+  "file": "camt053_CH6900700110001234567_20261031.xml",
+  "layout_sources": [
+    "https://github.com/Dr-Nuke/drnuke-bean (src/drnukebean/importer/zkb_camt.py and tests/fixtures/zkb/camt053.xml: ZKB delivers CAMT.053.001.08, Swiss SPS/2.2 variant; namespace urn:iso:std:iso:20022:tech:xsd:camt.053.001.08; CLBD with Dt/Dt; Dbtr/Cdtr names under Pty; QRR references under Strd/CdtrRefInf; card entries with CardTx and AddtlNtryInf \"Einkauf ZKB ...\" style text)",
+    "https://www.six-group.com/en/products-services/banking-services/standardization.html (Swiss Payment Standards: Swiss Business Rules / Implementation Guidelines for camt.053 v2022, version .08 with <Sts><Cd>BOOK</Cd></Sts>)",
+    "https://github.com/tarioch/beancounttools (ZKB importer: AddtlNtryInf texts \"Einkauf ZKB Visa Debit Card Nr. ...\", \"eBanking:\", \"Gutschrift:\", \"Dauerauftrag:\")"
+  ],
+  "layout_confidence": 75,
+  "notes": "ISO 20022 camt.053.001.08 as Swiss banks send it under SPS 2022: GrpHdr with paging and AddtlInf, one Stmt with electronic and legal sequence numbers, the period as FrDtTm/ToDtTm with offsets, Acct with IBAN, Ccy, owner and servicer (BICFI), balances OPBD, CLBD and CLAV, a TxsSummry, then one Ntry per booking with <Sts><Cd>BOOK</Cd></Sts>, BookgDt/ValDt, AcctSvcrRef, a BkTxCd domain/family/sub-family, and TxDtls with Refs, the related party under Pty with a structured address, RmtInf (Ustrd, or a QRR reference under Strd) or AddtlTxInf, and AddtlNtryInf. UTF-8, LF, two-space indents. Opening = OPBD, closing = CLBD. The file name is assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CHF",
+        "owed": false,
+        "opening": 412895,
+        "closing": 902680,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -185000,
+            "text": "immobilien sonnenhof"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": -41280,
+            "text": "krankenkasse beispiel"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -8635,
+            "text": "quartierladen brunnenhof"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 725000,
+            "text": "beispiel engineering"
+          },
+          {
+            "date": "2026-10-31",
+            "amount": -300,
+            "text": "kontoführung"
+          }
+        ]
+      }
+    ]
+  }
+}

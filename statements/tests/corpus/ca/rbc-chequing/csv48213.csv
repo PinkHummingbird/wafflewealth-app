@@ -1,0 +1,8 @@
+"Account Type","Account Number","Transaction Date","Cheque Number","Description 1","Description 2","CAD$","USD$"
+Chequing,01234-5012345,9/1/2026,,"PAYROLL DEPOSIT","EXAMPLE STUDIO ",2450.00,,
+Chequing,01234-5012345,9/4/2026,,"C-IDP PURCHASE-4821","CORNER GROCER #12 ",-86.43,,
+Chequing,01234-5012345,9/15/2026,,"Online Banking payment - 7731","MAPLE ST PROPERTIES ",-1650.00,,
+Chequing,01234-5012345,9/21/2026,,"e-Transfer - Autodeposit","SAM EXAMPLE ",120.00,,
+Chequing,01234-5012345,9/30/2026,,"MONTHLY FEE",,-4.95,,
+Chequing,01234-4001234,9/10/2026,,"Transfer","WWW FGN EXCHANGE REF 7XK21093 ",,1200.00,
+Chequing,01234-4001234,9/30/2026,,"MONTHLY FEE",,,-3.00,

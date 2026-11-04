@@ -1,0 +1,50 @@
+{
+  "bank": "ADCB (Abu Dhabi Commercial Bank)",
+  "country": "AE",
+  "product": "current account",
+  "format": "csv",
+  "file": "ADCB_Statement.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 10,
+  "notes": "PLACEHOLDER, not a confirmed layout: an English CSV with account, currency and period lines above \"Posting Date,Value Date,Description,Ref/Cheque No,Debit Amount,Credit Amount,Running Balance\"; DD/MM/YYYY; figures of 1,000 or more quoted with a thousands comma; oldest first; the currency (AED) only in the preamble. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "AED",
+        "owed": false,
+        "opening": 825000,
+        "closing": 1573285,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -1800,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -650000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1450000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -41275,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -8640,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

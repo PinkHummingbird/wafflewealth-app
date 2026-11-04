@@ -1,0 +1,6 @@
+Date,Description,In,Out,Balance
+20260901,Transfer From  Example Chequing,$ 2000.00,,$ 6412.55
+20260910,e-Transfer From  Sam Example,$ 150.00,,$ 6562.55
+20260916,Transfer To  Example Chequing,,$ 1200.00,$ 5362.55
+20260924,e-Transfer To  Sam Example,,$ 85.00,$ 5277.55
+20260930,Interest received,$ 14.62,,$ 5292.17

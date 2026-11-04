@@ -1,0 +1,51 @@
+{
+  "bank": "ATB Financial",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "atb-transactions.csv",
+  "layout_sources": [
+    "https://www.atb.com/resources/support/how-to-download-your-transaction-history-on-atb-personal/ (ATB Personal downloads transactions as CSV, Quicken or QuickBooks; seen only as a search result, the page itself was not reachable; no columns documented)",
+    "No public source found that quotes ATB's CSV header or rows."
+  ],
+  "layout_confidence": 10,
+  "notes": "A placeholder guess, not a confirmed layout: a header row Date,Description,Withdrawals,Deposits,Balance mirroring the columns ATB Personal shows, ISO dates, unsigned money out and money in, balance after each line, oldest first, LF, ASCII. Replace with a real ATB download when one is available.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 85275,
+        "closing": 167637,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 12000,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -995,
+            "text": "monthly account fee"
+          }
+        ]
+      }
+    ]
+  }
+}

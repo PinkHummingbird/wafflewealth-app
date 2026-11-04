@@ -1,0 +1,51 @@
+{
+  "bank": "ANZ",
+  "country": "AU",
+  "product": "Access Advantage transaction account",
+  "format": "csv",
+  "file": "ANZ.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf ([AU ANZ]: Header Rows = 0, Input Columns = Date,Inflow,Payee; file name contains \"ANZ\")",
+    "https://github.com/firefly-iii/import-configurations/blob/main/au/anz/default.json (comma, headers false, date d/n/Y, first columns date, amount, description)"
+  ],
+  "layout_confidence": 55,
+  "notes": "ANZ Internet Banking CSV: NO header row; three columns: date, one signed amount (money out negative, no thousands mark), quoted description. No balance, no currency. bank2ynab says %d/%m/%y but Firefly (newer config) says d/n/Y with a four-digit year, which is used here (DD/MM/YYYY). Firefly maps eight columns, so newer exports may append further columns after the description; the classic three-column form is used. Newest first and CRLF are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

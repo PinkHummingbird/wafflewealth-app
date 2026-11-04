@@ -1,0 +1,51 @@
+{
+  "bank": "DBS Bank (POSB)",
+  "country": "SG",
+  "product": "POSB Savings Account",
+  "format": "csv",
+  "file": "0f3c9a7e5b1d4c2a8e6f0b9d7c5a3e1f.P000000012345678.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf ([SG POSB savings]: file named <32 hex>.P<15 digits>.csv, Input Columns = Date,skip,Outflow,Inflow,Payee,Memo,skip, Date Format = %d %b %Y)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/test/test-data/dba33fceecd62c3c727893361e0ba4d3.P000000027355791.csv (a real row: \"27 Feb 2018,UMC-, 7.80, ,MCDONALD'S (TAM KIOSK) SI NG 22FEB,,,\" — amounts with a leading space, a single space in the empty column, a trailing comma)"
+  ],
+  "layout_confidence": 50,
+  "notes": "DBS/POSB digibank \"Download\" CSV: preamble \"Account Details For:\", \"Statement as at:\", \"Available Balance:\", \"Ledger Balance:\", an empty line, then \"Transaction Date,Reference,Debit Amount,Credit Amount,Transaction Ref1,Transaction Ref2,Transaction Ref3\". Dates \"28 Oct 2026\"; Reference is a short type code (MST, ICT, SAL, GIRO, UMC-); the payee and details are in Transaction Ref1-3; money out/in as positive figures with a LEADING SPACE and a lone space in the unused column; every row ends with an extra comma. Row shape is from bank2ynab's test file; the preamble wording, no thousands mark in amounts, newest-first order and LF are from memory, unconfirmed. Closing = the Ledger Balance \"as at\" the statement date. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

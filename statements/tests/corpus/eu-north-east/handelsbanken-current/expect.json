@@ -1,0 +1,52 @@
+{
+  "bank": "Handelsbanken",
+  "country": "SE",
+  "product": "allkonto (current account)",
+  "format": "xlsx",
+  "file": "Handelsbanken_transaktioner_2026-11-04.xlsx",
+  "layout_sources": [
+    "https://github.com/gurkodil/ofxstatement-handelsbanken (USAGE.md: the transaction download is Excel .xlsx; src/ofxstatement_handelsbanken/plugin.py: account \"<name> ddd ddd ddd\" in A4, header row 9 with Transaktionsdatum/Text/Belopp in B9:D9; parser.py: newer Handelsbanken files declare a wrong sheet dimension \"A1:A1\")",
+    "https://github.com/gurkodil/ofxstatement-handelsbanken/blob/HEAD/tests/transactions.xlsx (anonymised sample: A1 \"Handelsbanken\", A2 export time \"YYYY-MM-DD, HH:MM\", A4 account, A6 \"Kontoform: Allkonto\", A7 \"Period: <from> - <to>\", row 9 Reskontradatum | Transaktionsdatum | Text | Belopp | Saldo, dates stored as text, amounts and balance as numbers, newest first)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [SE Handelsbanken] (the older kontotransactionlist.xls, an HTML table with 7 rows above the same 5 columns)"
+  ],
+  "layout_confidence": 65,
+  "notes": "Handelsbanken internet bank transaction download, offered as Excel (.xlsx) rather than CSV. Seven rows above the table (bank name, export time, account, account form, period), the header on row 9, then the lines newest first. Reskontradatum (booking) and Transaktionsdatum are text cells \"YYYY-MM-DD\", not date serials, as in the sample; Belopp and Saldo are plain numbers (Saldo = balance after the line). The sheet declares the wrong dimension A1:A1 as real exports do. No currency in the file (SEK). Expected dates are the Reskontradatum (booking); card lines have the purchase day in Transaktionsdatum. Closing = the newest Saldo; opening = the oldest Saldo minus its amount. The sheet name is not known (Sheet1 used).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 684520,
+        "closing": 2750870,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -32750,
+            "text": "exempelbutiken"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": 20000,
+            "text": "exempel anna"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 2980000,
+            "text": "exempelbolaget"
+          },
+          {
+            "date": "2026-10-26",
+            "amount": -890000,
+            "text": "exempel bostad"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -10900,
+            "text": "exempelstream"
+          }
+        ]
+      }
+    ]
+  }
+}

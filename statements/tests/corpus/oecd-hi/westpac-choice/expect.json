@@ -1,0 +1,50 @@
+{
+  "bank": "Westpac",
+  "country": "AU",
+  "product": "Choice everyday account",
+  "format": "csv",
+  "file": "westpac-choice.csv",
+  "layout_sources": [
+    "https://statement-converter.pages.dev/blog/how-to-download-westpac-statements-csv and https://ledgerbridge-2ja.pages.dev/convert/westpac (seen via search summary only, hosts blocked: columns Bank Account, Date (DD/MM/YYYY), Narrative, Debit Amount, Credit Amount, Balance)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Westpac Online Banking CSV: header \"Bank Account,Date,Narrative,Debit Amount,Credit Amount,Balance,Categories,Serial\"; Bank Account is BSB+account run together; DD/MM/YYYY; money out and in in separate columns as positive figures without a thousands mark; running Balance; Categories holds a short code (POS, DEP, PAYMENT, OTHER); Serial usually empty. Newest first. The Categories and Serial columns, newest-first order, unquoted narratives and CRLF are from memory, unconfirmed; the real file name is not known. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 235049,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

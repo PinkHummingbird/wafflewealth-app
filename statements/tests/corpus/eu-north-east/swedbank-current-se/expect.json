@@ -1,0 +1,51 @@
+{
+  "bank": "Swedbank",
+  "country": "SE",
+  "product": "privatkonto (current account)",
+  "format": "csv",
+  "file": "Transaktioner_2026-11-04_10-15-30.csv",
+  "layout_sources": [
+    "https://pypi.org/project/beancountswedbank/ 1.0.1 importer.py (first line \"* Transaktioner Period <from> ? <to> Skapad <date> <time> <zone>\", then the header Radnummer,Clearingnummer,Kontonummer,Produkt,Valuta,Bokföringsdag,Transaktionsdag,Valutadag,Referens,Beskrivning,Belopp,Bokfört saldo; comma-separated; read as iso-8859-15; dates %Y-%m-%d)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [SE Swedbank 2020] (file name Transaktioner_YYYY-MM-DD_HH-MM-SS.csv, 2 header rows, %Y-%m-%d, 12 columns)"
+  ],
+  "layout_confidence": 75,
+  "notes": "Swedbank internet bank \"Exportera till Excel\" CSV. One line above the table (\"* Transaktioner Period ... Skapad ...\"), then the header. Comma-separated, Windows-1252 (one byte for ö and the en dash in the first line; the importer reads iso-8859-15), CRLF. Dates YYYY-MM-DD; Belopp signed with a point decimal and no thousands mark; \"Bokfört saldo\" is the balance after each line; Radnummer 1 is the newest line (newest first). Referens and Beskrivning quoted (assumed; the quoting of the other fields is not confirmed). Card lines have a Transaktionsdag a day before the Bokföringsdag; the expected date is the Bokföringsdag (the booking the balance follows). Closing = the newest line's balance; opening = the oldest line's balance minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "SEK",
+        "owed": false,
+        "opening": 312045,
+        "closing": 2453915,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -41230,
+            "text": "ica supermarket"
+          },
+          {
+            "date": "2026-10-13",
+            "amount": 25000,
+            "text": "swish exempel anna"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 3150000,
+            "text": "exempelbolaget"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -980000,
+            "text": "exempel bostad"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -11900,
+            "text": "exempelstream"
+          }
+        ]
+      }
+    ]
+  }
+}

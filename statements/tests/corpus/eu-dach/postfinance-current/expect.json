@@ -1,0 +1,51 @@
+{
+  "bank": "PostFinance",
+  "country": "CH",
+  "product": "Privatkonto (personal account)",
+  "format": "csv",
+  "file": "export_transactions_CH7609000000123456789_20261104.csv",
+  "layout_sources": [
+    "https://github.com/tarioch/beancounttools (src/tariochbctools/importers/postfinance/importer.py: windows_1252, semicolons, rows of other shapes skipped; tests/test_postfinance.py, fixed for issue #83 in Sept 2025: header \"Booking date;Notification text;Credit in CHF;Debit in CHF;Value;Balance in CHF\", dates 31.12.2022, the notification text quoted, a debit written \"-5\", balance \"7881.98\")",
+    "https://pypi.org/project/ofxstatement-postfinance/ (the older E-Finance text export this CSV replaced)"
+  ],
+  "layout_confidence": 60,
+  "notes": "E-Finance \"Kontobewegungen\" CSV in German: rows of \"Label:;value\" above the header (Datum von, Datum bis, Buchungsart, Konto, Währung), six columns (Buchungsdatum, Avisierungstext quoted, Gutschrift in CHF, Lastschrift in CHF negative, Valuta, Saldo in CHF), dd.mm.yyyy, a dot decimal and no thousands mark, figures without trailing zeros (\"-5\"), Windows-1252, CRLF, newest first, and a disclaimer below the table. The German column names are the counterparts of the documented English ones; the rows above and below the table are from memory of circulated samples. Opening = the oldest line's Saldo less its amount; closing = the newest line's Saldo.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CHF",
+        "owed": false,
+        "opening": 312143,
+        "closing": 717923,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -38965,
+            "text": "krankenkasse beispiel"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -178545,
+            "text": "immobilien sonnenhof"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -1245,
+            "text": "bäckerei körnerbrot"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": 625035,
+            "text": "beispiel treuhand"
+          },
+          {
+            "date": "2026-10-31",
+            "amount": -500,
+            "text": "bankpaket smart"
+          }
+        ]
+      }
+    ]
+  }
+}

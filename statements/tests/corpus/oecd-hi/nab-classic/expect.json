@@ -1,0 +1,51 @@
+{
+  "bank": "NAB (National Australia Bank)",
+  "country": "AU",
+  "product": "NAB Classic Banking",
+  "format": "csv",
+  "file": "TransactionHistory.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf ([AU National Australia Bank]: older export with no header, Input Columns = Date,Inflow,skip,skip,skip,Payee,Running Balance, Date Format = %d %b %y, file TransactionHistory)",
+    "https://ledgerbridge-2ja.pages.dev/convert/nab (seen via search summary only, host blocked: columns Date, Amount, Account Number, Transaction Type, Transaction Details, Balance, Category, Merchant Name)"
+  ],
+  "layout_confidence": 45,
+  "notes": "NAB Internet Banking \"Export\" CSV (current form with a header): \"Date,Amount,Account Number,,Transaction Type,Transaction Details,Balance,Category,Merchant Name\" (an empty-named column after Account Number, as in the older headerless file); dates \"28 Oct 26\" (DD Mon YY, as NAB has long written them; one converter page claims DD/MM/YYYY); one signed Amount; running Balance; NAB's own category and merchant name. Newest first. Some reports add a trailing \"Processed On\" column; the older export had no header row at all. Date form, column set and CRLF are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 235049,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

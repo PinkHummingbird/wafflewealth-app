@@ -1,0 +1,5 @@
+Buchung;Valuta;Sender / Empfänger;IBAN / Konto-Nr.;BIC / BLZ;Buchungstext;Verwendungszweck;Kategorie;Stichwörter;Umsatz geteilt;Betrag in EUR
+29.10.2026;29.10.2026;Beispiel Medien GmbH;DE51700202700011112222;EXMPDEMMXXX;GUTSCHRIFT;Gehalt Oktober 2026;Gehalt;;nein;2.635,10
+21.10.2026;20.10.2026;BIOMARKT KOERNERBROT;;;KARTENZAHLUNG;Visa Debit 20.10.2026 Biomarkt Koernerbrot Musterstadt;Lebensmittel;;nein;-42,18
+12.10.2026;12.10.2026;Funkwelt Mobil GmbH;DE67500700100098989898;EXMPDEFFXXX;LASTSCHRIFT;Rechnung 10/2026 Kundennr. 55512345;Telefon & Internet;;nein;-17,99
+01.10.2026;01.10.2026;Hausverwaltung Sonnenhof GmbH;DE94543210980011223344;EXMPDEFFXXX;DAUERAUFTRAG;Miete Oktober Whg. 3;Miete;;nein;-1.150,00

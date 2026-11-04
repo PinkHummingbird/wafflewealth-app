@@ -1,0 +1,5 @@
+Buchungsdatum;Valutadatum;Empfänger/Auftraggeber;IBAN;BIC;Buchungstext;Zahlungsreferenz;Verwendungszweck;Betrag;Währung
+29.10.2026;29.10.2026;Beispiel Handels GmbH;AT552011155512345678;EXMPATWWXXX;Gutschrift;GEH-2026-10;Gehalt Oktober 2026;2.512,90;EUR
+20.10.2026;19.10.2026;Nahversorger Lindengasse;;;Kartenzahlung;;Debitkarte 19.10.2026 17:42 Nahversorger Lindengasse Wien;-29,67;EUR
+13.10.2026;13.10.2026;Beispiel Versicherung AG;AT193200000098765432;EXMPATW1XXX;Lastschrift;POL-77123456;Haushaltsversicherung 4. Quartal;-86,40;EUR
+01.10.2026;01.10.2026;Hausverwaltung Sonnenhof GmbH;AT782011140011122233;EXMPATW2XXX;Dauerauftrag;;Miete Oktober Top 7;-1.095,00;EUR

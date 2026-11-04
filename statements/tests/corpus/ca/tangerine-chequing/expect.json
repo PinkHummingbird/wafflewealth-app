@@ -1,0 +1,52 @@
+{
+  "bank": "Tangerine",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "Chequing.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/tangerine (2022: header row, m/d/Y, Date, Transaction, Name, Memo, Amount)",
+    "https://www.mrexcel.com/board/threads/solution-mixed-up-day-month-order-on-data-exports.1226240/ (a Tangerine CSV whose m/d/yyyy dates Excel swapped; types OTHER, FEE, ATM, CREDIT; \"INTERAC e-Transfer To:\" names)",
+    "https://github.com/firefly-iii/firefly-iii/issues/3945 (a Tangerine Mastercard file 01-tangerineMC.csv with Transaction date,Transaction,Name,Memo,Amount)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Header Date,Transaction,Name,Memo,Amount (the Mastercard download says \"Transaction date\"). M/D/YYYY without leading zeros. Transaction is Tangerine's type (DEBIT, CREDIT, OTHER, FEE, ATM); Name the payee or what it was; Memo a second line, often empty. One signed amount, money out negative, no thousands separator. No balance. Newest first, LF, unquoted fields and the file name are assumed; the Name and Memo wording is invented in Tangerine's style.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-09",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-17",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -6000,
+            "text": "interac e-transfer"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": 38,
+            "text": "interest paid"
+          }
+        ]
+      }
+    ]
+  }
+}

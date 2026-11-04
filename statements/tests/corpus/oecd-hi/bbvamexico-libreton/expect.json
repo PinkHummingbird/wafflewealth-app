@@ -1,0 +1,50 @@
+{
+  "bank": "BBVA México",
+  "country": "MX",
+  "product": "Libretón Básico (cuenta de débito)",
+  "format": "xlsx",
+  "file": "movimientos.xlsx",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 20,
+  "notes": "Low-confidence layout: BBVA México online banking \"Movimientos\" exported to Excel, a title and account row above \"Fecha | Descripción | Cargo | Abono | Saldo\"; dates as date cells (DD/MM/YYYY); Cargo (out) and Abono (in) apart as positive numbers; running Saldo; newest first. No currency named (MXN). Header words and order are unconfirmed; BBVA Spain's export (eu-south/bbva-current) is a different platform. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 1834020,
+        "closing": 2791080,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -4500,
+            "text": "cafe grano pequeno"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -1100000,
+            "text": "juan perez"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 2150000,
+            "text": "estudio ejemplo"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -64990,
+            "text": "energia del norte"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -23450,
+            "text": "abarrotes la esquina"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"
+2026-10-01,2026-10-01,Hausverwaltung Sonnenhof GmbH,DE94543210980011223344,Debit Transfer,Miete Oktober Whg. 3,"Main Account",-1150.00,,,
+2026-10-09,2026-10-09,BIOMARKT KOERNERBROT,,Presentment,-,"Main Account",-23.47,-23.47,EUR,1.0
+2026-10-14,2026-10-15,Funkwelt Mobil GmbH,DE67500700100098989898,Direct Debit,Rechnung 10/2026 Kundennr. 55512345,"Main Account",-17.99,,,
+2026-10-27,2026-10-27,Beispiel Digital GmbH,DE81700100800012121212,Credit Transfer,Gehalt Oktober 2026,"Main Account",2871.43,,,
+2026-10-29,2026-10-29,Max Mustermann,DE83100200300055443322,Credit Transfer,Konzertkarten,"Main Account",38.75,,,

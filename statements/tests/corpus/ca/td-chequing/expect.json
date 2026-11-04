@@ -1,0 +1,58 @@
+{
+  "bank": "TD Canada Trust",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "accountactivity.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf ([CA TD Canada Trust, checking+Visa]: accountactivity, Header Rows = 0, Date,Payee,Outflow,Inflow,skip, %m/%d/%Y)",
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/td (2022: no header, m/d/Y, date, description, debit, credit, ignored balance)",
+    "https://fininja.ca/banks/td-visa/ (Nov 2025 TD export: no header row, date 11/19/2025, description, debit, credit, running balance)",
+    "https://github.com/dashed/td-transactions-to-ledger/blob/master/src/main.rs (headerless; Oct 2025 commit reads YYYY-MM-DD as the \"new TD format\" and MM/DD/YYYY as the old one)"
+  ],
+  "layout_confidence": 65,
+  "notes": "No header row: five columns, date, description, money out, money in, balance after the line. MM/DD/YYYY, the most widely reported form (one Oct 2025 converter also reads YYYY-MM-DD as a newer TD form). Amounts unsigned in their column, no thousands separator. Unquoted. Oldest first and LF line ends are assumed (no source says). File named accountactivity.csv. The balance column gives the closing (the last line) and the opening (worked back from the first).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 116218,
+        "closing": 191880,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-03",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-18",
+            "amount": 12000,
+            "text": "e-transfer"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -6000,
+            "text": "send e-tfr"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -1695,
+            "text": "monthly account fee"
+          }
+        ]
+      }
+    ]
+  }
+}

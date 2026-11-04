@@ -1,0 +1,46 @@
+{
+  "bank": "Raiffeisen Schweiz",
+  "country": "CH",
+  "product": "Privatkonto (personal account)",
+  "format": "csv",
+  "file": "Konto_CH3880808001234567890_20261104.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/ch/raiffeisen/default.json (one header row, semicolon, six columns in this order: account IBAN, booking date, text, signed amount, balance, value date; dates \"Y-m-d H:i:s.v\")",
+    "https://github.com/tarioch/beancounttools (raiffeisench importer: Raiffeisen e-banking file names Konto_CH<digits>_<digits>)"
+  ],
+  "layout_confidence": 45,
+  "notes": "Raiffeisen e-banking transaction export: one header row (IBAN;Booked At;Text;Credit/Debit Amount;Balance;Valuta Date, the names e-banking writes), semicolons, the own IBAN on every line, booking and value dates as timestamps \"2026-10-25 00:00:00.000\", one signed amount with a dot decimal and no thousands mark, the balance after each line. No currency is named anywhere. The column roles and date form are documented; the header words, UTF-8, CRLF and newest-first order are from memory and assumed. Opening = the oldest line's balance less its amount; closing = the newest line's balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 362240,
+        "closing": 795945,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -165000,
+            "text": "immobilien sonnenhof"
+          },
+          {
+            "date": "2026-10-12",
+            "amount": -6420,
+            "text": "quartierladen brunnenhof"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -39875,
+            "text": "krankenkasse beispiel"
+          },
+          {
+            "date": "2026-10-25",
+            "amount": 645000,
+            "text": "beispiel engineering"
+          }
+        ]
+      }
+    ]
+  }
+}

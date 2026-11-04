@@ -1,0 +1,52 @@
+{
+  "bank": "Sparkasse",
+  "country": "DE",
+  "product": "Girokonto (current account), MT940 export",
+  "format": "mt940",
+  "file": "20261104-1234567890-umsatz.sta",
+  "layout_sources": [
+    "https://pypi.org/project/mt-940/ (mt940_tests/betterplace/*.sta and self-provided/*.sta: German bank MT940 with :25: BLZ/Kontonummer, :61: with booking date and the R of EUR, :86: GVC code and ?00 Buchungstext, ?10 Primanota, ?20-?29 purpose with EREF+/MREF+/CRED+/SVWZ+, ?30 BIC, ?31 IBAN, ?32/?33 name, ?34; lines wrapped at 65 characters; STARTUMS references)",
+    "https://crates.io/crates/kontochronik (Sparkasse CSV-MT940 variant: the same bookings carry SEPA tags packed into the purpose)",
+    "Deutsche Kreditwirtschaft DFÜ-Abkommen Anlage 3 (MT940 field 86 structure, GVC codes 083/105/106/117/153)"
+  ],
+  "layout_confidence": 70,
+  "notes": "Online-Banking export in MT940: one statement per booking day (:20:STARTUMSE, :25: bank code/account number, :28C: statement number, :60F: opening, :61: lines, :86: details, :62F: closing, then \"-\"), CRLF, ISO-8859-1 but SWIFT characters only (umlauts written out as ae/oe/ue), amounts with a comma decimal and no thousands mark, a counterparty name longer than 27 characters continued from ?32 into ?33, :86: wrapped at 65 characters. Opening = the first :60F:, closing = the last :62F:. The file name is assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 190417,
+        "closing": 333232,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof gmbh"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -20000,
+            "text": "GA NR00001234"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -6400,
+            "text": "stadtwerke musterstadt"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -785,
+            "text": "baeckerei koernerbrot"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 285000,
+            "text": "beispiel software gmbh"
+          }
+        ]
+      }
+    ]
+  }
+}

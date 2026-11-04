@@ -1,0 +1,5 @@
+﻿"Datum";"Buchungstext";"Whg";"Betrag Detail";"ZKB-Referenz";"Referenznummer";"Belastung CHF";"Gutschrift CHF";"Valuta";"Saldo CHF";"Zahlungszweck";"Details"
+"30.10.2026";"Gutschrift: Beispiel Engineering AG, Zürich";"";"";"Z261030000456789";"";"";"7250.00";"30.10.2026";"9029.80";"Lohn Oktober 2026";""
+"20.10.2026";"Einkauf ZKB Visa Debit Card Nr. xxxx 1234, Quartierladen Brunnenhof, Zürich";"";"";"Z261020000345678";"";"86.35";"";"19.10.2026";"1779.80";"";""
+"14.10.2026";"eBanking: Krankenkasse Beispiel AG, Bern";"";"";"Z261014000234567";"210000000003139471430009017";"412.80";"";"14.10.2026";"1866.15";"";""
+"01.10.2026";"Dauerauftrag: Immobilien Sonnenhof AG, Zürich";"";"";"Z261001000123456";"";"1850.00";"";"01.10.2026";"2278.95";"Miete Oktober 2026";""

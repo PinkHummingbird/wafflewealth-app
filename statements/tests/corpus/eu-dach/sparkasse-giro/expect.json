@@ -1,0 +1,55 @@
+{
+  "bank": "Sparkasse",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "20261104-1234567890-umsatz.CSV",
+  "layout_sources": [
+    "https://pypi.org/project/camt-to-erpnext/ (README 'Input format': delimiter ;, all columns quoted, dates 28.02.99, numbers -1234,56, cp1252, the 17 CSV-CAMT columns in order)",
+    "https://github.com/henrisota/beancount-sparkasse (tests/data/camt.csv: ISO-8859-1, CRLF, every field quoted, dd.mm.yy, Info 'Umsatz gebucht'/'Umsatz vorgemerkt')",
+    "https://crates.io/crates/kontochronik (src/import/sparkasse.rs: the CSV-CAMT header, NOTPROVIDED end-to-end refs, an all-zero Kontonummer/IBAN placeholder for cash withdrawals, card lines '2026-01-01T10:52 Debitk.1 2029-12')",
+    "https://github.com/laermannjan/beancount-import-sparkasse (giro.py: header with every name quoted, ISO-8859-1, %d.%m.%y)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/sparkasse/csv-camt52v8.json (17 columns, semicolon, d.m.y)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE Sparkasse Rhein-Neckar-Nord], [DE Sparkasse Südholstein] (file name <date>-<account>-umsatz.CSV, %d.%m.%y)"
+  ],
+  "layout_confidence": 80,
+  "notes": "Online-Banking Umsätze export \"Excel (CSV-CAMT V2)\": no rows above or below the table, the 17-column CSV-CAMT header, every field double-quoted (empty ones as \"\"), semicolons, ISO-8859-1 (ä/ö as single bytes), CRLF, booking and value dates dd.mm.yy, a signed Betrag with a comma decimal and no thousands mark (\"-1150,00\", \"2850,00\"), Waehrung EUR on every line, Info \"Umsatz gebucht\", newest first. No balance anywhere. The cash withdrawal has no counterparty name and an all-zero IBAN placeholder, so its words come from Verwendungszweck. Newest-first order and the file name are the commonly reported ones, not confirmed for this exact export option.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -20000,
+            "text": "GA NR00001234"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -6400,
+            "text": "stadtwerke musterstadt"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -785,
+            "text": "bäckerei körnerbrot"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 285000,
+            "text": "beispiel software gmbh"
+          }
+        ]
+      }
+    ]
+  }
+}

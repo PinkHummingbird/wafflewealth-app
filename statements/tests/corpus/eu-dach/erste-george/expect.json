@@ -1,0 +1,47 @@
+{
+  "bank": "Erste Bank und Sparkassen (George)",
+  "country": "AT",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "AT432011128212345600_2026-10-01_2026-10-31.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/at/erstebank/README.md (\"George lets you download the csv just UTF-16LE encoded\")",
+    "https://github.com/firefly-iii/import-configurations/blob/main/at/erstebank/example.png (George export dialog: CSV, fields chosen and ordered by drag and drop - Buchungsdatum, Valutadatum, Betrag, Partner, Buchungstext, Währung (unticked) - Trennzeichen \";\", Anführungszeichen \"Ohne\", sorted by Buchungsdatum)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/at/erstebank/default.json (9 columns: booking date, value date, amount, partner name, partner IBAN, partner BIC, two ignored partner columns, text; semicolon; d.m.Y)"
+  ],
+  "layout_confidence": 45,
+  "notes": "George \"Export\" as CSV with the fields of the documented example: Buchungsdatum, Valutadatum, Betrag, the Partner block (name, IBAN, BIC, account number, bank code) and Buchungstext; separator \";\", no quotes, Währung not ticked so no currency is named. UTF-16LE with a byte-order mark (FF FE) and CRLF. dd.mm.yyyy, a signed Betrag in Austrian/German format with dot thousands and a comma decimal; newest first. George lets the user pick fields, order, separator and quotes, so files vary; the Partner sub-column names are reconstructed. No balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -5800,
+            "text": "wiener beispiel energie"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -3418,
+            "text": "nahversorger lindengasse"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 264000,
+            "text": "beispiel handels"
+          }
+        ]
+      }
+    ]
+  }
+}

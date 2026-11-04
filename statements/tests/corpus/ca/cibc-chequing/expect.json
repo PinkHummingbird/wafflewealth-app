@@ -1,0 +1,50 @@
+{
+  "bank": "CIBC",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "cibc.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/cibc (2022: no header, Y-m-d, date, description, debit, credit, then an ignored column, the card number on a credit card download)"
+  ],
+  "layout_confidence": 55,
+  "notes": "No header row. Date YYYY-MM-DD, description, money out, money in (unsigned, one of the two empty); a credit card download adds a fifth column with the masked card number. No balance. Quoted descriptions, newest first, LF and the file name cibc.csv are assumed from memory of the export, not from a source; the description wording follows CIBC's statement style (\"Point of Sale - Interac RETAIL PURCHASE ...\").",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 12000,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -695,
+            "text": "monthly fee"
+          }
+        ]
+      }
+    ]
+  }
+}

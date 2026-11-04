@@ -1,0 +1,53 @@
+{
+  "bank": "Commerzbank",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "Umsaetze_KtoNr123456700_EUR_04-10-2026_0912.CSV",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/master/test/test-data/Umsaetze_KtoNr538917600_EUR_02-03-2018_1503.CSV (a real export: header, UTF-8, LF, only Buchungstext quoted, \"-17,22\")",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE Commerzbank checking] (file name Umsaetze_KtoNr<9 digits>_EUR_<dd-mm-yyyy>_<hhmm>, %d.%m.%Y)",
+    "https://github.com/siddhantgoel/beancount-commerzbank (FIELDS: the 10 columns with Kategorie; utf-8-sig; amounts de_DE)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/commerzbank/csv-giro.json (10 columns, semicolon, d.m.Y)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Umsätze export: one header row, 10 columns ending in Kategorie, semicolons, UTF-8 with a BOM, LF line ends, dd.mm.yyyy, only the free-text Buchungstext in double quotes, a signed Betrag with a comma decimal and no thousands mark (\"-1150,00\"), Währung EUR, and the account's own number, bank code and IBAN repeated on every line. Newest first. The BOM, the missing thousands mark and the order are the commonly reported form, not all confirmed; the counterparty is only inside Buchungstext. No balance.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-09-08",
+            "amount": 2999,
+            "text": "onlinehandel beispiel"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -7250,
+            "text": "stadtwerke musterstadt"
+          },
+          {
+            "date": "2026-09-24",
+            "amount": -480,
+            "text": "café morgenrot"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": 265000,
+            "text": "beispiel logistik ag"
+          }
+        ]
+      }
+    ]
+  }
+}

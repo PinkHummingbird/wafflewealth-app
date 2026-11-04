@@ -1,0 +1,50 @@
+{
+  "bank": "Banco de Chile",
+  "country": "CL",
+  "product": "Cuenta Corriente",
+  "format": "xlsx",
+  "file": "cartola.xlsx",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 25,
+  "notes": "Low-confidence layout: Banco de Chile \"Movimientos / Cartola\" downloaded as Excel, title, account and period rows above \"Fecha | Descripción | Canal o Sucursal | Cargos (CLP) | Abonos (CLP) | Saldo (CLP)\"; dates as date cells; whole pesos (CLP has no minor unit) shown with a thousands mark; running Saldo; newest first. The headings name CLP. The bank may serve the older .xls; header words unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CLP",
+        "owed": false,
+        "opening": 823540,
+        "closing": 1558900,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -3200,
+            "text": "cafe grano chico"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -650000,
+            "text": "juan perez"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1450000,
+            "text": "estudio ejemplo"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -42990,
+            "text": "energia del norte"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -18450,
+            "text": "supermercado la esquina"
+          }
+        ]
+      }
+    ]
+  }
+}

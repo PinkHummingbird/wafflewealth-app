@@ -1,0 +1,50 @@
+{
+  "bank": "BNZ (Bank of New Zealand)",
+  "country": "NZ",
+  "product": "Everyday account",
+  "format": "csv",
+  "file": "bnz-everyday.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of BNZ internet banking \"Export transactions\" CSV."
+  ],
+  "layout_confidence": 40,
+  "notes": "BNZ CSV: header \"Date,Amount,Payee,Particulars,Code,Reference,Tran Type,This Party Account,Other Party Account,Serial,Transaction Code,Batch Number,Originating Bank/Branch,Processed Date\"; dates DD/MM/YY (two-digit year); one signed Amount; no balance; tran type codes (EFTPOS, AP, DC, DD). Oldest first, two-digit years, the column list and CRLF are from memory, unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

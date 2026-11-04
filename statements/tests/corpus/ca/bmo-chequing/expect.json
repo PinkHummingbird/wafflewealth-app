@@ -1,0 +1,51 @@
+{
+  "bank": "BMO Bank of Montreal",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "bmo_chequing.csv",
+  "layout_sources": [
+    "https://github.com/deb-sig/double-entry-generator/blob/master/example/bmo/debit/example-bmo-records.csv (preamble, blank lines, header with \" Transaction Amount\", quoted-apostrophe card number, CREDIT/DEBIT, YYYYMMDD, signed amounts written like -50.0, descriptions padded to 79 characters with [DN]/[CW]/[IB] codes)",
+    "https://github.com/deb-sig/double-entry-generator/tree/master/pkg/provider/bmo (skips the first line and the header; signed amount)"
+  ],
+  "layout_confidence": 65,
+  "notes": "A line \"Following data is valid as of YYYYMMDDhhmmss (Year/Month/Day/Hour/Minute/Second)\", two blank lines, the header First Bank Card,Transaction Type,Date Posted, Transaction Amount,Description (a space before Transaction Amount), two blank lines, then the lines. The card number is wrapped in apostrophes ('5000...'). Transaction Type CREDIT or DEBIT; Date Posted YYYYMMDD; Transaction Amount signed, money out negative, written as a float without trailing zeros (2450.0, -94.5), no thousands separator. Description is a bracketed BMO code then the text, space-padded to 79 characters. Oldest first. No balance. CRLF is assumed (the only sample sits in a repository that normalises line ends); the file name is assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -9450,
+            "text": "prairie hydro"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -1795,
+            "text": "plan fee"
+          }
+        ]
+      }
+    ]
+  }
+}

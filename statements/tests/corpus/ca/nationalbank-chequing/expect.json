@@ -1,0 +1,51 @@
+{
+  "bank": "National Bank of Canada",
+  "country": "CA",
+  "product": "chequing account",
+  "format": "csv",
+  "file": "transactions.csv",
+  "layout_sources": [
+    "https://www.nbc.ca/en/business/help-centre/transactions/account-management/export-transactions-accounting-software.html (National Bank exports transactions as CSV, QBO, OFX or QFX; no columns documented)",
+    "No public source found that quotes the personal CSV's header or rows; semicolons as given in the corpus brief."
+  ],
+  "layout_confidence": 15,
+  "notes": "Largely a guess: semicolon-separated (as the brief says), with what a French-language Excel export would carry: header Date;Description;Catégorie;Débit;Crédit;Solde, ISO dates, decimal comma, no thousands separator, money out and money in in their own columns, a balance after each line, newest first, UTF-8 with BOM and CRLF. An English session probably gives English header words. Every one of these details is unverified.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 143210,
+        "closing": 217117,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-05",
+            "amount": -8643,
+            "text": "épicerie du coin"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "gestion immobilière"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": 12000,
+            "text": "sam exemple"
+          },
+          {
+            "date": "2026-09-29",
+            "amount": -9450,
+            "text": "hydro exemple"
+          }
+        ]
+      }
+    ]
+  }
+}

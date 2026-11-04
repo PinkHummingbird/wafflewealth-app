@@ -1,0 +1,51 @@
+{
+  "bank": "EQ Bank",
+  "country": "CA",
+  "product": "savings account (Personal Account)",
+  "format": "csv",
+  "file": "eq-bank-transactions.csv",
+  "layout_sources": [
+    "https://github.com/reubano/csv2ofx/commit/025a4277a6addc2317d361bc33d4c371a35608c5 (2019 \"Add EQ Bank (Canada)\": \"only offers to download transactions as CSV\"; quotes Date,Description,In,Out,Balance and rows 20190228,Interest received,$ 12.34,,$ 1534.56)",
+    "https://github.com/reubano/csv2ofx/blob/master/csv2ofx/mappings/eqbank.py (Date, Description, In, Out, Balance)"
+  ],
+  "layout_confidence": 40,
+  "notes": "Header Date,Description,In,Out,Balance. Date YYYYMMDD. Amounts with a dollar sign and a space (\"$ 12.34\"), no thousands separator, unsigned in In or Out; Balance after each line. Descriptions like \"Transfer To  Demo\" with two spaces. The 2019 sample's balances run oldest first. EQ Bank rebuilt its online banking since 2019, so the current file may differ; LF and the file name are assumed. The dollar sign does not say which dollar: no currency.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 441255,
+        "closing": 529217,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 200000,
+            "text": "transfer from example chequing"
+          },
+          {
+            "date": "2026-09-10",
+            "amount": 15000,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-16",
+            "amount": -120000,
+            "text": "transfer to example chequing"
+          },
+          {
+            "date": "2026-09-24",
+            "amount": -8500,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": 1462,
+            "text": "interest received"
+          }
+        ]
+      }
+    ]
+  }
+}

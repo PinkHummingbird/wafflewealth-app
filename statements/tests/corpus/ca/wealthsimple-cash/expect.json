@@ -1,0 +1,51 @@
+{
+  "bank": "Wealthsimple",
+  "country": "CA",
+  "product": "Cash account (Wealthsimple Chequing since 2025)",
+  "format": "csv",
+  "file": "wealthsimple-cash-2026-09.csv",
+  "layout_sources": [
+    "https://github.com/grdnkln/wealthsimple-csv-to-qfx/blob/main/ws_csv_to_qfx.py (July 2026: monthly statement CSV from Documents, columns date, transaction, description, amount, balance, currency; %Y-%m-%d; plain decimals)",
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/wealthsimple (June 2025: header row, Y-m-d, date, transaction, description, amount, balance)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Lowercase header date,transaction,description,amount,balance,currency (a 2025 config shows the same without currency). ISO dates; transaction is Wealthsimple's type code; amount signed, money out negative, plain decimals with no sign or thousands separator; balance after the line; currency CAD on every row. The type codes shown (AFT_IN, SPEND, E_TRFOUT, E_TRFIN, INT), oldest-first order, no BOM, LF and the file name are assumed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CAD",
+        "owed": false,
+        "opening": 67040,
+        "closing": 150709,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "corner grocer"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "maple st properties"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 12000,
+            "text": "sam example"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": 312,
+            "text": "interest earned"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+Type,Details,Particulars,Code,Reference,Amount,Date,ForeignCurrencyAmount,ConversionCharge
+Eft-Pos,Corner Grocer,4835********,1234,261028123456,-23.40,28/10/2026,,
+Direct Debit,Northwind Energy,87654321,,Power,-64.99,20/10/2026,,
+Direct Credit,Example Studio,Salary,,October,2150.00,15/10/2026,,
+Automatic Payment,J Smith,Rent,,October,-1100.00,05/10/2026,,
+Visa Purchase,Little Bean Cafe,4835-****-****-1234,Df,,-4.20,02/10/2026,,

@@ -1,0 +1,50 @@
+{
+  "bank": "Mashreq",
+  "country": "AE",
+  "product": "current account (Mashreq Neo)",
+  "format": "csv",
+  "file": "mashreq-transactions.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 10,
+  "notes": "PLACEHOLDER, not a confirmed layout: an English CSV \"Transaction Date,Description,Reference No.,Debit (AED),Credit (AED),Balance (AED)\" with the currency in the money headings; dates \"28 Oct 2026\"; no thousands mark; running balance; newest first. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "AED",
+        "owed": false,
+        "opening": 825000,
+        "closing": 1573285,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -1800,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -650000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1450000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -41275,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -8640,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "bank": "comdirect",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "umsaetze_1234567890_20261104-0915.csv",
+  "layout_sources": [
+    "No importer config or help page for this export could be reached in this session; the layout is the widely circulated comdirect \"Umsätze\" CSV as quoted in user forums and import scripts (title row, \"Neuer Kontostand\" above the table, \"Alter Kontostand\" below it)"
+  ],
+  "layout_confidence": 50,
+  "notes": "Umsätze CSV of the Girokonto: a row holding only \";\", a title row with the period, \"Neuer Kontostand\" (the closing balance with \" EUR\"), an empty row, then the 5-column header; every field double-quoted and every row ending in \";\"; Windows-1252, CRLF, dd.mm.yyyy, a signed \"Umsatz in EUR\" with dot thousands and a comma decimal; the counterparty and purpose are packed into Buchungstext (\"Auftraggeber: ... Buchungstext: ... Ref. ...\"); newest first; after an empty row \"Alter Kontostand\", the opening balance. File name umsaetze_<Kontonummer>_<yyyymmdd-hhmm>.csv. From memory of circulated samples, not a source checked here.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 108066,
+        "closing": 296821,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -6400,
+            "text": "stadtwerke musterstadt"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -1890,
+            "text": "cafe morgenrot"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 312045,
+            "text": "beispiel logistik ag"
+          }
+        ]
+      }
+    ]
+  }
+}

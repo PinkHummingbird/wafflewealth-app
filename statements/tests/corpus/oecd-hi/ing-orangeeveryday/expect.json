@@ -1,0 +1,51 @@
+{
+  "bank": "ING Australia",
+  "country": "AU",
+  "product": "Orange Everyday",
+  "format": "csv",
+  "file": "Transactions.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf ([AU ING]: Transactions.csv, Header Rows = 1, Input Columns = Date,Memo,Inflow,Inflow,skip with the comment that the two money columns hold positive inflows and NEGATIVE outflows; %d/%m/%Y)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/au/ing/default.json (comma, headers true, d/m/Y; date, description, amount_credit, amount_debit, ignored balance)"
+  ],
+  "layout_confidence": 65,
+  "notes": "ING Australia CSV (Transactions.csv): header \"Date,Description,Credit,Debit,Balance\"; DD/MM/YYYY; Credit positive, Debit written NEGATIVE (\"-23.40\"), the other column empty; running Balance; no thousands mark; descriptions carry \"- Receipt nnnnnn\" and card details. Newest first, unquoted text and CRLF are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 235049,
+        "closing": 330790,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -420,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -110000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 215000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -6499,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -2340,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

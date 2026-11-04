@@ -1,0 +1,50 @@
+{
+  "bank": "HSBC Hong Kong",
+  "country": "HK",
+  "product": "HSBC One savings account",
+  "format": "csv",
+  "file": "TransactionHistory.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf ([SG HSBC Savings Account], the same HSBC Asia online banking: TransactionHistory, Header Rows = 0, Input Columns = Date,Payee,Inflow,skip, %d/%m/%Y)"
+  ],
+  "layout_confidence": 30,
+  "notes": "HSBC (Asia) online banking \"Download\" CSV (TransactionHistory.csv): NO header row; date DD/MM/YYYY, quoted description, one signed amount (quoted when it carries a thousands comma), and a fourth column that importers skip (left empty here; its content is unknown). No balance, no currency. Taken from bank2ynab's HSBC Singapore entry on the assumption that HSBC HK uses the same platform; oldest-first order and LF follow the HSBC UK layout in this corpus; all unconfirmed for HK. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -4200,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -1100000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 2150000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -64990,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -23400,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

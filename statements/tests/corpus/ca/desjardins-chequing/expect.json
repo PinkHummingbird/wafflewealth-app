@@ -1,0 +1,52 @@
+{
+  "bank": "Desjardins",
+  "country": "CA",
+  "product": "chequing account (EOP, épargne avec opérations)",
+  "format": "csv",
+  "file": "releve.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/tree/main/ca/desjardins (2023: \"CSV Accentué\" export from Relevés; no header, Y/m/d, 14 columns: caisse, account number, type, date, number, description, -, withdrawal, deposit, five more)",
+    "https://github.com/maxboulianne/Lifecal/blob/main/tests/purchases.test.js (2026 rows \"au format des CSV d'AccèsD\": quoted text and dates, unquoted sequence number 00001 and amounts, \"\" for empty fields, balance last; account types EOP/ES/MC in one file)",
+    "https://github.com/maxboulianne/Lifecal/blob/main/js/ui/app.js (falls back to windows-1252 for \"relevés Desjardins\")"
+  ],
+  "layout_confidence": 65,
+  "notes": "No header row; 14 columns: caisse name, folio, account type (EOP here; savings ES#, line of credit MC# and loans come in the same file as their own blocks), date \"YYYY/MM/DD\" (quoted), sequence number 00001 (unquoted), description (French, accented), cheque number, withdrawal, deposit, four more money columns (interest, capital, advance, repayment for loans and lines), balance after the line. Text and empty fields quoted (\"\"), figures unquoted with a point for decimals and no thousands separator. Oldest first. Latin-1 / Windows-1252 text (the \"CSV accentué\" export keeps accents). CRLF and the file name are assumed. No currency stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 90540,
+        "closing": 172602,
+        "lines": [
+          {
+            "date": "2026-09-02",
+            "amount": 245000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-09-04",
+            "amount": -8643,
+            "text": "épicerie du coin"
+          },
+          {
+            "date": "2026-09-15",
+            "amount": -165000,
+            "text": "gestion immobilière"
+          },
+          {
+            "date": "2026-09-21",
+            "amount": 12000,
+            "text": "sam exemple"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": -1295,
+            "text": "frais fixes d'utilisation"
+          }
+        ]
+      }
+    ]
+  }
+}

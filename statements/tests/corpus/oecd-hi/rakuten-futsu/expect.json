@@ -1,0 +1,50 @@
+{
+  "bank": "Rakuten Bank (楽天銀行)",
+  "country": "JP",
+  "product": "普通預金 (ordinary deposit account)",
+  "format": "csv",
+  "file": "RB-torihikimeisai.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 50,
+  "notes": "Rakuten Bank \"取引明細\" CSV (RB-torihikimeisai.csv): Shift_JIS, CRLF, no quoting; header \"取引日,入出金(円),取引後残高(円),入出金内容\"; dates YYYYMMDD with no separators; ONE signed amount in yen (no thousands mark, no decimals); balance after each line; the description last, full-width. The header names the currency (円 = JPY). Oldest first and the file name are from memory, unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "JPY",
+        "owed": false,
+        "opening": 400000,
+        "closing": 566161,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -6499,
+            "text": "口座振替"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -85000,
+            "text": "ヤマダ"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -20000,
+            "text": "出金"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 280000,
+            "text": "給与"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -2340,
+            "text": "コーナーグローサー"
+          }
+        ]
+      }
+    ]
+  }
+}

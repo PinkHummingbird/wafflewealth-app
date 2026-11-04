@@ -1,0 +1,50 @@
+{
+  "bank": "KB Kookmin Bank (KB국민은행)",
+  "country": "KR",
+  "product": "보통예금 (ordinary deposit account)",
+  "format": "xlsx",
+  "file": "kb-transactions.xlsx",
+  "layout_sources": [
+    "https://pypi.org/project/KB-Bank-Transaction-Lookup/ (crawler of KB's quick transaction view: date-time \"yyyy.mm.dd hh:mm:ss\", then withdrawal, deposit and balance columns as whole won with thousands commas, the other party on its own row)"
+  ],
+  "layout_confidence": 30,
+  "notes": "KB Star Banking 거래내역조회 → 엑셀저장. Title and account rows (계좌번호, 예금종류, 조회기간) above the header \"거래일시 | 적요 | 보낸분/받는분 | 송금메모 | 출금액 | 입금액 | 잔액 | 거래점 | 구분\"; date-time in one cell; withdrawal and deposit as whole won (0 in the unused one); running 잔액. Newest first. Written as .xlsx; KB may actually serve the older .xls, and it may keep the date-time as text rather than a date cell: both unconfirmed, as are the header words. No currency named (won, no minor unit). Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 2350490,
+        "closing": 3307900,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -4200,
+            "text": "리틀빈카페"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -1100000,
+            "text": "홍길동"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 2150000,
+            "text": "예시스튜디오"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -64990,
+            "text": "노스윈드에너지"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -23400,
+            "text": "코너식품"
+          }
+        ]
+      }
+    ]
+  }
+}

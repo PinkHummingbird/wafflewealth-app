@@ -1,0 +1,15 @@
+Kontonummer:;0235 00123456.40;
+IBAN:;CH58 0023 5235 1234 5640 2;
+Von:;2026-10-01;
+Bis:;2026-10-31;
+Anfangssaldo:;8412.35;
+Schlusssaldo:;13113.20;
+Bewertet in:;CHF;
+Anzahl Transaktionen in diesem Zeitraum:;5;
+
+Abschlussdatum;Abschlusszeit;Buchungsdatum;Valutadatum;Währung;Belastung;Gutschrift;Einzelbetrag;Saldo;Transaktions-Nr.;Beschreibung1;Beschreibung2;Beschreibung3;Fussnoten;
+2026-10-01;00:21:43;2026-10-01;2026-10-01;CHF;-1850.00;;;6562.35;9930274TI1234567;"Immobilien Sonnenhof AG;Seestrasse 12;8002 Zürich;CH";"Dauerauftrag";"Zahlungsgrund: Miete Oktober 2026 Whg. 3.2; Konto-Nr. IBAN: CH69 0070 0110 0012 3456 7; Kosten: Dauerauftrag Inland; Transaktions-Nr. 9930274TI1234567";;
+2026-10-09;12:41:07;2026-10-10;2026-10-09;CHF;-86.35;;;6476.00;9930282KO7654321;"Quartierladen Brunnenhof;8004 Zürich";"Zahlung Debitkarte";"Kartennummer: xxxx xxxx xxxx 1234; Transaktions-Nr. 9930282KO7654321";;
+2026-10-14;07:02:55;2026-10-14;2026-10-14;CHF;-412.80;;;6063.20;9930287TI2345678;"Krankenkasse Beispiel AG;Laupenstrasse 7;3008 Bern;CH";"E-Banking-Auftrag";"Referenz-Nr. QRR: 21 00000 00003 13947 14300 09017; Konto-Nr. IBAN: CH44 3199 9123 0008 8901 2; Kosten: E-Banking Inland; Transaktions-Nr. 9930287TI2345678";;
+2026-10-20;17:15:30;2026-10-20;2026-10-20;CHF;-200.00;;;5863.20;9930293BN3456789;"Bancomat UBS Paradeplatz;8001 Zürich";"Bargeldbezug Debitkarte";"Kartennummer: xxxx xxxx xxxx 1234; Transaktions-Nr. 9930293BN3456789";;
+2026-10-23;00:12:08;2026-10-23;2026-10-23;CHF;;7250.00;;13113.20;9930296TO4567890;"Beispiel Engineering AG;Hardturmstrasse 101;8005 Zürich;CH";"Gutschrift";"Mitteilungen: Lohn Oktober 2026; Transaktions-Nr. 9930296TO4567890";;

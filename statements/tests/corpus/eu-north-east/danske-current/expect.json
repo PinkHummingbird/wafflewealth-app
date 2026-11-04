@@ -1,0 +1,50 @@
+{
+  "bank": "Danske Bank",
+  "country": "DK",
+  "product": "lønkonto (current account)",
+  "format": "csv",
+  "file": "Lønkonto-3001234567-20261104.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [DK Danske Bank] (file name \"<Accountname>-<10 digits>-<8 digits>.csv\"; header comment \"Dato\";\"Kategori\";\"Underkategori\";\"Tekst\";\"Bel�b\";\"Saldo\";\"Status\";\"Afstemt\" - the replacement character shows the file is not UTF-8; semicolon; %d.%m.%Y; amount and running balance columns)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Danske eBanking \"Eksporter\" CSV. Every field double-quoted, semicolon-separated, Windows-1252 (the ø of Beløb is one byte), CRLF. Dates DD.MM.YYYY; amounts in Danish form with a dot for thousands and a comma decimal (\"-7.950,00\"); Saldo is the balance after each line; Status \"Udført\", Afstemt \"Nej\". The currency is not named anywhere in the file (DKK). Oldest first is assumed (not confirmed). Closing = the last line's Saldo; opening = the first line's Saldo minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 987650,
+        "closing": 2982505,
+        "lines": [
+          {
+            "date": "2026-09-01",
+            "amount": -795000,
+            "text": "eksempel bolig"
+          },
+          {
+            "date": "2026-09-05",
+            "amount": -31245,
+            "text": "eksempelmarked"
+          },
+          {
+            "date": "2026-09-14",
+            "amount": -20000,
+            "text": "rejsekort"
+          },
+          {
+            "date": "2026-09-22",
+            "amount": -8900,
+            "text": "café eksempel"
+          },
+          {
+            "date": "2026-09-30",
+            "amount": 2850000,
+            "text": "løn eksempel"
+          }
+        ]
+      }
+    ]
+  }
+}

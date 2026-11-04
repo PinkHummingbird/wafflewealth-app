@@ -1,0 +1,52 @@
+{
+  "bank": "Deutsche Bank",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "Kontoumsaetze_100_123456700_20261104_101530.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/deutschebank/Readme.md (2025: the exact header line; \"remove everything above the table ... and the last line (the summary)\")",
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/deutschebank/default.json (18 columns; Soll as amount_debit, Haben as amount_credit; semicolon; d.m.Y)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE Deutsche Bank] (Header Rows = 4, Footer Rows = 1, Soll as outflow, Haben as inflow, Betrag skipped)"
+  ],
+  "layout_confidence": 45,
+  "notes": "Online-Banking \"Umsätze\" CSV: semicolons, Windows-1252, CRLF, dd.mm.yyyy. Three rows above the header (title with customer number, the period, an empty line; bank2ynab skips 4 rows including the header) and one summary row below it (\"Kontostand;<date>;;;<amount>;EUR\"), the balance at the end of the period. The money is in Soll (negative) or Haben (positive), with a dot for thousands and a comma decimal; Betrag (the original amount) and Fremde Gebühren stay empty for ordinary bookings. Newest first. The exact words of the rows above the table and of the summary row are reconstructed (sources disagree on how many rows sit above the header: 3, 4 or 7); header, Soll/Haben and the summary row are documented. Closing from the Kontostand row; no opening is stated.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": 234567,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -5000,
+            "text": "max mustermann"
+          },
+          {
+            "date": "2026-10-02",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-16",
+            "amount": -7250,
+            "text": "stadtwerke musterstadt"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -1890,
+            "text": "café morgenrot"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 312045,
+            "text": "beispiel logistik ag"
+          }
+        ]
+      }
+    ]
+  }
+}

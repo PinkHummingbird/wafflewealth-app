@@ -1,0 +1,50 @@
+{
+  "bank": "Cathay United Bank (國泰世華銀行)",
+  "country": "TW",
+  "product": "活期存款 (demand deposit account)",
+  "format": "csv",
+  "file": "cathay-transactions.csv",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 20,
+  "notes": "Low-confidence layout: 國泰世華 online banking 交易明細 download as CSV in Big5 (cp950), CRLF; header \"交易日期,帳務日期,說明,提出,存入,餘額,交易資訊,備註\"; dates YYYY/MM/DD (some Taiwanese exports use the ROC year instead, e.g. 115/10/02); whole-dollar amounts quoted with a thousands comma; withdrawals (提出) and deposits (存入) apart; running 餘額; oldest first. No currency named (TWD). Header words, date form and order are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 8234900,
+        "closing": 11438100,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -8500,
+            "text": "小豆咖啡"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -1800000,
+            "text": "王小明"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 5200000,
+            "text": "範例工作室"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -124900,
+            "text": "北風能源"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -63400,
+            "text": "街角超市"
+          }
+        ]
+      }
+    ]
+  }
+}

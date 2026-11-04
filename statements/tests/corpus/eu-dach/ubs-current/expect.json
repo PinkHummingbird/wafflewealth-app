@@ -1,0 +1,52 @@
+{
+  "bank": "UBS",
+  "country": "CH",
+  "product": "Privatkonto (personal account)",
+  "format": "csv",
+  "file": "transactions.csv",
+  "layout_sources": [
+    "https://pypi.org/project/ubs-transactions-csv-parser/ (README and AccountExportData.from_csv, 2025: eight \"Label:;value;\" rows (account number, IBAN, from, until, opening balance, closing balance, valued in, number of transactions), an empty row, the 14-column header ending in \";\", ISO dates, a trade time, Debit negative \"-137.00\", a Balance on every line, Description1 quoted with \";\" inside)",
+    "https://pypi.org/project/ubs-to-ynab/ (account format: first line \"Account number\", header found by \"Trade date\", Debit/Credit plain numbers, Description1-3; read as UTF-8 first)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [CH UBS Checking account - Alternative 1] (the German header Abschlussdatum;Abschlusszeit;Buchungsdatum;Valutadatum;Währung;Belastung;Gutschrift;Einzelbetrag;Saldo;Transaktions-Nr.;Beschreibung1;Beschreibung2;Beschreibung3;Fussnoten; Header Rows = 10; \"Belastung is a negative number\"; %Y-%m-%d)"
+  ],
+  "layout_confidence": 70,
+  "notes": "UBS digital banking CSV, German: eight rows of \"Label:;value;\" above the table (Kontonummer, IBAN, Von, Bis, Anfangssaldo, Schlusssaldo, Bewertet in, Anzahl Transaktionen), an empty row, then the header; every row ends in \";\"; ISO dates; Belastung negative and Gutschrift positive with a dot decimal and no thousands mark; Saldo after every line; Beschreibung1 holds name;street;town in quotes. The German labels of the rows above the table are translated from the documented English ones (\"Opening balance:\" -> \"Anfangssaldo:\"). UTF-8 without BOM, CRLF and oldest-first (as in the parser's example) assumed. Opening and closing as stated above the table.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CHF",
+        "owed": false,
+        "opening": 841235,
+        "closing": 1311320,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -185000,
+            "text": "immobilien sonnenhof"
+          },
+          {
+            "date": "2026-10-09",
+            "amount": -8635,
+            "text": "quartierladen brunnenhof"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": -41280,
+            "text": "krankenkasse beispiel"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -20000,
+            "text": "bancomat"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": 725000,
+            "text": "beispiel engineering"
+          }
+        ]
+      }
+    ]
+  }
+}

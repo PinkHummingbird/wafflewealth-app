@@ -1,0 +1,20 @@
+Umsatzanzeige;Datei erstellt am: 04.11.2026 09:12
+;Letztes Update: aktuell
+
+IBAN;DE12 5001 0517 0648 4898 90
+Kontoname;Girokonto
+Bank;ING
+Kunde;Erika Mustermann
+Zeitraum;01.10.2026 - 31.10.2026
+Saldo;3.512,26;EUR
+
+Sortierung;Datum absteigend
+
+In der CSV-Datei finden Sie alle bereits gebuchten Umsätze. Die vorgemerkten Umsätze werden nicht aufgenommen, auch wenn sie in Ihrem Internetbanking angezeigt werden.
+
+Buchung;Valuta;Auftraggeber/Empfänger;Buchungstext;Verwendungszweck;Saldo;Währung;Betrag;Währung
+29.10.2026;29.10.2026;Beispiel Versicherung AG;Lastschrift;Kfz-Versicherung Vertrag 123456789;3.512,26;EUR;-48,90;EUR
+28.10.2026;28.10.2026;Beispiel Medien GmbH;Gehalt/Rente;Gehalt Oktober 2026;3.561,16;EUR;2.940,00;EUR
+17.10.2026;17.10.2026;VISA BIOMARKT KOERNERBROT;Lastschrift;NR XXXX 1234 MUSTERSTADT DE KAUFUMSATZ 15.10 183512 ARN74123456789012345678;621,16;EUR;-36,54;EUR
+02.10.2026;02.10.2026;Hausverwaltung Sonnenhof GmbH;Dauerauftrag/Terminueberweisung;Miete Oktober Whg. 3;657,70;EUR;-1.150,00;EUR
+01.10.2026;01.10.2026;Max Mustermann;Gutschrift;Anteil Urlaubskasse;1.807,70;EUR;150,00;EUR

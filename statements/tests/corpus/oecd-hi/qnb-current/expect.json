@@ -1,0 +1,50 @@
+{
+  "bank": "QNB (Qatar National Bank)",
+  "country": "QA",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "QNB_Statement.xlsx",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 10,
+  "notes": "PLACEHOLDER, not a confirmed layout: an English Excel statement with account and currency rows above \"Booking Date | Value Date | Description | Debit | Credit | Balance\"; dates as date cells; debit/credit apart; running balance; oldest first; the currency (QAR) only above the table. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "QAR",
+        "owed": false,
+        "opening": 750000,
+        "closing": 1488310,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -1800,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -600000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1380000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -31250,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -8640,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

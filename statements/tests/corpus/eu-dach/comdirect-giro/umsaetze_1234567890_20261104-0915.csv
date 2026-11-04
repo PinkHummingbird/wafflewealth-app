@@ -1,0 +1,11 @@
+;
+"Umsätze Girokonto";"Zeitraum: 01.10.2026 - 31.10.2026";
+"Neuer Kontostand";"2.968,21 EUR";
+
+"Buchungstag";"Wertstellung (Valuta)";"Vorgang";"Buchungstext";"Umsatz in EUR";
+"30.10.2026";"30.10.2026";"Übertrag / Überweisung";"Auftraggeber: Beispiel Logistik AG Buchungstext: Gehalt Oktober 2026 Ref. 9K2C26303A1234567/1";"3.120,45";
+"22.10.2026";"21.10.2026";"Visa-Umsatz";"Buchungstext: CAFE MORGENROT MUSTERSTADT DE Karte Nr. 4871 78XX XXXX 1234 Kartenzahlung comdirect Visa-Debitkarte 2026-10-21 00:00:00 Ref. 3B2C26296A7654321/2";"-18,90";
+"15.10.2026";"15.10.2026";"Lastschrift / Belastung";"Auftraggeber: Stadtwerke Musterstadt Buchungstext: Abschlag Strom 10/2026 Vertragskonto 400123456 Ref. 5Z2C26288A1112223/3";"-64,00";
+"01.10.2026";"01.10.2026";"Übertrag / Überweisung";"Empfänger: Hausverwaltung Sonnenhof GmbH Kto/IBAN: DE94543210980011223344 BLZ/BIC: EXMPDEFFXXX Buchungstext: Miete Oktober Whg. 3 Ref. 7H2C26274A9998887/4";"-1.150,00";
+
+"Alter Kontostand";"1.080,66 EUR";

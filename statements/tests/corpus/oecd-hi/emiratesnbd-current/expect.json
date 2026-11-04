@@ -1,0 +1,50 @@
+{
+  "bank": "Emirates NBD",
+  "country": "AE",
+  "product": "current account",
+  "format": "xlsx",
+  "file": "AccountStatement.xlsx",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 15,
+  "notes": "PLACEHOLDER, not a confirmed layout: an English Excel account statement as Emirates NBD online banking is believed to give (title, account number, type, currency and period rows; then \"Transaction Date | Value Date | Description | Debit | Credit | Balance\"), dates as date cells, positive debit/credit numbers, running balance, newest first. The Currency row names AED. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "AED",
+        "owed": false,
+        "opening": 825000,
+        "closing": 1573285,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -1800,
+            "text": "little bean cafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -650000,
+            "text": "j smith"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 1450000,
+            "text": "example studio"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -41275,
+            "text": "northwind energy"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -8640,
+            "text": "corner grocer"
+          }
+        ]
+      }
+    ]
+  }
+}

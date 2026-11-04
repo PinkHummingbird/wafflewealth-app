@@ -1,0 +1,52 @@
+{
+  "bank": "ING Deutschland",
+  "country": "DE",
+  "product": "Girokonto (current account)",
+  "format": "csv",
+  "file": "Umsatzanzeige_DE12500105170648489890_20261104.csv",
+  "layout_sources": [
+    "https://github.com/siddhantgoel/beancount-ing (beancount_ing/ec.py and tests: the rows above the table in order, the optional \"Sortierung;Datum absteigend\" row, the notice row, the 9-column header with two Währung columns, ISO-8859-1, de_DE numbers)",
+    "https://github.com/bank2ynab/bank2ynab/blob/master/bank2ynab.conf [DE ING-DiBa] (file name Umsatzanzeige_DE<20 digits>_<yyyymmdd>, Header Rows = 13, %d.%m.%Y)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/de/ing/Readme.md (\"convert the file to UTF-8\", \"remove everything above the table\")"
+  ],
+  "layout_confidence": 70,
+  "notes": "Umsatzanzeige CSV: 14 rows above the header (title with creation time, \"Letztes Update\", IBAN, Kontoname, Bank, Kunde, Zeitraum, Saldo, the sort order, the notice that pending lines are left out, and empty rows between), semicolons, ISO-8859-1, unquoted fields, dd.mm.yyyy, Saldo (the balance after each line) and Betrag each followed by its own Währung column, dot thousands and comma decimal (\"-1.150,00\"), newest first (\"Datum absteigend\"). CRLF assumed. Opening = the oldest line's Saldo less its amount; closing = the newest line's Saldo (equal to the Saldo row above the table). Since 2023 some exports name the second column \"Wertstellungsdatum\" and accounts with tags get extra columns; this is the plain form.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 165770,
+        "closing": 351226,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": 15000,
+            "text": "max mustermann"
+          },
+          {
+            "date": "2026-10-02",
+            "amount": -115000,
+            "text": "hausverwaltung sonnenhof"
+          },
+          {
+            "date": "2026-10-17",
+            "amount": -3654,
+            "text": "biomarkt koernerbrot"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": 294000,
+            "text": "beispiel medien"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": -4890,
+            "text": "beispiel versicherung"
+          }
+        ]
+      }
+    ]
+  }
+}

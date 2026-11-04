@@ -1,0 +1,50 @@
+{
+  "bank": "Garanti BBVA",
+  "country": "TR",
+  "product": "Vadesiz TL hesap (current account)",
+  "format": "xlsx",
+  "file": "hesap-hareketleri.xlsx",
+  "layout_sources": [
+    "None confirmed in this run (search budget exhausted); layout from general knowledge of the bank's online banking download."
+  ],
+  "layout_confidence": 20,
+  "notes": "Low-confidence layout: Garanti BBVA internet banking \"Hesap Hareketleri\" exported to Excel: title, customer, IBAN and date-range rows above \"Tarih | Açıklama | Etiket | Tutar | Bakiye | Dekont No\"; dates as date cells shown DD.MM.YYYY; ONE signed Tutar; running Bakiye; Etiket is Garanti's spending tag; newest first; descriptions in ASCII capitals as EFT/FAST messages carry them. No currency named (TRY). Header words and file type are unconfirmed. Web search budget for this run ran out early, so details not in the sources listed are from general knowledge of the bank's export and are marked as unconfirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": null,
+        "owed": false,
+        "opening": 1854320,
+        "closing": 5976380,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -9500,
+            "text": "kucuk fasulye kafe"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -2200000,
+            "text": "ahmet yilmaz"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 6500000,
+            "text": "ornek studyo"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -124990,
+            "text": "kuzey enerji"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -43450,
+            "text": "kose bakkal"
+          }
+        ]
+      }
+    ]
+  }
+}

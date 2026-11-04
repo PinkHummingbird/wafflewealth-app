@@ -1,0 +1,18 @@
+<html dir="rtl">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1255">
+</head>
+<body>
+<table border="1">
+<tr><td colspan="7">תנועות בחשבון עו"ש</td></tr>
+<tr><td colspan="7">חשבון: 123-45678/90</td></tr>
+<tr><td colspan="7">תקופה: 01/10/26 - 31/10/26</td></tr>
+<tr><th>תאריך</th><th>תאריך ערך</th><th>תיאור</th><th>אסמכתא</th><th>בחובה</th><th>בזכות</th><th>היתרה בש"ח</th></tr>
+<tr><td>02/10/26</td><td>02/10/26</td><td>כרטיס דביט קפה פול קטן</td><td>123456</td><td>18.00</td><td></td><td>4,982.00</td></tr>
+<tr><td>05/10/26</td><td>05/10/26</td><td>העברה-נייד ישראל ישראלי</td><td>223344</td><td>4,800.00</td><td></td><td>182.00</td></tr>
+<tr><td>15/10/26</td><td>15/10/26</td><td>משכורת סטודיו דוגמה</td><td>000123</td><td></td><td>12,450.00</td><td>12,632.00</td></tr>
+<tr><td>20/10/26</td><td>20/10/26</td><td>הוראת קבע אנרגיה צפונית</td><td>445566</td><td>249.90</td><td></td><td>12,382.10</td></tr>
+<tr><td>28/10/26</td><td>28/10/26</td><td>כרטיס דביט מכולת הפינה</td><td>778899</td><td>86.40</td><td></td><td>12,295.70</td></tr>
+</table>
+</body>
+</html>
