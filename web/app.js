@@ -216,7 +216,7 @@
       const download = d.file && d.file.downloadURL
         ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>`
         : Number(d.f.parts) > 0 ? `<button type="button" class="linkbtn" data-download-doc="${esc(d.name)}">Download</button>` : "";
-      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip|ofx|qfx|qbo)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
+      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip|ofx|qfx|qbo|sta|mt940|940|swi|qif|xml|txt)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
       const read = readable ? `<button type="button" class="linkbtn" data-read-doc="${esc(d.name)}">Read here</button>` : "";
       return `<div class="row">
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=25"), import("./statement-save.mjs?v=25")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=26"), import("./statement-save.mjs?v=26")]);
     const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
     return { ...read, ...save, match };
   }
@@ -690,6 +690,7 @@
     if (c.ok && changes) return `<span class="note good">These lines add up to the statement, with ${changes} change${changes === 1 ? "" : "s"} of yours.</span>`;
     if (c.checked && !c.ok && !a.openingWorkedOut) return `<span class="note bad">Doesn't add up to the statement: open its lines to put them right.</span>`;
     if (a.openingWorkedOut) return `<span class="note">The bank's own figures, from its download: it carries no opening balance to check the lines against.</span>`;
+    if (a.closingWorkedOut) return `<span class="note">No closing balance in the file: it's worked out from the opening balance and the lines, so there's nothing to check them against.</span>`;
     if (c.ok) return `<span class="note good">Adds up: the opening balance and every line come to the closing balance.</span>`;
     return `<span class="note">No opening balance printed, so there's nothing to check the lines against.</span>`;
   }
@@ -725,6 +726,18 @@
       if (st.already) { html += `<p class="empty">Already added to your money, here or on your iPhone.</p>`; return; }
       st.accounts.forEach((a, ai) => {
         const choice = r.choices[si][ai];
+        // Lines and no balance, or no currency: the phone asks for them; this page doesn't, so it's left to the phone.
+        if (r.mods && r.mods.needsPhone && r.mods.needsPhone(a)) {
+          html += `<div class="review-acct">
+          <input type="checkbox" id="rv-${si}-${ai}" disabled aria-label="${esc(a.name)} can't be added here">
+          <div class="main"><label class="t" for="rv-${si}-${ai}">${esc(a.name)}</label>
+            <span class="note">${a.owed ? "Owed · " : ""}${a.lines.length} line${a.lines.length === 1 ? "" : "s"}</span>
+            <span class="note">No balance in the file: add this one on the phone.</span>
+          </div>
+          <div class="end"><span class="amt">${a.closing != null && a.currency ? esc(M.format(a.closing, a.currency)) : "No balance"}</span></div>
+        </div>`;
+          return;
+        }
         const known = a.ref ? store.accountByRef(a.ref) : null;
         if (choice.include) anything = true;
         if (choice.include && a.belowZero && !a.owed && !choice.keepBelowZero) unconfirmed = true;
@@ -797,7 +810,7 @@
       $("upload-ok").textContent = `Added to your money: ${parts.join(", ")}.` + (store.backend.kind === "example" ? " (Example: kept in this tab only.)" : " Your iPhone has them the next time WaffleWealth opens.");
     } catch (error) {
       $("review-error").hidden = false;
-      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable"].includes(error.code) ? error.reason : C.explain(error);
+      $("review-error").textContent = error && ["belowZeroNotConfirmed", "sameAccountTwice", "accountNotChoosable", "needsPhone"].includes(error.code) ? error.reason : C.explain(error);
       $("review-add").disabled = false;
       if (["CONFLICT", "ATOMIC_ERROR"].includes(error && error.ckErrorCode)) reload(true);
     }

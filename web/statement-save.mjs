@@ -9,10 +9,18 @@
 
    Statements come from ../statements/readers.js, which reads the same banks the app reads. */
 
+/** An account the website can't add: lines but no balance in its file (a QIF file, many banks'
+    CSVs), or no currency named. The phone asks for the balance and the currency as it adds one;
+    this page takes no typed balance, so it says to add the account on the phone. */
+export function needsPhone(account) {
+  return (account.closing == null && account.lines.length > 0) || !account.currency;
+}
+
 /** The default for each account read: kept when there is a closing balance, it isn't a deposit
-    that has closed, and it isn't an empty account with nothing in it (the app's includedByDefault). */
+    that has closed, and it isn't an empty account with nothing in it (the app's includedByDefault),
+    and never one the website can't add (needsPhone). */
 export function includedByDefault(account) {
-  return account.closing != null && !account.closed && !(account.closing === 0 && account.lines.length === 0);
+  return account.closing != null && !account.closed && !(account.closing === 0 && account.lines.length === 0) && !needsPhone(account);
 }
 
 const monthOf = (day) => day.slice(0, 7);
@@ -97,6 +105,10 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
   statement.accounts.forEach((account, index) => {
     const choice = choices[index];
     if (!choice || !choice.include) return;
+    // The review never ticks one the website can't add; should one come through, nothing is saved.
+    if (needsPhone(account)) {
+      throw { code: 'needsPhone', reason: `${choice.name || account.name}: no balance in the file. Add this one on the phone.` };
+    }
     // An account you own that went below zero is kept below zero only once you've said so.
     const keepBelowZero = Boolean(account.belowZero && !account.owed && choice.keepBelowZero);
     if (account.belowZero && !account.owed && !choice.keepBelowZero) {

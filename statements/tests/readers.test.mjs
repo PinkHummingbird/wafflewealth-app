@@ -340,7 +340,8 @@ test('INTL-Wise: a currency with no lines carries no balance, and nothing claims
 });
 
 test('a CSV no reader knows says so', () => {
-  assert.equal(readCsvStatement('Date,Amount\n01/01/2026,5').unknownCsv, true);
+  // A date and an amount are a bank's CSV now (fileformats.test.mjs); a list of people isn't.
+  assert.equal(readCsvStatement('Name,Email\nSam,sam@example.com').unknownCsv, true);
   assert.deepEqual(parseCsv('a,"b ""c""",d\r\n1,2,3\n'), [['a', 'b "c"', 'd'], ['1', '2', '3']]);
 });
 

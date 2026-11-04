@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, webcrypto } from 'node:crypto';
-import { balancePoints, includedByDefault, recordsForStatement, fingerprint } from '../statement-save.mjs';
+import { balancePoints, includedByDefault, needsPhone, recordsForStatement, fingerprint } from '../statement-save.mjs';
 
 const line = (date, amount, description = 'Made up', extra = {}) => ({ date, madeOn: null, description, amount, running: null, ref: null, foreign: null, label: amount >= 0 ? 'in' : 'out', ...extra });
 
@@ -96,6 +96,21 @@ test('kept by default: a closing balance, not a closed deposit, not an empty not
   assert.equal(includedByDefault({ ...current(), closing: null }), false);
   assert.equal(includedByDefault({ ...current(), closed: true }), false);
   assert.equal(includedByDefault({ ...current(), closing: 0, lines: [] }), false);
+});
+
+test('lines with no balance, or no currency (a QIF file, many banks’ CSVs), wait for the phone', () => {
+  const noBalance = { ...current(), opening: null, closing: null };
+  const noCurrency = { ...current(), currency: null };
+  assert.equal(needsPhone(current()), false);
+  assert.equal(needsPhone(noBalance), true);
+  assert.equal(needsPhone(noCurrency), true);
+  // An empty Wise currency: nothing in it to add, here or on the phone; left as it was.
+  assert.equal(needsPhone({ ...current(), opening: null, closing: null, lines: [] }), false);
+  assert.equal(includedByDefault(noBalance), false);
+  assert.equal(includedByDefault(noCurrency), false);
+  const statement = { reader: 'QIF', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [noBalance] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]), (e) => e.code === 'needsPhone' && /Add this one on the phone/.test(e.reason));
+  assert.equal(run(statement, [{ include: false, name: 'Mine' }]).records.length, 1, 'left out: the statement alone');
 });
 
 test('fingerprint: the bytes, and for a CSV its name first, as the app makes it', async () => {

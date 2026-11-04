@@ -2,7 +2,10 @@
 // Nothing is sent anywhere and nothing is kept: the page's own security policy forbids any
 // connection, and a reload or "Clear" forgets every statement.
 import * as pdfjs from './vendor/pdfjs/pdf.min.mjs';
-import { pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, ofxText, isOfxName, looksLikeOfx, unzip, labelLines, monthly, minorDigits } from './readers.js';
+import {
+  pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
+  ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines, monthly, minorDigits,
+} from './readers.js';
 import { SAMPLES } from './samples.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
@@ -38,13 +41,31 @@ const LABEL = { in: 'Money in', out: 'Money out', own: 'Between your accounts', 
 // ---------------------------------------------------------------------------------------------
 // Reading files
 
-const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx' : /\.zip$/i.test(name) ? 'zip' : null);
+/** The other downloads a bank may give, as the app names them: MT940, CAMT (XML), QIF, and text files of either. */
+const BANK_FILE = /\.(sta|mt940|940|swi|qif|xml|txt)$/i;
 
-/** A CSV's text → a statement, or a note on why it couldn't be read. */
-function addCsv(name, bytes) {
-  const statement = readCsvStatement(new TextDecoder().decode(bytes), { fileName: name });
-  if (statement.unknownCsv) state.problems.push({ file: name, text: 'This CSV isn’t one this page can read yet. Wise statements in CSV are.' });
-  else state.statements.push(statement);
+const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx'
+  : /\.zip$/i.test(name) ? 'zip' : BANK_FILE.test(name) ? 'bank' : null);
+
+/**
+ * A bank file that isn't OFX → a statement, or a note on why it couldn't be read. Known by what
+ * is in it before its name, as in the app: CAMT, MT940, QIF, then any bank's CSV from its header.
+ */
+function addBankFile(name, bytes) {
+  const text = ofxText(bytes);
+  const read = looksLikeCamt(text) ? readCamtStatement : looksLikeMt940(text) ? readMt940Statement
+    : looksLikeQif(text) ? readQifStatement : readCsvStatement;
+  const statement = read(text, { fileName: name });
+  if (statement.accounts.length) state.statements.push(statement);
+  else state.problems.push({ file: name, text: kindOf(name) === 'csv'
+    ? 'Its columns weren’t recognised: it needs a date and an amount, or money in and money out.'
+    : 'No statement was found in this file.' });
+}
+
+/** Any file in a bank's download format: OFX first, as some banks name it .csv; then the others. */
+function addDownload(name, bytes) {
+  if (kindOf(name) === 'ofx' || looksLikeOfx(new TextDecoder().decode(bytes.subarray(0, 4096)))) addOfx(name, bytes);
+  else addBankFile(name, bytes);
 }
 
 /** A bank's OFX or QFX download → a statement, or a note on why it couldn't be read. */
@@ -56,7 +77,7 @@ function addOfx(name, bytes) {
 
 async function addFiles(files) {
   const pdfs = [...files].filter((f) => kindOf(f.name));
-  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s OFX or QFX download, or a CSV or zip from Wise.' });
+  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s download (OFX, QFX, MT940, CAMT, QIF or CSV), a Wise CSV, or a zip of them.' });
   if (!pdfs.length) return render();
   if (state.example) { state.statements = []; state.example = false; }
   $('reading').hidden = false;
@@ -65,19 +86,16 @@ async function addFiles(files) {
     if (state.seen.has(key)) { state.problems.push({ file: file.name, text: 'Already read above.' }); continue; }
     $('reading-name').textContent = file.name;
     try {
-      if (kindOf(file.name) === 'ofx') { addOfx(file.name, new Uint8Array(await file.arrayBuffer())); state.seen.add(key); continue; }
-      if (kindOf(file.name) === 'csv') {
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        // Some banks name their OFX download .csv; what's in it decides.
-        if (looksLikeOfx(new TextDecoder().decode(bytes.subarray(0, 4096)))) addOfx(file.name, bytes);
-        else addCsv(file.name, bytes);
+      if (['ofx', 'csv', 'bank'].includes(kindOf(file.name))) {
+        // Some banks name their OFX download .csv, or their MT940 .txt; what's in it decides.
+        addDownload(file.name, new Uint8Array(await file.arrayBuffer()));
         state.seen.add(key);
         continue;
       }
       if (kindOf(file.name) === 'zip') {
-        const inside = (await unzip(new Uint8Array(await file.arrayBuffer()))).filter((f) => ['csv', 'ofx'].includes(kindOf(f.name)));
-        if (!inside.length) state.problems.push({ file: file.name, text: 'There are no CSV or OFX files in this zip.' });
-        for (const f of inside) (kindOf(f.name) === 'ofx' ? addOfx : addCsv)(f.name, f.bytes);
+        const inside = (await unzip(new Uint8Array(await file.arrayBuffer()))).filter((f) => ['csv', 'ofx', 'bank'].includes(kindOf(f.name)));
+        if (!inside.length) state.problems.push({ file: file.name, text: 'There are no statement files in this zip.' });
+        for (const f of inside) addDownload(f.name, f.bytes);
         state.seen.add(key);
         continue;
       }
@@ -156,7 +174,7 @@ function statementCard(s) {
   return `<article class="stmt card">
     <header class="stmt-head">
       <div class="who">
-        <h3>${esc(s.general ? 'Plain table' : s.institution ?? (s.reader === 'OFX' ? 'Bank download' : 'Statement'))}</h3>
+        <h3>${esc(s.general ? 'Plain table' : s.institution ?? (['OFX', 'MT940', 'CAMT', 'QIF', 'CSV'].includes(s.reader) ? 'Bank download' : 'Statement'))}</h3>
         <span class="reader" title="The reader that read it">${esc(s.reader)}</span>
       </div>
       <div class="when"><span>${esc(period(s.period))}</span><span class="file">${esc(s.fileName)}</span></div>

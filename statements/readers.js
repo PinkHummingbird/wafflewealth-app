@@ -194,7 +194,8 @@ export function check(acct) {
     previous = line.running;
   });
   // An opening worked back from the closing balance (an OFX download) leads to it by construction.
-  const checked = expected != null && acct.closing != null && !acct.openingWorkedOut;
+  // So does a closing worked out from the opening (a QIF file, a CAMT report): nothing to check.
+  const checked = expected != null && acct.closing != null && !acct.openingWorkedOut && !acct.closingWorkedOut;
   return { ok: checked && messages.length === 0, checked, sum, expected, messages };
 }
 
@@ -1005,8 +1006,12 @@ export function monthly(statements) {
 // ---------------------------------------------------------------------------------------------
 // CSV files, and the zips they come in
 
-/** CSV text → rows of fields. Quotes, doubled quotes inside them, and line breaks in a quoted field. */
-export function parseCsv(text) {
+/**
+ * CSV text → rows of fields. Quotes, doubled quotes inside them, and line breaks in a quoted
+ * field. The separator is a comma unless said otherwise (a semicolon or a tab, for banks whose
+ * decimal mark is a comma).
+ */
+export function parseCsv(text, separator = ',') {
   const rows = [];
   let row = [];
   let field = '';
@@ -1019,7 +1024,7 @@ export function parseCsv(text) {
       else if (c === '"') quoted = false;
       else field += c;
     } else if (c === '"') quoted = true;
-    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === separator) { row.push(field); field = ''; }
     else if (c === '\n' || c === '\r') {
       if (c === '\r' && t[i + 1] === '\n') i++;
       row.push(field); field = '';
@@ -1083,18 +1088,277 @@ const INTLWise = {
   },
 };
 
+// ---------------------------------------------------------------------------------------------
+// Helpers for the bank files beside the PDF: CSV, MT940, CAMT and QIF, as the app reads them
+
+/** Spaces and tabs off both ends, as the app trims a cell: line ends stay. */
+const trimSpaces = (s) => String(s ?? '').replace(/^[\t\p{Zs}]+|[\t\p{Zs}]+$/gu, '');
+
+/** Every run of white space as one space, none at the ends. */
+const collapse = (s) => String(s ?? '').split(/\s+/).filter(Boolean).join(' ');
+
+/** "YYYY-MM-DD" for a day that exists, or null. */
+function realDay(y, m, d) {
+  if (!(y >= 1 && y <= 9999 && m >= 1 && m <= 12 && d >= 1)) return null;
+  return d <= new Date(Date.UTC(y, m, 0)).getUTCDate() ? iso(y, m, d) : null;
+}
+
+/** "2026-08-31" → itself when the day exists, else null. */
+const isoDay = (s) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s ?? '');
+  return m ? realDay(+m[1], +m[2], +m[3]) : null;
+};
+
+/** A date as a bank file writes it → "YYYY-MM-DD", only for a day that exists. */
+const fileDay = (s, dayFirst = true) => isoDay(parseDate(s, { dayFirst }));
+
+const UNCHECKED = () => ({ ok: false, checked: false, sum: 0, expected: null, messages: [] });
+
+/** Checked, or not when there is nothing to check against, and whether it went below zero. */
+function finishAccount(a, unchecked = false) {
+  a.check = unchecked ? UNCHECKED() : check(a);
+  a.belowZero = !a.owed && [a.opening, a.closing, ...a.lines.map((l) => l.running)].some((v) => v != null && v < 0);
+}
+
+/**
+ * A CSV or QIF amount: `1,234.56`, `1.234,56`, `-12,50`, `£12.00`, `(12.00)`, `12.00 DR`. `DR`
+ * takes away and `CR` adds, as a bank account prints them. Null when it isn't a figure.
+ */
+export function csvAmount(text, digits = 2) {
+  let s = trimSpaces(text);
+  let sign = 1;
+  const mark = /^(.*?)\s*(DR|Dr|dr|CR|Cr|cr)\.?$/.exec(s);
+  if (mark) {
+    s = mark[1];
+    if (mark[2].toLowerCase() === 'dr') sign = -1;
+  }
+  // Currency signs and codes go; the minus may come before or after them.
+  s = s.replace(/[A-Za-z$£€¥₹]+\.?/g, '').replace(/ /g, '').replace(/ /g, '').replace(/'/g, '').replace(/\+/g, '');
+  if (!s) return null;
+  // A comma before the last one or two digits is the point; the dots before it group thousands.
+  if (/^\(?-?[\d.]*,\d{1,2}\)?-?$/.test(s)) s = s.replace(/\./g, '').replace(/,/g, '.');
+  else s = s.replace(/,/g, '');
+  if (s.endsWith('-')) s = '-' + s.slice(0, -1);
+  if (!/^\(?-?\d*\.?\d+\)?$/.test(s)) return null;
+  const value = parseAmount(s, digits);
+  return value == null ? null : value * sign;
+}
+
+/**
+ * Whether dates written `a/b/yyyy` put the day first. Any first part over 12 says yes, any second
+ * part over 12 says no; when every date could be either, the reading that keeps the lines in
+ * order wins, and the day first when both do (most of the world writes it so).
+ */
+export function dayFirstOf(dates) {
+  const parts = dates.map((d) => /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(d)).filter(Boolean);
+  if (parts.some((p) => +p[1] > 12)) return true;
+  if (parts.some((p) => +p[2] > 12)) return false;
+  const ordered = (first) => {
+    const days = dates.map((d) => fileDay(String(d).slice(0, 10), first)).filter(Boolean);
+    const up = [...days].sort();
+    return days.every((d, i) => d === up[i]) || days.every((d, i) => d === up[up.length - 1 - i]);
+  };
+  return ordered(true) || !ordered(false);
+}
+
+/** ISO 4217 codes in use, for telling a currency at the end of a heading from any three capitals. */
+const ISO_CURRENCIES = (() => {
+  try { if (typeof Intl.supportedValuesOf === 'function') return new Set(Intl.supportedValuesOf('currency')); } catch { /* the list below */ }
+  return new Set(('AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF '
+    + 'CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR '
+    + 'ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP '
+    + 'MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG '
+    + 'SEK SGD SHP SLE SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF '
+    + 'XCD XOF XPF YER ZAR ZMW ZWL').split(' '));
+})();
+
+/** A currency code at the end of a heading: "Amount (GBP)", "Balance EUR". Null when there is none. */
+function currencyIn(heading) {
+  const m = /[\s(\[]([A-Z]{3})[)\]]?\s*$/.exec(String(heading ?? ''));
+  return m && ISO_CURRENCIES.has(m[1]) ? m[1] : null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Any bank's CSV
+
+/**
+ * **Any bank's CSV**, read from its header: the columns for the date, what it was, the amount (or
+ * money in and money out apart), and the balance after each line when the bank gives one. A file
+ * with a balance column checks itself, line by line, like Wise's; one without is just its lines,
+ * and has no balance in it. A currency column splits the file into an account per currency, as
+ * Revolut sends it; lines marked pending, reverted or declined are left out.
+ */
+const BankCSV = {
+  id: 'CSV',
+  // Header words, lowercased with punctuation gone, in order of preference.
+  dateNames: ['date', 'transaction date', 'booking date', 'posting date', 'posted date', 'trans date',
+    'txn date', 'completed date', 'date completed', 'started date', 'value date', 'buchungstag', 'datum'],
+  textNames: ['description', 'transaction description', 'details', 'transaction details', 'narrative',
+    'particulars', 'memo', 'remarks', 'verwendungszweck', 'omschrijving', 'reference', 'type'],
+  partyNames: ['name', 'payee', 'merchant', 'counterparty', 'counter party', 'beneficiary', 'payer',
+    'beguenstigter zahlungspflichtiger', 'begunstigter zahlungspflichtiger', 'naam tegenrekening'],
+  amountNames: ['amount', 'transaction amount', 'amount gbp', 'amount eur', 'amount usd', 'amount aed',
+    'amount sgd', 'amount inr', 'net', 'net amount', 'value', 'betrag', 'bedrag', 'gross'],
+  outNames: ['debit', 'debit amount', 'money out', 'paid out', 'withdrawal', 'withdrawals', 'withdrawal amount',
+    'withdrawal amt', 'out', 'dr', 'debits', 'amount debit'],
+  inNames: ['credit', 'credit amount', 'money in', 'paid in', 'deposit', 'deposits', 'deposit amount',
+    'deposit amt', 'in', 'cr', 'credits', 'amount credit'],
+  balanceNames: ['balance', 'running balance', 'balance after', 'account balance', 'closing balance',
+    'available balance', 'saldo'],
+  currencyNames: ['currency', 'ccy', 'currency code', 'waehrung', 'wahrung', 'munt'],
+  accountNames: ['account', 'account number', 'account no', 'account name', 'iban', 'card number'],
+  stateNames: ['state', 'status'],
+  feeNames: ['fee', 'fees'],
+  // Brands that name themselves in their file's name or header: the account is called after them.
+  brands: ['Monzo', 'Revolut', 'N26', 'PayPal', 'Starling', 'Barclays', 'Lloyds', 'NatWest', 'Halifax',
+    'Santander', 'Nationwide', 'HSBC', 'Chase', 'Capital One', 'ING', 'Rabobank', 'ABN AMRO',
+    'DBS', 'OCBC', 'UOB', 'Emirates NBD', 'Mashreq', 'ADCB', 'FAB', 'Wio', 'ICICI', 'HDFC', 'Axis'],
+
+  key: (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter(Boolean).join(' '),
+
+  /**
+   * The column for the first name in `names` the header has; failing that, the first whose heading
+   * names it with a currency after it ("Amount (GBP)", "Balance EUR").
+   */
+  column(header, names) {
+    const keys = header.map(BankCSV.key);
+    for (const name of names) { const i = keys.indexOf(name); if (i >= 0) return i; }
+    const bare = header.map((h) => (currencyIn(h) == null ? null : BankCSV.key(h).split(' ').slice(0, -1).join(' ')));
+    for (const name of names) { const i = bare.indexOf(name); if (i >= 0) return i; }
+    return null;
+  },
+
+  /** The header row (within the first ten) and its columns: a date, and an amount or a money in and money out pair. */
+  header(rows) {
+    for (const [index, row] of rows.slice(0, 10).entries()) {
+      const col = (names) => BankCSV.column(row, names);
+      const date = col(BankCSV.dateNames);
+      if (date == null) continue;
+      const amount = col(BankCSV.amountNames);
+      const moneyOut = col(BankCSV.outNames);
+      const moneyIn = col(BankCSV.inNames);
+      if (amount == null && (moneyOut == null || moneyIn == null)) continue;
+      return [index, {
+        date, text: [col(BankCSV.partyNames), col(BankCSV.textNames)].filter((i) => i != null),
+        amount, moneyOut, moneyIn, balance: col(BankCSV.balanceNames), currency: col(BankCSV.currencyNames),
+        account: col(BankCSV.accountNames), state: col(BankCSV.stateNames),
+        fee: amount != null && BankCSV.key(row[amount]) !== 'net' ? col(BankCSV.feeNames) : null,
+      }];
+    }
+    return null;
+  },
+
+  /** Rows → a statement, or null when no header row names a date and an amount. */
+  read(rows, fileName) {
+    const found = BankCSV.header(rows);
+    if (!found) return null;
+    const [at, c] = found;
+    const header = rows[at];
+    const body = rows.slice(at + 1).filter((r) => r.length > c.date && trimSpaces(r[c.date]) !== '');
+    const cell = (row, i) => (i == null || i >= row.length ? '' : trimSpaces(row[i]));
+    const dayFirst = dayFirstOf(body.map((r) => cell(r, c.date).slice(0, 10)));
+    const brand = BankCSV.brands.find((name) => {
+      // A whole word, and exactly as written when short: "ING" isn't the end of "Spending".
+      const re = new RegExp(`(?<![A-Za-z])${escapeRe(name)}(?![A-Za-z])`, name.length > 4 ? 'i' : '');
+      return [fileName ?? '', header.join(' ')].some((t) => re.test(t));
+    }) ?? (header.includes('Emoji') ? 'Monzo' : header.includes('Started Date') ? 'Revolut' : null);
+
+    const order = [];
+    const built = new Map();
+    for (const row of body) {
+      const state = BankCSV.key(cell(row, c.state));
+      if (['pending', 'reverted', 'declined', 'failed', 'cancelled', 'canceled'].includes(state)) continue;
+      const currencyText = cell(row, c.currency).toUpperCase();
+      // The currency column, or the one the amount's heading names.
+      const currency = /^[A-Z]{3}$/.test(currencyText) ? currencyText
+        : [c.amount, c.moneyOut, c.balance].filter((i) => i != null && i < header.length).map((i) => currencyIn(header[i])).find((x) => x != null) ?? null;
+      const digits = minorDigits(currency);
+      let amount;
+      if (c.amount != null) {
+        amount = csvAmount(cell(row, c.amount), digits);
+        const fee = csvAmount(cell(row, c.fee), digits);
+        if (fee != null && amount != null) amount -= Math.abs(fee);
+      } else {
+        const out = csvAmount(cell(row, c.moneyOut), digits);
+        const into = csvAmount(cell(row, c.moneyIn), digits);
+        amount = cell(row, c.moneyOut) === '' && cell(row, c.moneyIn) === ''
+          ? null : (into == null ? 0 : Math.abs(into)) + (out == null ? 0 : -Math.abs(out));
+      }
+      if (amount == null) continue;
+      const words = [];
+      for (const i of c.text) {
+        const w = cell(row, i);
+        if (w && !words.some((x) => x.toLowerCase() === w.toLowerCase())) words.push(w);
+      }
+      const number = cell(row, c.account);
+      const k = `${number}|${currency ?? ''}`;
+      if (!built.has(k)) {
+        built.set(k, { number: number || null, currency, lines: [] });
+        order.push(k);
+      }
+      built.get(k).lines.push(line({
+        date: fileDay(cell(row, c.date).slice(0, 10), dayFirst),
+        description: collapse(words.join(' · ')), amount,
+        running: c.balance == null ? null : csvAmount(cell(row, c.balance), digits),
+      }));
+    }
+    const accounts = order.map((k) => {
+      const b = built.get(k);
+      // Oldest first: many banks send the newest first.
+      const days = b.lines.map((l) => l.date).filter(Boolean);
+      if (days.length && days[0] > days[days.length - 1]) b.lines.reverse();
+      const digitsOnly = (b.number ?? '').replace(/[^0-9]/g, '');
+      let name = brand ?? 'Account';
+      if (digitsOnly.length >= 4) name += ` ·· ${digitsOnly.slice(-4)}`;
+      else if (b.currency && (order.length > 1 || brand)) name += ` ${b.currency}`;
+      const ref = b.number ? `CSV:${b.number.toUpperCase().replace(/\s/g, '')}` : brand ? `CSV:${brand}:${b.currency ?? ''}` : null;
+      const acct = account({
+        ref, number: b.number, numbers: digitsOnly.length >= 8 ? [digitsOnly] : [], name,
+        type: 'current', currency: b.currency, lines: b.lines,
+      });
+      const first = b.lines[0];
+      if (first && first.running != null) {
+        acct.opening = first.running - first.amount;
+        acct.closing = b.lines[b.lines.length - 1].running;
+      } else {
+        acct.notes.push('no balance in the file');
+      }
+      return acct;
+    });
+    if (!accounts.length) return null;
+    const dates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
+    for (const a of accounts) finishAccount(a, a.closing == null);
+    return {
+      reader: BankCSV.id, institution: brand, country: null, general: false, fileName, holder: null,
+      period: { from: dates[0] ?? null, to: dates[dates.length - 1] ?? null }, accounts,
+    };
+  },
+};
+
 export const CSV_READERS = [INTLWise];
 
-/** One CSV file → one statement, or a statement with no accounts when no reader knows it. */
+/**
+ * One CSV file → one statement: Wise's own, then any bank's, found from its header. A statement
+ * with no accounts when no reader knows its columns.
+ */
 export function readCsvStatement(text, { fileName = null } = {}) {
   const rows = parseCsv(text);
   const reader = rows.length ? CSV_READERS.find((r) => r.recognises(rows[0])) : null;
-  if (!reader) return { reader: null, fileName, accounts: [], unknownCsv: true };
+  if (!reader) {
+    // The separator is the one whose header reads: a comma, or the semicolon or tab of banks
+    // whose decimal mark is a comma.
+    for (const separator of [',', ';', '\t']) {
+      const statement = BankCSV.read(separator === ',' ? rows : parseCsv(text, separator), fileName);
+      if (statement) return statement;
+    }
+    return { reader: null, fileName, accounts: [], unknownCsv: true };
+  }
   const read = reader.read(rows, fileName);
   for (const a of read.accounts) {
     a.check = check(a);
     // No lines: nothing to check and no balance known. Not a failure; not a pass either.
-    if (!a.lines.length) a.check = { ok: false, checked: false, sum: 0, expected: null, messages: [] };
+    if (!a.lines.length) a.check = UNCHECKED();
   }
   return {
     reader: reader.id, institution: reader.institution, country: reader.country, general: false,
@@ -1109,10 +1373,16 @@ export const OFX_EXTENSIONS = ['ofx', 'qfx', 'qbo'];
 export const isOfxName = (name) => OFX_EXTENSIONS.includes((name.split('.').pop() ?? '').toLowerCase());
 export const looksLikeOfx = (text) => text.slice(0, 2000).includes('OFXHEADER') || /<OFX>/i.test(text);
 
-/** The file's bytes as text: UTF-8, or Windows Latin-1 when the header says so. */
+/**
+ * A bank file's bytes as text, as the app reads every file that isn't a PDF: UTF-8, or Windows
+ * Latin-1 when the header says so or the bytes aren't UTF-8 (an older bank's MT940 or CSV).
+ */
 export function ofxText(bytes) {
   const head = new TextDecoder('latin1').decode(bytes.subarray(0, 400));
-  return new TextDecoder(head.includes('CHARSET:1252') ? 'windows-1252' : 'utf-8').decode(bytes);
+  if (!head.includes('CHARSET:1252')) {
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { /* not UTF-8 */ }
+  }
+  return new TextDecoder('windows-1252').decode(bytes);
 }
 
 const ofxUnescape = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
@@ -1214,6 +1484,485 @@ export function readOfxStatement(text, { fileName = null } = {}) {
   return {
     reader: 'OFX', institution: organisation, country: null, general: false, fileName, holder: null,
     period: { from: from ?? dates[0] ?? null, to: to ?? dates[dates.length - 1] ?? null }, accounts,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// MT940: SWIFT's customer statement
+
+/**
+ * **MT940**: SWIFT's customer statement, the download most banks give a business account and many
+ * give everyone. Plain text in tagged fields: `:25:` the account, `:60F:` the opening balance,
+ * `:61:` a line with `:86:` its description, `:62F:` the closing balance. A file may hold many
+ * statements, one per day or one per page (`:60M:`/`:62M:`); those of one account in one currency
+ * become one account, its opening the first and its closing the last. Every figure is the bank's
+ * own, so the account is checked like a PDF statement. The same as the app's StatementMT940.
+ */
+export const MT940_EXTENSIONS = ['sta', 'mt940', '940', 'swi'];
+
+/** Whether this text is an MT940 file, whatever it is called. */
+export function looksLikeMt940(text) {
+  const head = text.slice(0, 20_000);
+  return head.includes(':20:') && head.includes(':25:') && head.includes(':61:') && (head.includes(':60F:') || head.includes(':60M:'));
+}
+
+/** Text → fields in order, `{ tag, value }`, continuation lines kept. SWIFT's envelope is passed over. */
+function mt940Fields(text) {
+  const fields = [];
+  for (const raw of text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
+    let row = raw;
+    const start = row.indexOf('{4:');
+    if (start >= 0) row = row.slice(start + 3);
+    const bare = trimSpaces(row);
+    // The envelope's end, alone or with its trailer (`-}{5:{CHK:…}}`).
+    if (row.startsWith('{') || bare === '-' || bare.startsWith('-}')) continue;
+    const m = /^:(\d{2}[A-Z]?):(.*)$/.exec(row);
+    if (m) fields.push({ tag: m[1], value: m[2] });
+    else if (fields.length && bare) fields[fields.length - 1].value += '\n' + row;
+  }
+  return fields;
+}
+
+/**
+ * MT940 amounts use a comma for the point and nothing for thousands: `1234,5` is 1,234.50, and
+ * `100,` (the comma kept, no decimals) is 100.00.
+ */
+function mt940Amount(s, digits) {
+  let plain = s.replace(/\./g, '').replace(/,/g, '.');
+  if (plain.endsWith('.')) plain += '0';
+  return parseAmount(plain, digits);
+}
+
+const yymmdd = (s) => (/^\d{6}$/.test(s) ? realDay(2000 + +s.slice(0, 2), +s.slice(2, 4), +s.slice(4, 6)) : null);
+
+/** `C260801EUR1234,56` → the date, the currency and the amount, credit positive. */
+function mt940Balance(value) {
+  const m = /^([CD])(\d{6})([A-Z]{3})([\d,.]+)/.exec(trimSpaces(value));
+  if (!m) return null;
+  const amount = mt940Amount(m[4], minorDigits(m[3]));
+  if (amount == null) return null;
+  return { date: yymmdd(m[2]), currency: m[3], amount: m[1] === 'D' ? -amount : amount };
+}
+
+/**
+ * One `:61:` line: value date, optional booking date (month and day), the mark (C, D, or a
+ * reversal RC or RD), an optional letter, the amount, the type code and the references.
+ */
+function mt940Line(value, digits) {
+  const cut = value.indexOf('\n');
+  const first = cut < 0 ? value : value.slice(0, cut);
+  const m = /^(\d{6})(\d{4})?(RC|RD|C|D)[A-Z]?([\d,]+)([NFS][A-Z0-9]{3})([^/]*)(?:\/\/(.*))?$/.exec(trimSpaces(first));
+  if (!m) return null;
+  const size = mt940Amount(m[4], digits);
+  const valueDate = yymmdd(m[1]);
+  if (size == null || !valueDate) return null;
+  // A credit and a reversed debit add; a debit and a reversed credit take away.
+  const signed = m[3] === 'C' || m[3] === 'RD' ? size : -size;
+  let booked = valueDate;
+  if (m[2]) {
+    // The booking date carries no year: the value date's, or the one either side when the two
+    // straddle a new year.
+    const [vy, vm] = [+valueDate.slice(0, 4), +valueDate.slice(5, 7)];
+    const mm = +m[2].slice(0, 2);
+    const year = mm - vm > 6 ? vy - 1 : vm - mm > 6 ? vy + 1 : vy;
+    booked = realDay(year, mm, +m[2].slice(2, 4)) ?? valueDate;
+  }
+  const reference = trimSpaces(m[6]);
+  return line({
+    date: booked, madeOn: booked === valueDate ? null : valueDate,
+    description: cut < 0 ? '' : value.slice(cut + 1).trim(), amount: signed,
+    ref: !reference || reference === 'NONREF' ? null : reference,
+  });
+}
+
+/**
+ * An `:86:` field as words. German banks number its parts (`?20`…`?29` the purpose, `?32` and
+ * `?33` the other side's name); Dutch banks label them (`/NAME/`, `/REMI/`); the rest is free
+ * text. Either way, the other side's name first, then what it was for.
+ */
+function mt940Description(value) {
+  const flat = value.replace(/\n/g, '');
+  if (flat.includes('?2') || flat.includes('?3')) {
+    const parts = {};
+    for (const m of flat.matchAll(/\?(\d{2})([^?]*)/g)) parts[m[1]] = (parts[m[1]] ?? '') + m[2];
+    const name = trimSpaces(['32', '33'].map((k) => parts[k]).filter((v) => v != null).join(''));
+    const purpose = trimSpaces(Array.from({ length: 10 }, (_, i) => parts[String(20 + i)]).filter((v) => v != null).join(' '));
+    const words = [name, purpose].filter(Boolean);
+    if (words.length) return collapse(words.join(' · '));
+  }
+  if (flat.includes('/NAME/') || flat.includes('/REMI/')) {
+    const part = (key) => {
+      const m = new RegExp(`/${key}/(.*?)(?:/(?:[A-Z]{3,4})/|$)`).exec(flat);
+      return m ? trimSpaces(m[1]) : null;
+    };
+    // `/REMI/USTD//Rent/`: the purpose after its code, without the slashes.
+    const remi = part('REMI');
+    const purpose = remi == null ? null : remi.replace(/^(?:USTD|STRD)\/+/, '').replace(/^[/ ]+|[/ ]+$/g, '');
+    const words = [part('NAME'), purpose].filter(Boolean);
+    if (words.length) return collapse(words.join(' · '));
+  }
+  return collapse(value.replace(/\n/g, ' '));
+}
+
+/**
+ * One MT940 file → one statement, an account for each account and currency in it. A statement
+ * with no accounts when the text isn't MT940 or holds no balance to read.
+ */
+export function readMt940Statement(text, { fileName = null } = {}) {
+  const none = { reader: null, fileName, accounts: [], unknownMt940: true };
+  if (!looksLikeMt940(text)) return none;
+  const order = [];
+  const built = new Map();
+  let number = null;
+  let key = null;
+  // A `:86:` belongs to the line just before it; one after the balances is the statement's own.
+  let afterLine = false;
+  for (const field of mt940Fields(text)) {
+    const b = key ? built.get(key) : null;
+    const lineBefore = afterLine;
+    afterLine = field.tag === '61';
+    if (field.tag === '25') {
+      number = field.value.trim();
+      key = null;
+    } else if (field.tag === '60F' || field.tag === '60M') {
+      const found = number != null ? mt940Balance(field.value) : null;
+      if (!found) continue;
+      key = `${number}|${found.currency}`;
+      if (!built.has(key)) {
+        built.set(key, { number, currency: found.currency, opening: { date: found.date, amount: found.amount }, closing: null, lines: [] });
+        order.push(key);
+      }
+    } else if (field.tag === '61') {
+      const l = b ? mt940Line(field.value, minorDigits(b.currency)) : null;
+      if (l) b.lines.push(l);
+    } else if (field.tag === '86') {
+      // What the line before was for; a statement's own `:86:` (no line yet) says nothing.
+      if (!lineBefore || !b || !b.lines.length) continue;
+      const words = mt940Description(field.value);
+      const last = b.lines[b.lines.length - 1];
+      last.description = !last.description ? words : !words ? last.description : `${words} · ${last.description}`;
+    } else if (field.tag === '62F' || field.tag === '62M') {
+      const found = b ? mt940Balance(field.value) : null;
+      if (found) b.closing = { date: found.date, amount: found.amount };
+    }
+  }
+  const accounts = order.map((k) => {
+    const b = built.get(k);
+    const digitsOnly = b.number.replace(/[^0-9]/g, '');
+    return account({
+      ref: `MT940:${b.number.toUpperCase().replace(/\s/g, '')}`, number: b.number,
+      numbers: digitsOnly.length >= 8 ? [digitsOnly] : [],
+      name: digitsOnly.length >= 4 ? `Account ·· ${digitsOnly.slice(-4)}` : 'Account',
+      type: 'current', currency: b.currency, lines: b.lines,
+      opening: b.opening?.amount ?? null, closing: b.closing?.amount ?? null,
+    });
+  });
+  if (!accounts.length) return none;
+  const earliest = (xs) => xs.filter(Boolean).sort()[0] ?? null;
+  const latest = (xs) => xs.filter(Boolean).sort().pop() ?? null;
+  const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date));
+  for (const a of accounts) finishAccount(a);
+  return {
+    reader: 'MT940', institution: null, country: null, general: false, fileName, holder: null,
+    // The opening balance is dated the day it stood, often the day before the first line.
+    period: {
+      from: earliest(lineDates) ?? earliest(order.map((k) => built.get(k).opening?.date)),
+      to: latest(order.map((k) => built.get(k).closing?.date)) ?? latest(lineDates),
+    },
+    accounts,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// CAMT.053 and CAMT.052: the ISO 20022 statement in XML
+
+/**
+ * **CAMT.053 and CAMT.052**: the ISO 20022 statement in XML, standard in Switzerland and across
+ * much of Europe. `camt.053` is the day's or month's statement (`Stmt`), `camt.052` the report
+ * during the day (`Rpt`); both are read the same way, any version. Each `Stmt` is one account:
+ * `Acct` names it, `Bal` gives the opening (`OPBD`, or `PRCD`, the previous closing) and closing
+ * (`CLBD`) balances, each `Ntry` is a line, credit or debit by `CdtDbtInd`. Lines not yet booked
+ * (`PDNG`) are left out. Statements of one account in one currency become one account. The same
+ * as the app's StatementCAMT.
+ */
+export function looksLikeCamt(text) {
+  const head = text.slice(0, 4_000);
+  return head.includes('camt.053') || head.includes('camt.052') || head.includes('BkToCstmrStmt') || head.includes('BkToCstmrAcctRpt');
+}
+
+/** Text without namespace prefixes (`<ns2:Stmt>` → `<Stmt>`) or comments, so a tag is found by its name alone. */
+const camtPlain = (text) => text.replace(/<!--[\s\S]*?-->/g, '').replace(/<(\/?)[A-Za-z][\w.-]*:/g, '<$1');
+
+/** Everything inside each `<Tag …>…</Tag>` in turn, attributes allowed on the opening tag. */
+function camtBlocks(tag, text) {
+  return [...(text ?? '').matchAll(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, 'g'))].map((m) => m[1]);
+}
+
+const camtBlock = (tag, text) => camtBlocks(tag, text)[0] ?? null;
+
+/** A leaf's text, unescaped and trimmed. */
+function camtValue(tag, text) {
+  const raw = camtBlock(tag, text)?.trim();
+  return raw && !raw.includes('<') ? ofxUnescape(raw) : null;
+}
+
+/** A leaf's `Ccy="…"` attribute. */
+const camtCurrency = (tag, text) => new RegExp(`<${tag}\\s[^>]*Ccy="([A-Z]{3})"`).exec(text ?? '')?.[1] ?? null;
+
+/**
+ * The first date in a block, as `<Dt>` or `<DtTm>`. Dates nest a `Dt` inside a `Dt`, which a block
+ * can't be cut at, so the date is found by its own tag.
+ */
+const camtFirstDay = (text) => (text == null ? null
+  : isoDay(/<(?:Dt|DtTm|FrDtTm|ToDtTm|FrDt|ToDt)>\s*(\d{4}-\d{2}-\d{2})/.exec(text)?.[1]));
+
+/** An amount with its credit or debit mark: `DBIT` takes away. */
+function camtSigned(block, digits) {
+  const text = camtValue('Amt', block);
+  const amount = text == null ? null : parseAmount(text, digits);
+  if (amount == null) return null;
+  return camtValue('CdtDbtInd', block) === 'DBIT' ? -Math.abs(amount) : Math.abs(amount);
+}
+
+/** A balance's kind: `Tp/CdOrPrtry/Cd`, or the proprietary text some banks put there. */
+function camtBalanceKind(balance) {
+  const type = camtBlock('Tp', balance);
+  return type == null ? null : camtValue('Cd', type) ?? camtValue('Prtry', type);
+}
+
+/** One entry → one line, or null when it isn't booked yet. */
+function camtLine(entry, digits) {
+  const sts = camtBlock('Sts', entry);
+  const status = sts == null ? null : camtValue('Cd', sts) ?? sts.trim();
+  if (status === 'PDNG' || status === 'INFO') return null;
+  // The entry's own amount comes before its details, which may carry amounts of their own.
+  const head = entry.split('<NtryDtls')[0];
+  const amount = camtSigned(head, digits);
+  if (amount == null) return null;
+  const details = camtBlock('TxDtls', entry) ?? '';
+  const parties = camtBlock('RltdPties', details) ?? '';
+  // Who was paid for money out, who paid for money in.
+  const side = camtBlock(amount < 0 ? 'Cdtr' : 'Dbtr', parties);
+  const other = side == null ? null : camtValue('Nm', side);
+  const purpose = camtBlocks('Ustrd', camtBlock('RmtInf', details) ?? '').map((u) => ofxUnescape(u.trim())).join(' ');
+  const extra = camtValue('AddtlTxInf', details) ?? camtValue('AddtlNtryInf', entry);
+  let words = [other, purpose || null].filter((w) => w != null);
+  if (!words.length && extra != null) words = [extra];
+  const booked = camtFirstDay(camtBlock('BookgDt', head));
+  const valued = camtFirstDay(camtBlock('ValDt', head));
+  return line({
+    date: booked ?? valued, madeOn: booked != null && valued !== booked ? valued : null,
+    description: words.map(collapse).join(' · '), amount,
+    ref: camtValue('AcctSvcrRef', head) ?? camtValue('NtryRef', head),
+  });
+}
+
+/**
+ * One CAMT file → one statement, an account for each account and currency in it. A statement with
+ * no accounts when the text isn't CAMT or holds no statement.
+ */
+export function readCamtStatement(text, { fileName = null } = {}) {
+  const none = { reader: null, fileName, accounts: [], unknownCamt: true };
+  if (!looksLikeCamt(text)) return none;
+  const body = camtPlain(text);
+  const order = [];
+  const built = new Map();
+  let holder = null;
+  let institution = null;
+  for (const statement of [...camtBlocks('Stmt', body), ...camtBlocks('Rpt', body)]) {
+    const acct = camtBlock('Acct', statement);
+    if (acct == null) continue;
+    // `Id` nests an `Id` for an account without an IBAN, so each is looked for in the whole.
+    const othr = camtBlock('Othr', acct);
+    const number = camtValue('IBAN', acct) ?? (othr == null ? null : camtValue('Id', othr));
+    const balances = camtBlocks('Bal', statement);
+    const currency = camtValue('Ccy', acct)
+      ?? balances.map((b) => camtCurrency('Amt', b)).find((c) => c != null)
+      ?? camtCurrency('Amt', statement);
+    const digits = minorDigits(currency);
+    const owner = camtBlock('Ownr', acct);
+    const servicer = camtBlock('Svcr', acct);
+    holder = holder ?? (owner == null ? null : camtValue('Nm', owner));
+    institution = institution ?? (servicer == null ? null : camtValue('Nm', servicer));
+    const key = `${number ?? '?'}|${currency ?? '?'}`;
+    if (!built.has(key)) {
+      const digitsOnly = (number ?? '').replace(/[^0-9]/g, '');
+      // `Acct` holds the owner's and the bank's `Nm` too, so the account is named by its number.
+      built.set(key, {
+        account: account({
+          ref: number != null ? `CAMT:${number.toUpperCase().replace(/\s/g, '')}` : null, number,
+          numbers: digitsOnly.length >= 8 ? [digitsOnly] : [],
+          name: digitsOnly.length >= 4 ? `Account ·· ${digitsOnly.slice(-4)}` : 'Account',
+          type: 'current', currency,
+        }),
+        from: null, to: null, closingDay: null,
+      });
+      order.push(key);
+    }
+    const b = built.get(key);
+    for (const found of balances) {
+      // A credit line printed with a balance carries an `Amt` of its own, before the balance's.
+      const balance = found.replace(/<CdtLine(?:\s[^>]*)?>[\s\S]*?<\/CdtLine>/g, '');
+      const kind = camtBalanceKind(balance);
+      const amount = camtSigned(balance, digits);
+      if (amount == null) continue;
+      // The first statement's opening and the last one's closing.
+      if ((kind === 'OPBD' || kind === 'PRCD') && b.account.opening == null) b.account.opening = amount;
+      if (kind === 'CLBD') {
+        b.account.closing = amount;
+        b.closingDay = camtFirstDay(balance);
+      }
+    }
+    b.account.lines.push(...camtBlocks('Ntry', statement).map((e) => camtLine(e, digits)).filter(Boolean));
+    const range = camtBlock('FrToDt', statement);
+    if (range != null) {
+      const from = isoDay(/<(?:FrDtTm|FrDt)>\s*(\d{4}-\d{2}-\d{2})/.exec(range)?.[1]);
+      const to = isoDay(/<(?:ToDtTm|ToDt)>\s*(\d{4}-\d{2}-\d{2})/.exec(range)?.[1]);
+      if (from && (!b.from || from < b.from)) b.from = from;
+      if (to && (!b.to || to > b.to)) b.to = to;
+    }
+  }
+  const accounts = order.map((key) => {
+    const a = built.get(key).account;
+    // Oldest first, as a statement prints them.
+    const dates = a.lines.map((l) => l.date).filter(Boolean);
+    if (dates.length && dates[0] > dates[dates.length - 1]) a.lines.reverse();
+    const sum = a.lines.reduce((t, l) => t + l.amount, 0);
+    // One balance missing: the other worked out from the lines, and said to be.
+    if (a.opening == null && a.closing != null) {
+      a.opening = a.closing - sum;
+      a.openingWorkedOut = true;
+    } else if (a.closing == null && a.opening != null) {
+      a.closing = a.opening + sum;
+      a.closingWorkedOut = true;
+    }
+    return a;
+  });
+  if (!accounts.length) return none;
+  const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
+  const froms = order.map((k) => built.get(k).from).filter(Boolean).sort();
+  const tos = order.flatMap((k) => [built.get(k).to, built.get(k).closingDay]).filter(Boolean).sort();
+  for (const a of accounts) {
+    if (institution && a.name.startsWith('Account')) a.name = institution + a.name.slice('Account'.length);
+    finishAccount(a);
+  }
+  return {
+    reader: 'CAMT', institution, country: null, general: false, fileName, holder,
+    period: { from: froms[0] ?? lineDates[0] ?? null, to: tos[tos.length - 1] ?? lineDates[lineDates.length - 1] ?? null },
+    accounts,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// QIF: Quicken's interchange file
+
+/**
+ * **QIF**: Quicken's old interchange file, still offered by Monzo, Barclays, Lloyds, NatWest and
+ * PayPal. A `!Type:Bank` (or `CCard`, `Cash`, `Oth A`, `Oth L`) header, then one record per line,
+ * each field a letter and its value (`D` date, `T` amount, `P` payee, `M` memo, `N` number) and
+ * `^` to end it. It names no account number, currency or period, and gives no closing balance; an
+ * "Opening Balance" record, when there is one, gives the opening. So the account is the lines.
+ * The same as the app's StatementQIF.
+ */
+export const QIF_EXTENSIONS = ['qif'];
+
+const trimBom = (s) => s.replace(/^[﻿\s]+|[﻿\s]+$/g, '');
+
+/** Whether this text is a QIF file, whatever it is called. */
+export function looksLikeQif(text) {
+  const head = trimBom(text.slice(0, 2_000));
+  return head.startsWith('!Type:') || head.startsWith('!Account') || head.startsWith('!Option');
+}
+
+/** Quicken writes `1/ 5'26` and `12/31'2025`: the apostrophe is the year's slash, spaces pad. */
+const qifDate = (s) => s.replace(/'/g, '/').replace(/ /g, '');
+
+/** One QIF file → one statement with one account, or a statement with no accounts when it has no bank or card lines. */
+export function readQifStatement(text, { fileName = null } = {}) {
+  const none = { reader: null, fileName, accounts: [], unknownQif: true };
+  if (!looksLikeQif(text)) return none;
+  let section = '';
+  let accountName = null;
+  let card = false;
+  const records = [];
+  let current = {};
+  let inAccountBlock = false;
+  for (const raw of text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
+    const row = raw.replace(/^[﻿\t\p{Zs}]+|[﻿\t\p{Zs}]+$/gu, '');
+    if (!row) continue;
+    const first = row[0];
+    if (first === '!') {
+      if (row.startsWith('!Account')) { inAccountBlock = true; continue; }
+      if (row.startsWith('!Type:')) {
+        section = trimSpaces(row.slice(6)).toLowerCase();
+        card = section === 'ccard' || section === 'oth l';
+        inAccountBlock = false;
+      }
+      continue;
+    }
+    const rest = trimSpaces(row.slice(1));
+    if (inAccountBlock) {
+      // The account list before the lines: its name, kept for the account's.
+      if (first === 'N') accountName = accountName ?? rest;
+      if (first === 'T') card = card || rest.toLowerCase() === 'ccard';
+      continue;
+    }
+    if (!['bank', 'ccard', 'cash', 'oth a', 'oth l'].includes(section)) continue;
+    if (first === 'D') current.date = rest;
+    else if (first === 'T' || first === 'U') { if (current.amount == null || first === 'T') current.amount = rest; }
+    else if (first === 'P') current.payee = rest;
+    else if (first === 'M') current.memo = rest;
+    else if (first === 'N') current.number = rest;
+    else if (first === 'L') current.category = rest;
+    else if (first === '^') {
+      if (current.amount != null || current.date != null) records.push(current);
+      current = {};
+    }
+  }
+  if (current.amount != null) records.push(current);
+  if (!records.length) return none;
+
+  const dayFirst = dayFirstOf(records.filter((r) => r.date != null).map((r) => qifDate(r.date)));
+  let opening = null;
+  let lines = [];
+  for (const record of records) {
+    const amount = record.amount == null ? null : csvAmount(record.amount, 2);
+    if (amount == null) continue;
+    const payee = trimSpaces(record.payee ?? '');
+    // Quicken's opening balance: a record to the account itself (`L[name]`), not a line, wherever
+    // it sits; a newest-first file puts it last.
+    if (payee.toLowerCase() === 'opening balance' && opening == null
+      && (!lines.length || (record.category ?? '').startsWith('['))) {
+      opening = card ? -amount : amount;
+      continue;
+    }
+    const words = [payee || null, record.memo === record.payee ? null : record.memo,
+      record.number != null && /^[+-]?\d+$/.test(record.number) ? `Cheque ${record.number}` : null]
+      .filter((w) => w != null).map(trimSpaces).filter(Boolean);
+    lines.push(line({
+      date: record.date == null ? null : fileDay(qifDate(record.date), dayFirst),
+      description: words.join(' · '), amount,
+    }));
+  }
+  // Oldest first, as a statement prints them.
+  const dates = lines.map((l) => l.date).filter(Boolean);
+  if (dates.length && dates[0] > dates[dates.length - 1]) lines = lines.reverse();
+  const acct = account({
+    ref: null, name: accountName || (card ? 'Card' : 'Account'), type: card ? 'card' : 'current', owed: card,
+    currency: null, lines,
+  });
+  if (opening != null) {
+    const sum = lines.reduce((t, l) => t + l.amount, 0);
+    acct.opening = opening;
+    acct.closing = card ? opening - sum : opening + sum;
+    acct.closingWorkedOut = true;
+  } else {
+    acct.notes.push('no balance in the file');
+  }
+  finishAccount(acct, acct.closing == null);
+  return {
+    reader: 'QIF', institution: null, country: null, general: false, fileName, holder: null,
+    period: { from: lines[0]?.date ?? null, to: lines[lines.length - 1]?.date ?? null }, accounts: [acct],
   };
 }
 

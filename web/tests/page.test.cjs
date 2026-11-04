@@ -462,6 +462,15 @@ let ENGINES={}; let submit2;
     d.querySelector('[data-rl-out="0:0:2"]').click(); await sleep(30);
     ok(/add up to the statement, with 2 changes of yours/.test(rv()) && !d.querySelector('[data-review-include="0:0"]').checked,'correct: a line left out; it adds up, and the untick is kept: '+rv().replace(/\s+/g,' ').slice(0,200));
     d.getElementById('review-cancel').click(); await sleep(20);
+    // lines and no balance (a QIF file, read by the real reader): the website takes no typed balance, so it waits for the phone
+    w.WWStatementModules={ ...save, readDocument: async ()=>({statements:[{ ...readers.readQifStatement('!Type:Bank\nD03/08/2026\nT-45.20\nPCorner Grocer\n^', { fileName:'aug.qif' }), sha256:'9'.repeat(64) }], problems:[]}) };
+    Object.defineProperty(up,'files',{value:[new w.File(['qif\n'],'aug.qif')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+    const doc6=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='aug.qif');
+    ok(d.querySelector(`[data-read-doc="${doc6.recordName}"]`),'phone: a QIF file can be read here');
+    d.querySelector(`[data-read-doc="${doc6.recordName}"]`).click(); await sleep(150);
+    const box6=d.getElementById('rv-0-0');
+    ok(/No balance in the file: add this one on the phone\./.test(rv()) && box6 && box6.disabled && !box6.checked && d.getElementById('review-add').disabled,'phone: no balance, unticked, and nothing to add: '+rv().replace(/\s+/g,' ').slice(0,200));
+    d.getElementById('review-cancel').click(); await sleep(20);
   }
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
   w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});
