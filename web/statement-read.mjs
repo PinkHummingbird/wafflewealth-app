@@ -6,18 +6,19 @@
 import * as pdfjs from '../statements/vendor/pdfjs/pdf.min.mjs';
 import {
   pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
-  ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines,
-} from '../statements/readers.js?v=30';
-import { readXlsxStatement, looksLikeXlsx, unreadableExcel } from '../statements/xlsx.js?v=30';
-import { fingerprint } from './statement-save.mjs?v=30';
+  decodeText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines,
+} from '../statements/readers.js?v=31';
+import { readXlsxStatement, looksLikeXlsx, unreadableExcel } from '../statements/xlsx.js?v=31';
+import { fingerprint } from './statement-save.mjs?v=31';
 
 // Putting a reading right, as the app does: the same functions the statements page uses.
-export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=30';
+export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=31';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('../statements/vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
-/** The other downloads a bank may give, as the app names them: MT940, CAMT (XML), QIF, and text files of either. */
-const BANK_FILE = /\.(sta|mt940|940|swi|qif|xml|txt)$/i;
+/** The other downloads a bank may give, as the app names them: MT940, CAMT (XML), QIF, text files of either, and
+    tab-separated tables (ABN AMRO's .TAB, Excel's .tsv). */
+const BANK_FILE = /\.(sta|mt940|940|swi|qif|xml|txt|tab|tsv)$/i;
 
 const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx'
   : /\.xlsx?$/i.test(name) ? 'excel' : /\.zip$/i.test(name) ? 'zip' : BANK_FILE.test(name) ? 'bank' : null);
@@ -36,8 +37,11 @@ const isPdf = (bytes) => bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 
  *
  * `dayFirstWhenUnsure` settles a CSV's, QIF's or workbook's dates that could be read either way when
  * nothing in the file does: the page passes false when the main currency is the US dollar, as the app does.
+ * `mainCurrency`, when the page passes it, settles them the same way for a CSV or workbook (month first
+ * for USD, CAD and PHP), and is what the statement then says it guessed (`dateOrderGuessed`). A file
+ * that names no currency is given in its decimals when its figures fit them (settleDigits).
  */
-export async function readDocument(name, bytes, { dayFirstWhenUnsure = true } = {}) {
+export async function readDocument(name, bytes, { dayFirstWhenUnsure = true, mainCurrency = null } = {}) {
   const statements = [];
   const problems = [];
   // Said of the file itself, or, for one of several in a zip, with its name in front.
@@ -47,14 +51,14 @@ export async function readDocument(name, bytes, { dayFirstWhenUnsure = true } = 
   // name: on its bytes alone, and a file named .csv on its name and bytes, so the phone and the
   // website know it for the same file.
   const addOfx = async (fileName, data) => {
-    const statement = readOfxStatement(ofxText(data), { fileName });
+    const statement = readOfxStatement(decodeText(data), { fileName });
     if (statement.unknownOfx) problems.push(`${fileName}: no bank or card statement was found in this download.`);
     else statements.push({ ...statement, sha256: await fingerprint(fileName, data) });
   };
   // An Excel workbook: its first sheet with a table of lines, read as that table's CSV would be,
   // and hashed as the app hashes any file that isn't named .csv, on its bytes alone.
   const addXlsx = async (fileName, data) => {
-    const statement = await readXlsxStatement(data, { fileName, dayFirstWhenUnsure });
+    const statement = await readXlsxStatement(data, { fileName, dayFirstWhenUnsure, mainCurrency });
     if (statement.accounts.length) statements.push({ ...statement, sha256: await fingerprint(fileName, data) });
     else tell(fileName, 'No table of lines was found in this spreadsheet.');
   };
@@ -63,13 +67,15 @@ export async function readDocument(name, bytes, { dayFirstWhenUnsure = true } = 
   // True when the file was taken as one of them, read or not.
   const addBankFile = async (fileName, data) => {
     const kind = kindOf(fileName);
-    const text = ofxText(data);
+    const text = decodeText(data);
     const reader = looksLikeCamt(text) ? readCamtStatement : looksLikeMt940(text) ? readMt940Statement
       : looksLikeQif(text) ? readQifStatement : ['csv', 'bank', 'excel'].includes(kind) ? readCsvStatement : null;
     if (!reader) return false;
-    const statement = reader(text, { fileName, dayFirstWhenUnsure });
+    const statement = reader(text, { fileName, dayFirstWhenUnsure, mainCurrency });
     if (statement.accounts.length) statements.push({ ...statement, sha256: await fingerprint(fileName, data) });
-    else problems.push(`${fileName}: ${kind === 'csv'
+    // As the phone says it ("Its dates couldn't be read."): a table was found, but none of its dates.
+    else if (statement.datesUnread) problems.push(`${fileName}: its dates couldn’t be read.`);
+    else problems.push(`${fileName}: ${kind === 'csv' || /\.(tab|tsv)$/i.test(fileName)
       ? 'its columns weren’t recognised: it needs a date and an amount, or money in and money out.'
       : 'no statement was found in this file.'}`);
     return true;
@@ -100,7 +106,7 @@ export async function readDocument(name, bytes, { dayFirstWhenUnsure = true } = 
   // A file of any other name is read only when what is in it says what it is.
   const known = (data) => {
     if (isPdf(data) || looksLikeXlsx(data) || looksLikeOfx(headOf(data))) return true;
-    const text = ofxText(data);
+    const text = decodeText(data);
     return looksLikeCamt(text) || looksLikeMt940(text) || looksLikeQif(text);
   };
   const kind = kindOf(name);

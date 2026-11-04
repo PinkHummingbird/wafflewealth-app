@@ -40,3 +40,11 @@ test('categories match the app', () => {
   assert.equal(M.categories.in.length, 10);
   assert.equal(M.categories.out.length, 16);
 });
+
+test('a statement is read in the decimals the phone reads it in: the readers’ table is the app’s (StatementText.minorDigits)', async () => {
+  const { minorDigits } = await import('../../statements/readers.js');
+  const zero = ['CLP', 'ISK', 'JPY', 'KRW', 'PYG', 'UGX', 'VND', 'XAF', 'XOF'];
+  const three = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'];
+  const { CSV_WORDS } = await import('../../statements/csv-words.js');
+  for (const code of CSV_WORDS.isoCurrencies) assert.equal(minorDigits(code), zero.includes(code) ? 0 : three.includes(code) ? 3 : 2, code);
+});

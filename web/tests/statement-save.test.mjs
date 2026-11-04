@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, webcrypto } from 'node:crypto';
-import { balancePoints, includedByDefault, needsBalance, accountToSave, recordsForStatement, fingerprint } from '../statement-save.mjs';
+import { balancePoints, includedByDefault, needsBalance, accountToSave, recordsForStatement, fingerprint, linkedAccount, typedIntoRead } from '../statement-save.mjs';
 
 const line = (date, amount, description = 'Made up', extra = {}) => ({ date, madeOn: null, description, amount, running: null, ref: null, foreign: null, label: amount >= 0 ? 'in' : 'out', ...extra });
 
@@ -218,4 +218,72 @@ test('only an account that can be chosen, and each once', () => {
   const mine = { name: 'acc-9', type: 'Account', f: { name: 'UOB savings' } };
   assert.throws(() => run(statement, [{ include: true, name: 'x', accountId: 'acc-9' }, { include: true, name: 'y', accountId: 'acc-9' }], { choosable: () => [mine] }),
     (e) => e.code === 'sameAccountTwice');
+});
+
+test('no dates: an account whose lines have none and whose statement has no last day is refused, and says so', () => {
+  const account = { ...current(), lines: [line(null, -10_000), line(null, 7_000)], opening: 100_000, closing: 97_000 };
+  const statement = { reader: 'CSV', fileName: 'export.csv', period: { from: null, to: null }, accounts: [account] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]),
+    (e) => e.code === 'noDates' && e.reason === "Mine: no dates were read from this file, so it can't be added.");
+  // Left out, nothing is asked of it.
+  assert.equal(run(statement, [{ include: false, name: 'Mine' }]).records.length, 1);
+  // A last day from the lines is enough.
+  const dated = { ...statement, accounts: [{ ...account, lines: [line('2026-09-03', -3_000)] }] };
+  assert.ok(run(dated, [{ include: true, name: 'Mine' }]).balances >= 1);
+});
+
+// A file that named no currency: its figures were read at `readDigits` decimals (Addendum 2: V1#2, V2#6, V3#1).
+const unnamed = (readDigits, lines, extra = {}) => ({
+  ref: null, name: 'Account', type: 'current', owed: false, currency: null, readDigits, opening: null, closing: null,
+  lines, notes: [], ...extra,
+});
+
+test('figures read before the currency was known are put into the currency chosen, exactly', () => {
+  const read = unnamed(3, [line('2026-09-02', -765_440, 'Transfer', { running: -765_440 }), line('2026-09-11', -45_200, 'Shop', { running: -810_640 })],
+    { opening: 0, closing: -810_640, check: { ok: true, checked: true, sum: -810_640, expected: -810_640, messages: [{ kind: 'line', index: 1, expected: -810_640, got: -810_600 }] } });
+  const usd = accountToSave(read, { currency: 'USD' });
+  assert.deepEqual(usd.lines.map((l) => [l.amount, l.running]), [[-76_544, -76_544], [-4_520, -81_064]]);
+  assert.deepEqual([usd.opening, usd.closing, usd.readDigits, usd.scaleLost], [0, -81_064, 2, undefined]);
+  // The check is made again on the figures as they are saved.
+  assert.deepEqual([usd.check.checked, usd.check.ok], [true, true]);
+  // Dinars have three: as read. Yen have none: cents can't be held, so nothing is divided and it says so.
+  assert.deepEqual(accountToSave(read, { currency: 'KWD' }).lines.map((l) => l.amount), [-765_440, -45_200]);
+  const yen = accountToSave(read, { currency: 'JPY' });
+  assert.equal(yen.scaleLost, true);
+  assert.deepEqual(yen.lines.map((l) => l.amount), [-765_440, -45_200]);
+  // Read at two (a main currency in cents), into dinars: ten times, exactly; whole yen into yen.
+  assert.deepEqual(accountToSave(unnamed(2, [line('2026-09-01', 1_250)]), { currency: 'KWD' }).lines.map((l) => l.amount), [12_500]);
+  assert.deepEqual(accountToSave(unnamed(2, [line('2026-09-01', 250_000), line('2026-09-02', -4_500)]), { currency: 'JPY' }).lines.map((l) => l.amount), [2_500, -45]);
+  // A typed balance is in the currency chosen; the opening is worked back from the lines as they are saved.
+  const typed = accountToSave(unnamed(3, [line('2026-09-01', 2_500_000), line('2026-09-02', -45_200)]), { currency: 'USD', closing: 300_000 });
+  assert.deepEqual([typed.closing, typed.opening, ...typed.lines.map((l) => l.amount)], [300_000, 54_520, 250_000, -4_520]);
+});
+
+test('an account whose figures its currency can’t hold isn’t saved, and says why', () => {
+  const read = accountToSave(unnamed(3, [line('2026-09-02', -45_200)], { closing: 100_000, opening: 145_200 }), { currency: 'JPY' });
+  const statement = { reader: 'CSV', fileName: 'export.csv', period: { from: '2026-09-01', to: '2026-09-30' }, accounts: [read] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Joint' }]),
+    (e) => e.code === 'needsCurrency' && e.reason === 'Joint: its amounts have decimals JPY doesn\'t have. Choose its currency.');
+});
+
+test('a typed correction goes into the account at the decimals its file was read at', () => {
+  assert.deepEqual(typedIntoRead(unnamed(3, []), -4_520, 'USD'), { ok: true, minor: -45_200 });
+  assert.deepEqual(typedIntoRead(unnamed(2, []), 1_250, 'KWD'), { ok: true, minor: 125 });
+  assert.equal(typedIntoRead(unnamed(2, []), 1_255, 'KWD').ok, false);
+  assert.deepEqual(typedIntoRead({ ...current() }, -10_000, 'SGD'), { ok: true, minor: -10_000 });
+});
+
+test('a bank reference linked to another kind of account, or another currency, is not followed (V1#1)', () => {
+  const checking = { name: 'acc-checking', type: 'Account', f: { name: 'Chase checking', kind: 'ASSET', currency_code: 'USD' } };
+  const card = { ...current(), ref: 'CSV:Chase:2026', name: 'Chase card', type: 'card', owed: true, currency: 'USD', opening: 50_000, closing: 120_000 };
+  assert.equal(linkedAccount(card, checking), null);
+  assert.equal(linkedAccount({ ...card, owed: false }, checking), checking);
+  assert.equal(linkedAccount({ ...card, owed: false, currency: 'EUR' }, checking), null);
+  const statement = { reader: 'CSV', period: { from: '2026-08-01', to: '2026-09-30' }, accounts: [card] };
+  const saved = run(statement, [{ include: true, name: 'Chase card' }], { accountByRef: (ref) => (ref === 'CSV:Chase:2026' ? checking : null) });
+  assert.deepEqual([saved.updated, saved.created], [[], ['Chase card']]);
+  const made = saved.records.find((r) => r.type === 'Account');
+  assert.equal(made.f.kind, 'LIABILITY');
+  assert.ok(saved.records.filter((r) => r.type === 'Balance').every((r) => r.f.account_id === made.name), 'nothing written into the checking account');
+  assert.ok(!saved.records.some((r) => r.type === 'StatementAccount'), 'the reference stays the checking account’s');
 });

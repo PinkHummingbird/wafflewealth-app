@@ -304,7 +304,8 @@ test('Excel: a Revolut-like download is an account per currency, in minor units,
   assert.equal(statement.reader, 'CSV');
   assert.equal(statement.institution, 'Revolut');
   assert.deepEqual(statement.accounts.map((a) => a.name), ['Revolut EUR', 'Revolut GBP']);
-  assert.deepEqual(statement.accounts.map((a) => a.ref), ['CSV:Revolut:EUR', 'CSV:Revolut:GBP']);
+  // Nothing in the file names the account (a brand alone would be the same for everyone's), as for the CSV.
+  assert.deepEqual(statement.accounts.map((a) => a.ref), [null, null]);
   const [euro, pound] = statement.accounts;
   assert.equal(euro.currency, 'EUR');
   // The exchange's fee is taken from its amount: -100.00 and 0.50 are -10050.

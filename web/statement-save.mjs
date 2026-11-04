@@ -8,8 +8,7 @@
    and returns plain records, so it is tested on its own (web/tests/statement-save.test.mjs).
 
    Statements come from ../statements/readers.js, which reads the same banks the app reads. */
-
-import { inCurrency } from '../statements/readers.js?v=30';
+import { inCurrency, minorDigits } from '../statements/readers.js?v=31';
 
 /** Lines and no balance in the file (a QIF file, many banks' CSVs): the review asks for the
     balance on the statement's last day before the account can be added, as the app's does
@@ -53,6 +52,36 @@ export function accountToSave(account, { currency = null, closing = null } = {})
     filled.belowZero = !account.owed && [filled.opening, filled.closing].some((v) => v < 0);
   }
   return filled;
+}
+
+/**
+ * A figure typed in the review, in minor units of the currency chosen, as the account read holds its
+ * figures (at its `readDigits` decimals, when the file named no currency): `{ ok, minor }`, or not ok
+ * when it has more decimals than the file's figures (a fraction of what the file can say).
+ */
+export function typedIntoRead(read, minor, currency) {
+  if (minor == null || read.readDigits == null || !currency) return { ok: true, minor };
+  const digits = minorDigits(currency);
+  let factor = 1;
+  for (let i = Math.min(digits, read.readDigits); i < Math.max(digits, read.readDigits); i++) factor *= 10;
+  if (read.readDigits >= digits) return { ok: true, minor: minor * factor };
+  return minor % factor === 0 ? { ok: true, minor: minor / factor }
+    : { ok: false, reason: `This file's amounts have at most ${read.readDigits} decimal place${read.readDigits === 1 ? '' : 's'}.` };
+}
+
+/**
+ * The account a statement account's bank reference is linked to, when it can be that account: one
+ * you own for an account you own, one you owe for a card, and in its currency. A card's file whose
+ * reference is linked to a current account (the same last four digits) is not written into it: it
+ * is treated as not linked, and its reference isn't linked again.
+ */
+export function linkedAccount(account, found) {
+  if (!found) return null;
+  const kind = found.f && found.f.kind;
+  const code = found.f && found.f.currency_code;
+  if (kind && (kind === 'LIABILITY') !== Boolean(account.owed)) return null;
+  if (code && account.currency && code !== account.currency) return null;
+  return found;
 }
 
 const monthOf = (day) => day.slice(0, 7);
@@ -154,18 +183,26 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
     if (account.belowZero && !account.owed && !choice.keepBelowZero) {
       throw { code: 'belowZeroNotConfirmed', reason: `${choice.name || account.name} went below zero: switch on “Keep it below zero”, or leave it out.` };
     }
-    const lastLine = account.lines.length ? account.lines[account.lines.length - 1].date : null;
+    // Its last day: the statement's, else its latest line's (the app's Choice.lastDay). With neither,
+    // no balance can be dated, so it isn't added, and says so rather than going quietly.
+    const lastLine = account.lines.map((l) => l.date).filter(Boolean).sort().pop() ?? null;
     const asOf = statement.period?.to ?? lastLine;
-    if (!account.currency || !asOf) return;
+    if (!asOf) {
+      throw { code: 'noDates', reason: `${choice.name || account.name}: no dates were read from this file, so it can't be added.` };
+    }
     const points = balancePoints(account, asOf, keepBelowZero);
     if (!points.length) return;
-    // Found by its bank reference, as last time; failing that, the account you chose to add it to.
-    let existing = account.ref ? known.accountByRef(account.ref) : null;
+    // Found by its bank reference, as last time, when it can be that account (linkedAccount); failing
+    // that, the account you chose to add it to. A reference linked to another kind of account, or one in
+    // another currency, is left linked as it is.
+    const byRef = account.ref ? known.accountByRef(account.ref) : null;
+    let existing = linkedAccount(account, byRef);
+    const linkRef = account.ref && !byRef ? account.ref : null;
     if (!existing && choice.accountId) {
       existing = (known.choosable ? known.choosable(account) : []).find((a) => a.name === choice.accountId) || null;
       if (!existing) throw { code: 'accountNotChoosable', reason: `${account.name} can't go into that account: it's in another currency, archived, or already has a statement. Choose another, or a new account.` };
-      if (account.ref) {
-        records.push({ name: `statement-account-${existing.name}`, type: 'StatementAccount', f: { ref: account.ref, created_at: now } });
+      if (linkRef) {
+        records.push({ name: `statement-account-${existing.name}`, type: 'StatementAccount', f: { ref: linkRef, created_at: now } });
       }
     }
     const balance = (accountId, point) => ({ name: uuid(), type: 'Balance', f: {
@@ -185,8 +222,8 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
         ...income(account), available_from_age: null, available_from_month: availableFromMonth(account, today),
       } });
       for (const point of points) records.push(balance(accountId, point));
-      if (account.ref) {
-        records.push({ name: `statement-account-${accountId}`, type: 'StatementAccount', f: { ref: account.ref, created_at: now } });
+      if (linkRef) {
+        records.push({ name: `statement-account-${accountId}`, type: 'StatementAccount', f: { ref: linkRef, created_at: now } });
       }
       result.created.push(name);
     }
