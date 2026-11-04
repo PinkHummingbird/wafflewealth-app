@@ -127,3 +127,14 @@ test('read here: a Windows-1250 or UTF-16 file is decoded before it is read', as
   const { statements } = await readDocument('export.csv', utf16);
   assert.equal(statements[0].accounts[0].closing, 118_936);
 });
+
+test('read here: the main currency gives a file naming none its decimals when they fit, for a CSV and a QIF alike (Addendum 2)', async () => {
+  const yen = await readDocument('export.csv', bytes(csv), { dayFirstWhenUnsure: true, mainCurrency: 'JPY' });
+  assert.deepEqual([yen.statements[0].accounts[0].readDigits, yen.statements[0].accounts[0].closing], [3, 87_700]);
+  const usd = await readDocument('export.csv', bytes(csv), { dayFirstWhenUnsure: false, mainCurrency: 'USD' });
+  assert.deepEqual([usd.statements[0].accounts[0].readDigits, usd.statements[0].accounts[0].closing], [2, 8_770]);
+  const quicken = await readDocument('export.qif', bytes(qif), { dayFirstWhenUnsure: true, mainCurrency: 'JPY' });
+  assert.deepEqual(quicken.statements[0].accounts[0].lines.map((l) => l.amount), [-45_200, 2_500_000]);
+  // Each CSV account comes with its reading the other way round, for the review's "It's a card".
+  assert.equal(usd.statements[0].accounts[0].other.owed, true);
+});

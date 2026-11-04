@@ -92,3 +92,36 @@ test('a Windows-1250 mBank file reads with its Polish words whole', () => {
   assert.equal(account.closing, 118_936);
   assert.ok(account.check.ok);
 });
+
+test('Hebrew, Arabic and Thai code pages are read too (V2#15, V3#25)', () => {
+  const pages = [
+    ['windows-1255', 'תאריך,תיאור,סכום\n20/08/2026,קניה בסופר,-45.20\n', 'קניה בסופר'],
+    ['windows-1256', 'التاريخ,الوصف,المبلغ\n20/08/2026,مشتريات,-45.20\n', 'مشتريات'],
+    ['windows-874', 'วันที่,รายการ,ถอนเงิน,ฝากเงิน,ยอดคงเหลือ\n20/08/2026,ค่าอาหาร,100.00,,900.00\n', 'ค่าอาหาร'],
+  ];
+  for (const [page, text, words] of pages) {
+    const decoded = decodeText(encode(text, page));
+    assert.equal(decoded, text, page);
+    const statement = readCsvStatement(decoded, { fileName: 'export.csv' });
+    assert.equal(statement.general, false, `${page}: read from its header`);
+    assert.equal(statement.accounts[0].lines[0].description, words, page);
+  }
+  // A French file in windows-1252 stays French: Hebrew letters between Latin ones aren't words.
+  const french = 'Date;Libellé;Montant\n20/08/2026;Société Générale à Évry;-45,20\n';
+  assert.equal(decodeText(encode(french, 'windows-1252')), french);
+});
+
+test('a byte a page leaves undefined never fails the reading: TextDecoder’s mapping, which the Swift port copies (V3#22)', () => {
+  // An OFX header names windows-1252, whose 0x81 and 0x9D are the controls U+0081 and U+009D on the web (WHATWG).
+  const bytes = Uint8Array.from([...utf8('OFXHEADER:100\nCHARSET:1252\n<NAME>caf'), 0xE9, 0x81, 0x9D, ...utf8('</NAME>\n')]);
+  assert.equal(decodeText(bytes), 'OFXHEADER:100\nCHARSET:1252\n<NAME>café\u0081\u009D</NAME>\n');
+  // Left to the scores, bytes that are letters only in windows-1251 read as Cyrillic; no reading ever fails.
+  for (let b = 0x80; b <= 0xFF; b++) assert.equal(typeof decodeText(Uint8Array.from([...utf8('Date;Text\n2026-09-01;a'), b, ...utf8('b\n')])), 'string');
+});
+
+test('code pages told by their letters alone: Cyrillic isn’t accented Latin; Thai letters are words past their marks', () => {
+  const russian = 'Date,Description,Amount\n01.09.2026,Магазин продукты,-10.00\n';
+  assert.equal(decodeText(encode(russian, 'windows-1251')), russian);
+  const thai = 'Date,Description,Amount\n20/08/2026,ค่าอาหารกลางวันที่ร้าน,-100.00\n';
+  assert.equal(decodeText(encode(thai, 'windows-874')), thai);
+});

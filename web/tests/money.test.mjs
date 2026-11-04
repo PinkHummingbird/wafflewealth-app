@@ -40,3 +40,10 @@ test('categories match the app', () => {
   assert.equal(M.categories.in.length, 10);
   assert.equal(M.categories.out.length, 16);
 });
+
+test('a statement is read in the decimals this money counts in: the readers’ table is CLDR’s, as Intl gives it (V3#17)', async () => {
+  const { minorDigits } = await import('../../statements/readers.js');
+  const { CSV_WORDS } = await import('../../statements/csv-words.js');
+  const differ = CSV_WORDS.isoCurrencies.filter((code) => minorDigits(code) !== M.scale(code));
+  assert.deepEqual(differ, [], 'readers and money disagree on the decimals of these currencies');
+});

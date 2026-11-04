@@ -8,6 +8,7 @@
    and returns plain records, so it is tested on its own (web/tests/statement-save.test.mjs).
 
    Statements come from ../statements/readers.js, which reads the same banks the app reads. */
+import { minorDigits } from '../statements/readers.js?v=29';
 
 /** Lines and no balance in the file (a QIF file, many banks' CSVs): the review asks for the
     balance on the statement's last day before the account can be added, as the app's does
@@ -27,20 +28,74 @@ export function includedByDefault(account) {
 /**
  * The account as it is saved, as the app's review holds it (Choice.accountToSave): a file that
  * names no currency takes the one chosen in the review (`currency`, the main one unless changed),
- * and a typed balance (`closing`, minor units, below zero allowed) is its balance on the last day,
- * the opening worked back from the lines. Without a typed balance it is returned as read.
+ * and its figures, read before the currency was known (at `readDigits` decimals), are put into that
+ * currency's: every amount, balance after a line, opening and closing multiplied or divided by the
+ * power of ten between, exactly. When a figure has more decimals than the currency has (cents in
+ * yen), nothing is divided and `tooManyDecimals` says so: it can't be saved in that currency. A
+ * typed balance (`closing`, minor units of the currency, below zero allowed) is its balance on the
+ * last day, the opening worked back from the lines. Without either it is returned as read.
  */
 export function accountToSave(account, { currency = null, closing = null } = {}) {
   const filled = { ...account, notes: [...(account.notes ?? [])] };
   if (!filled.currency && currency) filled.currency = currency;
-  if (needsBalance(account) && closing != null) {
-    const sum = account.lines.reduce((t, l) => t + l.amount, 0);
+  if (account.readDigits != null && filled.currency) {
+    const from = account.readDigits;
+    const to = minorDigits(filled.currency);
+    let factor = 1;
+    for (let i = Math.min(from, to); i < Math.max(from, to); i++) factor *= 10;
+    const figures = [account.opening, account.closing, ...account.lines.flatMap((l) => [l.amount, l.running])].filter((v) => v != null);
+    if (to < from && figures.some((v) => v % factor !== 0)) {
+      filled.tooManyDecimals = true;
+    } else {
+      const scaled = (v) => (v == null ? v : to >= from ? v * factor : v / factor);
+      filled.lines = account.lines.map((l) => ({ ...l, amount: scaled(l.amount), running: scaled(l.running) }));
+      filled.opening = scaled(account.opening);
+      filled.closing = scaled(account.closing);
+      if (account.check) {
+        filled.check = { ...account.check, sum: scaled(account.check.sum), expected: scaled(account.check.expected),
+          messages: (account.check.messages ?? []).map((m) => ({ ...m, expected: scaled(m.expected), got: scaled(m.got) })) };
+      }
+      filled.readDigits = to;
+    }
+  }
+  if (needsBalance(account) && closing != null && !filled.tooManyDecimals) {
+    const sum = filled.lines.reduce((t, l) => t + l.amount, 0);
     filled.closing = closing;
     filled.opening = account.owed ? closing + sum : closing - sum;
     filled.openingWorkedOut = true;
     filled.belowZero = !account.owed && [filled.opening, filled.closing].some((v) => v < 0);
   }
   return filled;
+}
+
+/**
+ * A figure typed in the review, in minor units of the currency chosen, as the account read holds its
+ * figures (at its `readDigits` decimals, when the file named no currency): `{ ok, minor }`, or not ok
+ * when it has more decimals than the file's figures (a fraction of what the file can say).
+ */
+export function typedIntoRead(read, minor, currency) {
+  if (minor == null || read.readDigits == null || !currency) return { ok: true, minor };
+  const digits = minorDigits(currency);
+  let factor = 1;
+  for (let i = Math.min(digits, read.readDigits); i < Math.max(digits, read.readDigits); i++) factor *= 10;
+  if (read.readDigits >= digits) return { ok: true, minor: minor * factor };
+  return minor % factor === 0 ? { ok: true, minor: minor / factor }
+    : { ok: false, reason: `This file's amounts have at most ${read.readDigits} decimal place${read.readDigits === 1 ? '' : 's'}.` };
+}
+
+/**
+ * The account a statement account's bank reference is linked to, when it can be that account: one
+ * you own for an account you own, one you owe for a card, and in its currency. A card's file whose
+ * reference is linked to a current account (the same last four digits) is not written into it: it
+ * is treated as not linked, and its reference isn't linked again.
+ */
+export function linkedAccount(account, found) {
+  if (!found) return null;
+  const kind = found.f && found.f.kind;
+  const code = found.f && found.f.currency_code;
+  if (kind && (kind === 'LIABILITY') !== Boolean(account.owed)) return null;
+  if (code && account.currency && code !== account.currency) return null;
+  return found;
 }
 
 const monthOf = (day) => day.slice(0, 7);
@@ -134,6 +189,10 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
     if (!account.currency) {
       throw { code: 'needsCurrency', reason: `${choice.name || account.name}: choose its currency.` };
     }
+    // Figures with more decimals than the currency chosen has (accountToSave) can't be saved in it.
+    if (account.tooManyDecimals) {
+      throw { code: 'tooManyDecimals', reason: `${choice.name || account.name}: its amounts have more decimal places than ${account.currency} has. Choose the currency this account is in.` };
+    }
     // An account you own that went below zero is kept below zero only once you've said so.
     const keepBelowZero = Boolean(account.belowZero && !account.owed && choice.keepBelowZero);
     if (account.belowZero && !account.owed && !choice.keepBelowZero) {
@@ -148,13 +207,17 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
     }
     const points = balancePoints(account, asOf, keepBelowZero);
     if (!points.length) return;
-    // Found by its bank reference, as last time; failing that, the account you chose to add it to.
-    let existing = account.ref ? known.accountByRef(account.ref) : null;
+    // Found by its bank reference, as last time, when it can be that account (linkedAccount); failing
+    // that, the account you chose to add it to. A reference linked to another kind of account, or one in
+    // another currency, is left linked as it is.
+    const byRef = account.ref ? known.accountByRef(account.ref) : null;
+    let existing = linkedAccount(account, byRef);
+    const linkRef = account.ref && !byRef ? account.ref : null;
     if (!existing && choice.accountId) {
       existing = (known.choosable ? known.choosable(account) : []).find((a) => a.name === choice.accountId) || null;
       if (!existing) throw { code: 'accountNotChoosable', reason: `${account.name} can't go into that account: it's in another currency, archived, or already has a statement. Choose another, or a new account.` };
-      if (account.ref) {
-        records.push({ name: `statement-account-${existing.name}`, type: 'StatementAccount', f: { ref: account.ref, created_at: now } });
+      if (linkRef) {
+        records.push({ name: `statement-account-${existing.name}`, type: 'StatementAccount', f: { ref: linkRef, created_at: now } });
       }
     }
     const balance = (accountId, point) => ({ name: uuid(), type: 'Balance', f: {
@@ -174,8 +237,8 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
         ...income(account), available_from_age: null, available_from_month: availableFromMonth(account, today),
       } });
       for (const point of points) records.push(balance(accountId, point));
-      if (account.ref) {
-        records.push({ name: `statement-account-${accountId}`, type: 'StatementAccount', f: { ref: account.ref, created_at: now } });
+      if (linkRef) {
+        records.push({ name: `statement-account-${accountId}`, type: 'StatementAccount', f: { ref: linkRef, created_at: now } });
       }
       result.created.push(name);
     }

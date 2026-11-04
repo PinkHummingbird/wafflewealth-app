@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  readMt940Statement, readCamtStatement, readQifStatement, readCsvStatement, csvAmount,
+  readMt940Statement, readCamtStatement, readQifStatement, readCsvStatement, csvAmount, csvDate,
   looksLikeMt940, looksLikeCamt, looksLikeQif, looksLikeOfx,
 } from '../readers.js';
 
@@ -241,6 +241,10 @@ N1043
   assert.equal(account.closingWorkedOut, true);
   assert.equal(account.currency, null);
   assert.equal(account.ref, null);
+  // A QIF names no currency: read at three decimals, given in two (no main currency) since they fit.
+  assert.equal(account.readDigits, 2);
+  const yen = readQifStatement(text, { fileName: 'export.qif', mainCurrency: 'JPY' }).accounts[0];
+  assert.deepEqual([yen.readDigits, ...amounts(yen), yen.opening], [3, -45_200, 2_500_000, -1_250_000, 100_000]);
   assert.equal(looksLikeQif(text), true);
 });
 
@@ -380,8 +384,26 @@ CREDIT,09/01/2026,"EXAMPLE STUDIO PAYROLL",2000.00,ACH_CREDIT,2000.00,,`;
   assert.equal(european.lines[0].date, '2026-01-09');
 });
 
-// decaf's FileFormatTests.cardExportsAreOwedWithChargesAsMoneyOut. The files are guessed from the
-// rules agreed with decaf (cards, signs, refs): check them against the Swift test's own when it lands.
+// decaf's FileFormatTests.cardExportsAreOwedWithChargesAsMoneyOut, on its own two files (decaf_tree
+// e5a7fc7), then more. One expectation differs on purpose: the brief names a card "<brand> card", so
+// the Chase card is "Chase card ·· 5678" here, and FileFormatTests' `chaseCard.name == "Chase ·· 5678"`
+// becomes "Chase card ·· 5678" in the Swift port. The file name's four digits are its number, as
+// decaf's namedNumber makes them.
+test('CSV: card exports are owed, with charges as money out (decaf’s own files)', () => {
+  const amex = readCsvStatement(`Date,Description,Card Member,Account #,Amount
+09/03/2026,CAFE EXAMPLE,SAM EXAMPLE,-41005,4.50
+09/10/2026,BOOK EXAMPLE,SAM EXAMPLE,-41005,25.00
+09/15/2026,ONLINE PAYMENT - THANK YOU,SAM EXAMPLE,-41005,-29.50`, { fileName: 'activity.csv' }).accounts[0];
+  assert.deepEqual([amex.type, amex.owed], ['card', true]);
+  assert.deepEqual(amounts(amex), [-450, -2_500, 2_950]);
+  const chase = readCsvStatement(`Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+09/14/2026,09/15/2026,BOOK EXAMPLE,Shopping,Sale,-25.00,
+09/03/2026,09/04/2026,CAFE EXAMPLE,Food & Drink,Sale,-4.50,`, { fileName: 'Chase5678_Activity20260920.CSV' }).accounts[0];
+  assert.equal(chase.owed, true);
+  assert.deepEqual(amounts(chase), [-450, -2_500]);
+  assert.deepEqual([chase.name, chase.ref, chase.number], ['Chase card ·· 5678', 'CSV:Chase:5678', '5678']);
+});
+
 test('CSV: card exports are owed, with charges as money out', () => {
   // American Express prints charges positive and payments negative: every sign turns round.
   const amex = readCsvStatement(`Date,Description,Card Member,Account #,Amount
@@ -422,8 +444,18 @@ test('CSV: card exports are owed, with charges as money out', () => {
   assert.ok(owing.check.ok);
 });
 
-// decaf's FileFormatTests.datesWithMonthNamesAndTimesAreReadWhole: the whole cell is read once a time
-// at its end is gone, never its first ten characters.
+// decaf's FileFormatTests.datesWithMonthNamesAndTimesAreReadWhole, on its own file (decaf_tree e5a7fc7):
+// the whole cell is read once a time at its end is gone, never its first ten characters.
+test('CSV: dates with month names and times are read whole (decaf’s own file)', () => {
+  const account = readCsvStatement(`Date,Transaction type,Description,Paid out,Paid in,Balance
+09 Aug 2026,Payment,Corner Grocer,£12.30,,£987.70
+01 Aug 2026,Bank credit,Example Studio,,£1000.00,£1000.00`, { fileName: 'Statement Download.csv' }).accounts[0];
+  assert.deepEqual(account.lines.map((l) => l.date), ['2026-08-01', '2026-08-09']);
+  assert.equal(account.check.ok, true);
+  assert.equal(csvDate('2026-09-01T10:00:05Z'), '2026-09-01');
+  assert.equal(csvDate('09/01/2026 3:04 PM', false), '2026-09-01');
+});
+
 test('CSV: dates with month names and times are read whole', () => {
   const read = (cell) => readCsvStatement(`Date,Description,Amount\n${cell},Example,-1.00\n`, { fileName: 'export.csv' }).accounts[0]?.lines[0]?.date;
   assert.equal(read('09 Aug 2024'), '2024-08-09');

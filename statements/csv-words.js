@@ -6,16 +6,33 @@ export const CSV_WORDS = {
     "The words bank files use, for reading any bank's CSV (BankCSV) on the phone and on the website alike.",
     "The app reads this file; tools/sync-profiles.sh copies it into the website's statements/csv-words.js. Edit it here only.",
     "Every list is in order of preference: the first word a header has wins. Words are written as banks write them;",
-    "both platforms turn every word and every heading into a key before comparing (see _key)."
+    "both platforms turn every word and every heading into a key before comparing (see _key).",
+    "Fields beyond the heading words: payment (phrases of a card's repayment, matched as whole words), cardFile and",
+    "debitFile (a file name's words: card unless it also says debit), creditCard (phrases in the rows above a table that",
+    "say it is a credit card's), cardDates (a card's two dates, the purchase and the posting), cardHeaders (whole",
+    "headers that are a card's export with no bank named: 'layout' is every heading in order, 'header' headings that",
+    "must all be there), isoCurrencies (ISO 4217 codes, as CLDR 48 lists them), currencyDigits (the decimals a currency",
+    "is written with, as CLDR 48 gives them: Intl.NumberFormat and NumberFormatter, the money of both platforms).",
+    "banks[]: brand and aliases (names matched as whole words in the file's name and the rows above the table, the",
+    "longest first), header (headings that must all be there) or layout (the whole header, in order), fileName (a",
+    "pattern for the file's name), country and dateOrder (only for a bank that writes dates one way everywhere it",
+    "works), card and chargesPositive, counterAccount (headings that, for this bank, name the other side's account),",
+    "dates (a pattern every date cell must match for an entry found by its file name or header: Amex writes 09/28/2026)."
   ],
   "_key": [
-    "A key: lowercase the text (Unicode default case mapping, no locale); replace every final sigma (U+03C2) with sigma (U+03C3);",
-    "decompose it (Unicode NFD); drop every combining mark (general category M); turn every run of characters that are",
-    "neither letters (L) nor digits (N) into one space; trim the spaces at both ends.",
-    "JS: s.toLowerCase().replace(/ς/g, 'σ').normalize('NFD').replace(/\\p{M}/gu, '').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim()",
-    "Swift: s.lowercased() then ς to σ, .decomposedStringWithCanonicalMapping, then the same two regular expressions",
-    "(NSRegularExpression supports \\p{M}, \\p{L}, \\p{N}). 'Betrag (€)' is 'betrag'; 'Zahlungsempfänger*in' is 'zahlungsempfanger in';",
-    "'Ποσό' is 'ποσο'; '取引日' stays '取引日'; 'ø', 'ł', 'ı' and 'đ' have no decomposition and stay as they are."
+    "A key: split camelCase first (a lowercase letter followed by an uppercase one gets a space between them:",
+    "'RunningBalance' is 'Running Balance', 'AccountNumber' is 'Account Number'); lowercase the text (Unicode default case",
+    "mapping, no locale); replace every final sigma (U+03C2) with sigma (U+03C3); decompose it (Unicode NFD); drop the",
+    "combining marks (general category M) that follow a Latin, Greek or Cyrillic letter (accents), keeping every other",
+    "mark (Thai vowels and tones, Indic vowel signs, Japanese voicing marks, Hebrew and Arabic points: they tell words",
+    "apart, 'ม.ค.' January from 'มี.ค.' March); turn every run of characters that are neither letters (L), digits (N)",
+    "nor kept marks into one space; trim the spaces at both ends.",
+    "JS: s.replace(/(\\p{Ll})(\\p{Lu})/gu, '$1 $2').toLowerCase().replace(/ς/g, 'σ').normalize('NFD')",
+    "  .replace(/([\\p{Script=Latin}\\p{Script=Greek}\\p{Script=Cyrillic}])\\p{M}+/gu, '$1').replace(/[^\\p{L}\\p{N}\\p{M}]+/gu, ' ').trim()",
+    "Swift: the same three regular expressions with NSRegularExpression (it supports \\p{Ll}, \\p{Lu}, \\p{Script=Latin},",
+    "\\p{M}, \\p{L}, \\p{N}), lowercased() between the first and the sigma, decomposedStringWithCanonicalMapping before",
+    "the marks. 'Betrag (€)' is 'betrag'; 'Zahlungsempfänger*in' is 'zahlungsempfanger in'; 'Ποσό' is 'ποσο';",
+    "'取引日' stays '取引日'; 'ø', 'ł', 'ı' and 'đ' have no decomposition and stay as they are."
   ],
   "_sources": [
     "bank2ynab (github.com/bank2ynab/bank2ynab, bank2ynab.conf): column layouts, separators and date formats of 100+ banks in 30 countries",
@@ -29,9 +46,10 @@ export const CSV_WORDS = {
     "Month names and abbreviations: CLDR (cldr.unicode.org) Gregorian month names, wide and abbreviated, format and stand-alone, for every language listed"
   ],
   "date": [
-    "date", "transaction date", "trade date", "abschlussdatum", "booking date", "posting date", "posted date",
-    "trans date", "txn date", "completed date", "date completed", "started date", "value date", "buchungstag",
-    "datum", "post date", "date posted", "posted transactions date", "transaction posted date", "operation date",
+    "date", "transaction date", "date of transaction", "trade date", "abschlussdatum", "booking date",
+    "posting date", "posted date", "trans date", "txn date", "completed date", "date completed", "started date",
+    "date started", "date started (utc)", "date completed (utc)", "value date", "buchungstag", "datum", "post date",
+    "date posted", "date processed", "posted transactions date", "transaction posted date", "operation date",
     "transactiondate", "buchungsdatum", "buchung", "umsatztag", "belegdatum", "transaktionsdatum", "boekingsdatum",
     "boekdatum", "transactiedatum", "uitvoeringsdatum", "verwerkingsdatum", "date opération", "date de l'opération",
     "date d'opération", "date operation", "date comptable", "date de comptabilisation", "fecha", "fecha operación",
@@ -51,40 +69,41 @@ export const CSV_WORDS = {
     "tarikh transaksi", "วันที่", "วันที่ทำรายการ", "ngày", "ngày giao dịch", "ngày gd", "ngày hạch toán", "valuta",
     "wertstellung", "valutadatum", "wertstellungsdatum", "rentedatum", "date valeur", "date de valeur",
     "fecha valor", "f valor", "data valuta", "data valor", "data waluty", "értéknap", "valutadag", "rentedato",
-    "arvopäivä", "ημερομηνία αξίας", "valör", "תאריך ערך", "vaxtadagur"
+    "arvopäivä", "ημερομηνία αξίας", "valör", "תאריך ערך", "vaxtadagur", "datetime"
   ],
   "text": [
-    "description", "transaction description", "details", "transaction details", "narrative", "particulars", "memo",
-    "remarks", "verwendungszweck", "omschrijving", "reference", "otsikko", "text mottagare", "memo description",
-    "transaction ref", "zahlungsreferenz", "texti", "skýring", "お取り扱い内容", "入出金内容", "取引区分", "original description",
-    "transaction narrative", "extended details", "payment reference", "description1", "comments", "beschreibung",
-    "buchungstext", "avisierungstext", "umsatztext", "buchungsinformationen", "zahlungsgrund", "text",
-    "mededelingen", "mededeling", "transactie", "vrije mededeling", "omschrijving 1", "libellé",
-    "libellé de l'opération", "libellé opération", "détail de l'écriture", "détails", "motif", "communication",
-    "libellé simplifié", "concepto", "descripción", "detalle", "observaciones", "concepto común", "más datos",
-    "descrizione", "causale", "dettagli", "descrizione operazione", "operazione", "descrição", "descritivo",
-    "histórico", "descrição do movimento", "opis", "tytuł", "opis operacji", "opis transakcji", "tytuł operacji",
-    "szczegóły", "popis", "zpráva pro příjemce", "poznámka", "popis transakce", "označení operace", "zpráva",
-    "správa pre prijímateľa", "popis transakcie", "közlemény", "leírás", "megjegyzés", "tranzakció leírása",
-    "descriere", "detalii", "detalii tranzactie", "detalii tranzacție", "explicatie", "explicații", "beskrivning",
-    "rubrik", "referens", "meddelande", "transaktionstext", "specifikation", "tekst", "beskrivelse",
-    "posteringstekst", "meddelelse", "forklaring", "melding", "selite", "viesti", "kuvaus", "selitys", "selgitus",
-    "kirjeldus", "apraksts", "informācija saņēmējam", "detaļas", "paaiškinimai", "mokėjimo paskirtis", "aprašymas",
-    "περιγραφή", "αιτιολογία", "λεπτομέρειες", "περιγραφή κίνησης", "açıklama", "açiklama", "işlem açıklaması",
-    "işlem açiklamasi", "detay", "摘要", "内容", "取引内容", "お取引内容", "ご利用内容", "備考", "明細", "적요", "내용", "거래내용", "기재내용", "메모",
-    "비고", "交易摘要", "备注", "用途", "附言", "交易说明", "備註", "說明", "交易說明", "תיאור", "תאור", "פרטים", "תיאור התנועה", "الوصف",
-    "البيان", "التفاصيل", "تفاصيل", "وصف العملية", "описание", "назначение платежа", "описание операции", "детали",
-    "комментарий", "наименование операции", "опис", "призначення платежу", "опис операції", "деталі",
-    "деталі операції", "keterangan", "deskripsi", "uraian", "rincian", "keterangan transaksi", "butiran", "huraian",
-    "รายการ", "รายละเอียด", "คำอธิบาย", "nội dung", "diễn giải", "mô tả", "nội dung giao dịch", "chi tiết",
-    "uživatelská identifikace", "komentář", "notifications"
+    "description", "transaction description", "details", "transaction details", "full description", "narrative",
+    "narration", "particulars", "memo", "remarks", "verwendungszweck", "omschrijving", "reference", "otsikko",
+    "text mottagare", "memo description", "transaction ref", "zahlungsreferenz", "texti", "skýring", "お取り扱い内容",
+    "入出金内容", "取引区分", "original description", "transaction narrative", "extended details", "payment reference",
+    "description1", "comments", "beschreibung", "buchungstext", "avisierungstext", "umsatztext",
+    "buchungsinformationen", "zahlungsgrund", "text", "mededelingen", "mededeling", "transactie", "vrije mededeling",
+    "omschrijving 1", "libellé", "libellé de l'opération", "libellé opération", "détail de l'écriture", "détails",
+    "motif", "communication", "libellé simplifié", "concepto", "descripción", "detalle", "observaciones",
+    "concepto común", "más datos", "descrizione", "causale", "dettagli", "descrizione operazione", "operazione",
+    "descrição", "descritivo", "histórico", "descrição do movimento", "opis", "tytuł", "opis operacji",
+    "opis transakcji", "tytuł operacji", "szczegóły", "popis", "zpráva pro příjemce", "poznámka", "popis transakce",
+    "označení operace", "zpráva", "správa pre prijímateľa", "popis transakcie", "közlemény", "leírás", "megjegyzés",
+    "tranzakció leírása", "descriere", "detalii", "detalii tranzactie", "detalii tranzacție", "explicatie",
+    "explicații", "beskrivning", "rubrik", "referens", "meddelande", "transaktionstext", "specifikation", "tekst",
+    "beskrivelse", "posteringstekst", "meddelelse", "forklaring", "melding", "selite", "viesti", "kuvaus", "selitys",
+    "selgitus", "kirjeldus", "apraksts", "informācija saņēmējam", "detaļas", "paaiškinimai", "mokėjimo paskirtis",
+    "aprašymas", "περιγραφή", "αιτιολογία", "λεπτομέρειες", "περιγραφή κίνησης", "açıklama", "açiklama",
+    "işlem açıklaması", "işlem açiklamasi", "detay", "摘要", "内容", "取引内容", "お取引内容", "ご利用内容", "備考", "明細", "적요", "내용",
+    "거래내용", "기재내용", "메모", "비고", "交易摘要", "备注", "用途", "附言", "交易说明", "備註", "說明", "交易說明", "תיאור", "תאור", "פרטים",
+    "תיאור התנועה", "الوصف", "البيان", "التفاصيل", "تفاصيل", "وصف العملية", "описание", "назначение платежа",
+    "описание операции", "детали", "комментарий", "наименование операции", "опис", "призначення платежу",
+    "опис операції", "деталі", "деталі операції", "keterangan", "deskripsi", "uraian", "rincian",
+    "keterangan transaksi", "butiran", "huraian", "รายการ", "รายละเอียด", "คำอธิบาย", "nội dung", "diễn giải",
+    "mô tả", "nội dung giao dịch", "chi tiết", "uživatelská identifikace", "komentář", "notifications", "title",
+    "transactions", "location"
   ],
   "party": [
     "name", "payee", "merchant", "counterparty", "counter party", "beneficiary", "payer",
     "beguenstigter zahlungspflichtiger", "begunstigter zahlungspflichtiger", "naam tegenrekening", "payee name",
     "merchant name", "partner name", "counterparty name", "recipient", "sender", "beneficiary name",
     "auftraggeber empfänger", "auftraggeber begünstigter", "begünstigter auftraggeber", "zahlungsempfänger in",
-    "zahlungspflichtige r", "zahlungsempfänger", "zahlungspflichtiger", "empfänger", "auftraggeber",
+    "zahlungspflichtige r", "zahlungsempfänger", "zahlungspflichtiger", "empfänger", "empfaenger", "auftraggeber",
     "name zahlungsbeteiligter", "name des zahlungsbeteiligten", "gegenpartei", "naam omschrijving",
     "naam tegenpartij", "naam van de tegenpartij", "naam tegenpartij bevat", "tegenpartij naam", "naam",
     "bénéficiaire", "tiers", "nom du tiers", "contrepartie", "nom contrepartie", "beneficiario", "ordenante",
@@ -112,8 +131,8 @@ export const CSV_WORDS = {
     "거래구분", "交易类型", "交易類型", "סוג פעולה", "نوع العملية", "тип операции", "тип операції", "jenis transaksi"
   ],
   "amount": [
-    "amount", "transaction amount", "net", "net amount", "value", "betrag", "bedrag", "gross", "amt", "sum",
-    "billing amount", "amount in", "amount (in account currency)", "umsatz", "umsatz in", "betrag in",
+    "amount", "amount total", "billing amount", "transaction amount", "net", "net amount", "value", "betrag",
+    "bedrag", "gross", "amt", "sum", "amount in", "amount (in account currency)", "umsatz", "umsatz in", "betrag in",
     "buchungsbetrag", "transaktionsbetrag", "transactiebedrag", "montant", "montant de l'opération",
     "montant opération", "montant euros", "montant en", "somme", "importe", "monto", "cantidad", "importe en",
     "importo", "ammontare", "importo in", "valor", "montante", "importância", "valor em", "kwota", "kwota operacji",
@@ -159,16 +178,16 @@ export const CSV_WORDS = {
   ],
   "balance": [
     "balance", "running balance", "balance after", "account balance", "closing balance", "available balance",
-    "saldo", "running bal", "runningbalance", "balance in", "ledger balance", "book balance", "daily posted balance",
-    "posted balance", "kontostand", "saldo nach buchung", "saldo in", "saldo na mutatie", "saldo na trn",
-    "saldo na boeking", "saldo na transactie", "nieuw saldo", "solde", "solde après opération", "saldo disponible",
-    "disponible", "saldo contabile", "saldo disponibile", "saldo contabilístico", "saldo disponível",
-    "saldo po operacji", "saldo po transakcji", "saldo końcowe", "zůstatek", "zůstatek po transakci", "zostatok",
-    "egyenleg", "könyvelt egyenleg", "egyenleg tranzakció után", "sold", "sold final", "sold disponibil",
-    "bokfört saldo", "behållning", "jääk", "atlikums", "likutis", "υπόλοιπο", "λογιστικό υπόλοιπο", "bakiye", "残高",
-    "差引残高", "お取引後残高", "잔액", "거래후잔액", "거래후 잔액", "余额", "账户余额", "交易后余额", "餘額", "帳戶餘額", "結餘", "יתרה", "الرصيد", "رصيد",
-    "остаток", "баланс", "остаток после операции", "залишок", "baki", "ยอดคงเหลือ", "คงเหลือ", "số dư", "số dư cuối",
-    "取引後残高", "staða"
+    "current balance", "saldo", "running bal", "runningbalance", "balance in", "ledger balance", "book balance",
+    "daily posted balance", "posted balance", "kontostand", "saldo nach buchung", "saldo in", "saldo na mutatie",
+    "saldo na trn", "saldo na boeking", "saldo na transactie", "nieuw saldo", "solde", "solde après opération",
+    "saldo disponible", "disponible", "saldo contabile", "saldo disponibile", "saldo contabilístico",
+    "saldo disponível", "saldo po operacji", "saldo po transakcji", "saldo końcowe", "zůstatek",
+    "zůstatek po transakci", "zostatok", "egyenleg", "könyvelt egyenleg", "egyenleg tranzakció után", "sold",
+    "sold final", "sold disponibil", "sold contabil", "bokfört saldo", "behållning", "jääk", "atlikums", "likutis",
+    "υπόλοιπο", "λογιστικό υπόλοιπο", "bakiye", "残高", "差引残高", "お取引後残高", "잔액", "거래후잔액", "거래후 잔액", "余额", "账户余额",
+    "交易后余额", "餘額", "帳戶餘額", "結餘", "יתרה", "الرصيد", "رصيد", "остаток", "баланс", "остаток после операции", "залишок",
+    "baki", "ยอดคงเหลือ", "คงเหลือ", "số dư", "số dư cuối", "取引後残高", "staða"
   ],
   "currency": [
     "currency", "ccy", "currency code", "waehrung", "wahrung", "munt", "posted currency", "account currency",
@@ -255,16 +274,12 @@ export const CSV_WORDS = {
     "číslo karty", "držitel karty", "kártyaszám", "kortnummer", "kortinnehavare", "kortholder", "カード番号", "카드번호",
     "卡号", "卡號"
   ],
-  "cardFile": [
-    "card", "cards", "credit card", "creditcard", "kreditkarte", "kreditkartenumsätze", "carte", "carte de crédit",
-    "tarjeta", "carta", "cartão", "karta", "kort", "kaart", "visa", "mastercard", "amex", "american express",
-    "discover", "apple card", "kreditkartenumsaetze"
-  ],
+  "cardFile": ["card", "cards", "visa", "mastercard"],
   "payment": [
-    "payment", "thank you", "autopay", "pago", "zahlung", "paiement", "betaling", "pagamento", "płatność",
-    "payment received", "repayment", "einzahlung", "remboursement", "versement", "abono", "spłata", "splátka",
-    "inbetalning", "indbetaling", "innbetaling", "maksu", "befizetés", "plată", "ödeme", "πληρωμή", "还款", "繳款",
-    "ชำระ", "תשלום", "سداد", "погашение", "погашення", "pembayaran"
+    "payment", "payment received", "payment thank you", "thank you", "autopay", "repayment", "paiement reçu",
+    "remboursement", "versement", "pago recibido", "abono", "pagamento ricevuto", "rimborso", "pagamento recebido",
+    "spłata", "splátka", "einzahlung", "zahlungseingang", "inbetalning", "indbetaling", "innbetaling", "befizetés",
+    "还款", "繳款", "погашение", "погашення", "سداد"
   ],
   "holder": [
     "account holder", "account name", "name", "customer", "holder", "owner", "client", "kunde", "kontoinhaber",
@@ -280,8 +295,9 @@ export const CSV_WORDS = {
     "solde début", "saldo inicial", "saldo anterior", "saldo iniziale", "saldo precedente", "saldo początkowe",
     "saldo otwarcia", "počáteční zůstatek", "počiatočný zostatok", "nyitó egyenleg", "sold inițial", "sold initial",
     "ingående saldo", "ingående balance", "inngående saldo", "alkusaldo", "algsaldo", "sākuma atlikums",
-    "pradinis likutis", "προηγούμενο υπόλοιπο", "açılış bakiyesi", "前回残高", "期初余额", "исходящий остаток",
-    "входящий остаток", "saldo awal", "alter kontostand", "kontostand alt", "openingbalance", "opening bal"
+    "pradinis likutis", "likutis pradžiai", "προηγούμενο υπόλοιπο", "açılış bakiyesi", "前回残高", "期初余额",
+    "исходящий остаток", "входящий остаток", "saldo awal", "alter kontostand", "kontostand alt", "openingbalance",
+    "opening bal"
   ],
   "closing": [
     "closing balance", "ending balance", "end balance", "new balance", "current balance", "account balance",
@@ -291,13 +307,14 @@ export const CSV_WORDS = {
     "saldo finale", "saldo contabile", "saldo attuale", "saldo contabilístico", "saldo atual", "saldo końcowe",
     "saldo księgowe", "konečný zůstatek", "konečný zostatok", "záró egyenleg", "sold final", "sold curent",
     "utgående saldo", "utgående balance", "loppusaldo", "lõppsaldo", "beigu atlikums", "galutinis likutis",
-    "νέο υπόλοιπο", "kapanış bakiyesi", "現在残高", "期末余额", "исходящий остаток на конец", "остаток на конец",
-    "saldo akhir", "neuer kontostand", "kontostand neu", "closingbalance", "closing bal"
+    "likutis pabaigai", "νέο υπόλοιπο", "kapanış bakiyesi", "現在残高", "期末余额", "исходящий остаток на конец",
+    "остаток на конец", "saldo akhir", "neuer kontostand", "kontostand neu", "closingbalance", "closing bal",
+    "saldo", "balance"
   ],
   "totals": [
-    "total", "totals", "subtotal", "sub total", "grand total", "käive", "turnover", "summe", "gesamt", "totaal",
-    "razem", "celkem", "yhteensä", "i alt", "totale", "totalt", "σύνολο", "toplam", "合計", "합계", "合计", "סה\"כ",
-    "المجموع", "итого", "разом"
+    "total", "totals", "subtotal", "sub total", "grand total", "käive", "apgrozījums", "apyvarta", "turnover",
+    "summe", "gesamt", "totaal", "razem", "celkem", "yhteensä", "i alt", "totale", "totalt", "σύνολο", "toplam",
+    "合計", "합계", "合计", "סה\"כ", "المجموع", "итого", "разом"
   ],
   "periodFrom": [
     "from", "von", "du", "de", "desde", "dal", "da", "od", "från", "fra", "alkaen", "vanaf", "data de",
@@ -429,11 +446,12 @@ export const CSV_WORDS = {
   "banks": [
     {"brand": "Monzo", "country": "GB", "header": ["emoji"]},
     {"brand": "Revolut", "header": ["started date", "completed date"]},
-    {"brand": "N26", "aliases": ["n26"]},
+    {"brand": "N26", "aliases": ["n26"], "counterAccount": ["account number"]},
+    {"brand": "N26", "header": ["payee", "account number", "transaction type", "payment reference"], "counterAccount": ["account number"]},
     {"brand": "PayPal"},
     {"brand": "Starling", "country": "GB"},
-    {"brand": "Barclaycard", "country": "GB", "card": true},
-    {"brand": "Barclays", "country": "GB"},
+    {"brand": "Barclaycard", "card": true},
+    {"brand": "Barclays"},
     {"brand": "Lloyds", "country": "GB"},
     {"brand": "NatWest", "country": "GB"},
     {"brand": "Halifax", "country": "GB"},
@@ -445,7 +463,7 @@ export const CSV_WORDS = {
     {"brand": "Wells Fargo", "aliases": ["WellsFargo"], "country": "US", "dateOrder": "MDY", "fileName": "^(checking|savings)\\d+\\.csv$"},
     {"brand": "Wells Fargo", "country": "US", "dateOrder": "MDY", "card": true, "fileName": "^creditcard\\d+\\.csv$"},
     {"brand": "Bank of America", "aliases": ["BankOfAmerica", "BofA"], "country": "US", "dateOrder": "MDY"},
-    {"brand": "Bank of America", "country": "US", "dateOrder": "MDY", "card": true, "header": ["posted date", "reference number", "payee", "address", "amount"]},
+    {"brand": "Bank of America", "country": "US", "dateOrder": "MDY", "card": true, "layout": ["posted date", "reference number", "payee", "address", "amount"]},
     {"brand": "ING"},
     {"brand": "Rabobank", "country": "NL"},
     {"brand": "ABN AMRO", "aliases": ["ABNAMRO"], "country": "NL", "fileName": "^txt\\d+\\.tab$"},
@@ -460,11 +478,17 @@ export const CSV_WORDS = {
     {"brand": "ICICI", "country": "IN"},
     {"brand": "HDFC", "country": "IN"},
     {"brand": "Axis", "country": "IN"},
-    {"brand": "American Express", "aliases": ["Amex", "AmericanExpress"], "country": "US", "dateOrder": "MDY", "card": true, "chargesPositive": true, "fileName": "^activity.*\\.csv$", "header": ["card member"]},
-    {"brand": "Discover", "country": "US", "dateOrder": "MDY", "card": true, "chargesPositive": true},
+    {"brand": "American Express", "aliases": ["Amex", "AmericanExpress"]},
+    {"brand": "American Express", "country": "US", "dateOrder": "MDY", "card": true, "chargesPositive": true, "layout": ["date", "description", "card member", "account", "amount"]},
+    {"brand": "American Express", "card": true, "chargesPositive": true, "header": ["card member"]},
+    {"brand": "American Express", "card": true, "chargesPositive": true, "header": ["extended details", "appears on your statement as"]},
+    {"brand": "American Express", "card": true, "chargesPositive": true, "fileName": "^activity.*\\.csv$", "layout": ["date", "description", "amount"], "dates": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"},
+    {"brand": "Discover", "country": "US", "dateOrder": "MDY"},
+    {"brand": "Discover", "country": "US", "dateOrder": "MDY", "card": true, "chargesPositive": true, "layout": ["trans date", "post date", "description", "amount", "category"]},
     {"brand": "Apple Card", "aliases": ["AppleCard"], "country": "US", "dateOrder": "MDY", "card": true, "chargesPositive": true},
+    {"brand": "Apple Card", "country": "US", "dateOrder": "MDY", "card": true, "chargesPositive": true, "header": ["clearing date", "purchased by"]},
     {"brand": "Citi", "aliases": ["Citibank"]},
-    {"brand": "Citi", "country": "US", "dateOrder": "MDY", "card": true, "header": ["status", "date", "description", "debit", "credit"]},
+    {"brand": "Citi", "country": "US", "dateOrder": "MDY", "card": true, "layout": ["status", "date", "description", "debit", "credit"]},
     {"brand": "U.S. Bank", "aliases": ["US Bank", "USBank"], "country": "US", "dateOrder": "MDY"},
     {"brand": "Ally", "country": "US", "dateOrder": "MDY"},
     {"brand": "USAA", "country": "US", "dateOrder": "MDY", "aliases": ["usaa"]},
@@ -477,12 +501,13 @@ export const CSV_WORDS = {
     {"brand": "TD", "aliases": ["TD Bank", "TD Canada Trust"], "dateOrder": "MDY", "fileName": "^accountactivity.*\\.csv$"},
     {"brand": "RBC", "aliases": ["Royal Bank of Canada"], "country": "CA", "fileName": "^csv\\d+\\.csv$"},
     {"brand": "BMO", "aliases": ["Bank of Montreal", "bmo"], "country": "CA"},
+    {"brand": "BMO", "country": "CA", "card": true, "chargesPositive": true, "layout": ["item", "card", "transaction date", "posting date", "transaction amount", "description"]},
     {"brand": "Scotiabank", "aliases": ["Scotia"], "country": "CA", "fileName": "^pcbanking.*\\.csv$"},
     {"brand": "CIBC", "country": "CA", "aliases": ["cibc"]},
     {"brand": "Simplii", "aliases": ["Simplii Financial"], "country": "CA"},
     {"brand": "Tangerine", "country": "CA"},
     {"brand": "Desjardins", "country": "CA"},
-    {"brand": "National Bank", "aliases": ["Banque Nationale"], "country": "CA"},
+    {"brand": "National Bank of Canada", "aliases": ["Banque Nationale", "Banque Nationale du Canada"], "country": "CA"},
     {"brand": "EQ Bank", "country": "CA"},
     {"brand": "Wealthsimple", "country": "CA"},
     {"brand": "Royal Bank of Scotland", "aliases": ["RBS"], "country": "GB"},
@@ -574,6 +599,7 @@ export const CSV_WORDS = {
     {"brand": "Luminor"},
     {"brand": "Citadele"},
     {"brand": "mBank", "country": "PL"},
+    {"brand": "Bank Millennium", "country": "PL"},
     {"brand": "PKO BP", "aliases": ["PKO Bank Polski"], "country": "PL"},
     {"brand": "Pekao", "aliases": ["Bank Pekao"], "country": "PL"},
     {"brand": "Alior", "country": "PL"},
@@ -602,5 +628,52 @@ export const CSV_WORDS = {
     {"brand": "SMBC", "country": "JP"},
     {"brand": "Mizuho", "country": "JP"},
     {"brand": "Rakuten", "country": "JP"}
-  ]
+  ],
+  "accountType": [
+    "account type", "type of account", "product type", "kontotyp", "kontoart", "rekeningtype", "type de compte",
+    "tipo de cuenta", "tipo conto", "tipo de conta", "rodzaj rachunku", "typ účtu", "kontotype", "tilityyppi"
+  ],
+  "creditCard": [
+    "credit card", "creditcard", "kreditkarte", "kreditkartenumsätze", "kreditkartenumsaetze", "carte de crédit",
+    "tarjeta de crédito", "carta di credito", "cartão de crédito", "karta kredytowa", "kreditní karta", "kreditkort",
+    "luottokortti", "krediitkaart", "kredītkarte", "kredito kortelė", "πιστωτική κάρτα", "kredi kartı", "クレジットカード",
+    "신용카드", "信用卡", "כרטיס אשראי", "بطاقة ائتمان", "кредитная карта", "кредитна картка", "kartu kredit", "บัตรเครดิต",
+    "thẻ tín dụng", "american express", "amex", "apple card", "barclaycard"
+  ],
+  "debitFile": [
+    "debit", "debit card", "debitkarte", "girocard", "ec karte", "débit", "debito", "débito", "debetowa", "debetní",
+    "betaalpas", "pinpas", "bankkort", "dankort", "pankkikortti", "deebetkaart", "デビット", "체크카드", "借记卡"
+  ],
+  "cardDates": {
+    "made": ["transaction date", "trans date"],
+    "posted": ["post date", "posted date", "posting date"]
+  },
+  "cardHeaders": [
+    {"layout": ["date", "date entered", "reference", "description", "amount"], "chargesPositive": true},
+    {"layout": ["date", "title", "amount"], "chargesPositive": true},
+    {"header": ["利用日", "利用金額"], "chargesPositive": true},
+    {"header": ["ご利用日", "ご利用金額"], "chargesPositive": true},
+    {"header": ["sicmcc code"]}
+  ],
+  "isoCurrencies": [
+    "AED", "AFN", "ALL", "AMD", "AOA", "ARS", "AUD", "AWG", "AZN", "BAM", "BBD", "BDT", "BGN", "BHD", "BIF", "BMD",
+    "BND", "BOB", "BRL", "BSD", "BTN", "BWP", "BYN", "BZD", "CAD", "CDF", "CHF", "CLP", "CNY", "COP", "CRC", "CUC",
+    "CUP", "CVE", "CZK", "DJF", "DKK", "DOP", "DZD", "EGP", "ERN", "ETB", "EUR", "FJD", "FKP", "GBP", "GEL", "GHS",
+    "GIP", "GMD", "GNF", "GTQ", "GYD", "HKD", "HNL", "HRK", "HTG", "HUF", "IDR", "ILS", "INR", "IQD", "IRR", "ISK",
+    "JMD", "JOD", "JPY", "KES", "KGS", "KHR", "KMF", "KPW", "KRW", "KWD", "KYD", "KZT", "LAK", "LBP", "LKR", "LRD",
+    "LSL", "LYD", "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR", "MVR", "MWK", "MXN", "MYR", "MZN",
+    "NAD", "NGN", "NIO", "NOK", "NPR", "NZD", "OMR", "PAB", "PEN", "PGK", "PHP", "PKR", "PLN", "PYG", "QAR", "RON",
+    "RSD", "RUB", "RWF", "SAR", "SBD", "SCR", "SDG", "SEK", "SGD", "SHP", "SLE", "SLL", "SOS", "SRD", "SSP", "STN",
+    "SVC", "SYP", "SZL", "THB", "TJS", "TMT", "TND", "TOP", "TRY", "TTD", "TWD", "TZS", "UAH", "UGX", "USD", "UYU",
+    "UZS", "VES", "VND", "VUV", "WST", "XAF", "XCD", "XCG", "XDR", "XOF", "XPF", "XSU", "YER", "ZAR", "ZMW", "ZWG",
+    "ZWL"
+  ],
+  "currencyDigits": {
+    "0": [
+      "AFN", "ALL", "BIF", "CLP", "COP", "DJF", "GNF", "HUF", "IDR", "IQD", "IRR", "ISK", "JPY", "KMF", "KPW", "KRW",
+      "LAK", "LBP", "MGA", "MMK", "PKR", "PYG", "RWF", "SLL", "SOS", "SYP", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
+      "YER"
+    ],
+    "3": ["BHD", "JOD", "KWD", "LYD", "OMR", "TND"]
+  }
 };

@@ -489,6 +489,33 @@ let ENGINES={}; let submit2;
     const bals6=acct6?all6.filter(r=>r.recordType==='Balance'&&r.fields.account_id.value===acct6.recordName):[];
     ok(st6 && lines6.length===1 && acct6 && acct6.fields.currency_code.value===main6 && bals6.length===1 && bals6[0].fields.value_minor.value===100000 && bals6[0].fields.as_of_date.value==='2026-08-03',
       'typed balance: saved with the main currency and the balance typed on the last day: '+JSON.stringify(bals6.map(b=>[b.fields.as_of_date.value,b.fields.value_minor.value])));
+    // a card the reader couldn't tell (Navy Federal's card has its checking's columns): "It's a card"
+    // turns it round as the reader would have read it, and it is saved as owed
+    const readOnce=(text, fileName, sha)=>async ()=>({statements:[{ ...readers.readCsvStatement(text, { fileName, mainCurrency:'USD' }), sha256:sha }], problems:[]});
+    const upload=async (fileName)=>{ Object.defineProperty(up,'files',{value:[new w.File([fileName+'\n'],fileName)],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
+      const doc=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value===fileName); d.querySelector(`[data-read-doc="${doc.recordName}"]`).click(); await sleep(150); };
+    w.WWStatementModules={ ...save, readDocument: readOnce('Posting Date,Transaction Date,Amount,Credit Debit Indicator,type,Description,Category\n09/29/2026,09/28/2026,15.49,Debit,POS,EXAMPLE STREAMING,Entertainment\n09/25/2026,09/25/2026,500.00,Credit,ACH,PAYMENT - THANK YOU,Payment\n', 'transactions.csv', '7'.repeat(64)) };
+    await upload('nfcu-card.csv');
+    const card7=()=>d.querySelector('[data-review-card="0:0"]');
+    ok(card7() && !card7().checked && !/Owed ·/.test(rv()) && d.getElementById('rv-name-0-0').value==='Account','card switch: offered, unticked for an account read as yours');
+    card7().click(); await sleep(30);
+    ok(card7().checked && /Owed ·/.test(rv()) && d.getElementById('rv-name-0-0').value==='Card','card switch: ticked, it is owed and named a card: '+rv().replace(/\s+/g,' ').slice(0,220));
+    const cur7=d.querySelector('[data-review-currency="0:0"]'); cur7.value='USD'; cur7.dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+    const bal7=d.querySelector('[data-review-balance="0:0"]'); bal7.value='120.00'; bal7.dispatchEvent(new w.Event('input',{bubbles:true})); bal7.dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+    d.getElementById('review-add').click(); await sleep(200);
+    const acct7=[...w.__ck.records.values()].find(r=>r.recordType==='Account'&&r.fields.name.value==='Card');
+    const bals7=acct7?[...w.__ck.records.values()].filter(r=>r.recordType==='Balance'&&r.fields.account_id.value===acct7.recordName):[];
+    ok(acct7 && acct7.fields.kind.value==='LIABILITY' && acct7.fields.currency_code.value==='USD' && bals7.some(b=>b.fields.value_minor.value===12000),'card switch: saved as owed, with what is owed: '+JSON.stringify(acct7&&acct7.fields.kind));
+    // a table read without a header, one of its rows unreadable: both said in the review
+    w.WWStatementModules={ ...save, readDocument: readOnce('"09/29/2026","-15.49","*","","STREAMING"\n"09/25/2026","2860.00","*","","PAYROLL"\n"09/20/2026","-12.50*","*","","FUEL"\n"09/15/2026","-40.00","*","","GROCER"\n"09/10/2026","-9.99","*","","APP"\n', 'Checking1.csv', '5'.repeat(64)) };
+    await upload('wf-checking.csv');
+    ok(/Read as a plain table, without a layout made for this bank/.test(rv()) && /1 row of the file couldn't be read and is left out/.test(rv()),'notes: no header and a row not read, both said: '+rv().replace(/\s+/g,' ').slice(0,260));
+    // a file that names no currency has cents: yen can't hold them, so Add waits for another currency
+    const cur8=d.querySelector('[data-review-currency="0:0"]'); cur8.value='JPY'; cur8.dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+    ok(d.getElementById('review-add').disabled && /more decimal places than JPY has/.test(rv()),'decimals: yen refused for a file with cents: '+rv().replace(/\s+/g,' ').slice(0,200));
+    const cur9=d.querySelector('[data-review-currency="0:0"]'); cur9.value='USD'; cur9.dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+    ok(!/more decimal places/.test(rv()),'decimals: dollars hold them');
+    d.getElementById('review-cancel').click(); await sleep(20);
   }
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
   w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});

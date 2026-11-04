@@ -18,16 +18,18 @@ const state = { statements: [], example: true, problems: [], seen: new Set() };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-/** Minor units → "2,468.10", without ever going through a float. */
-function money(minor, currency, { sign = false } = {}) {
+/** Minor units → "2,468.10", without ever going through a float. A file that names no currency has its
+    figures at the decimals it was read at (`readDigits`). */
+function moneyOf(minor, currency, { sign = false, digits: read = null } = {}) {
   if (minor == null) return '—';
-  const digits = minorDigits(currency);
+  const digits = !currency && read != null ? read : minorDigits(currency);
   const negative = minor < 0;
   const s = String(Math.abs(minor)).padStart(digits + 1, '0');
   const whole = s.slice(0, s.length - digits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const body = digits ? `${whole}.${s.slice(-digits)}` : whole;
   return `${negative ? '−' : sign && minor > 0 ? '+' : ''}${body}`;
 }
+const money = moneyOf;
 
 const day = (iso, withYear = false) => iso
   ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' })
@@ -189,6 +191,7 @@ function statementCard(s) {
 
 function accountRow(a, s) {
   const name = s.general ? `${a.name} · ${s.fileName.replace(/\.pdf$/i, '')}` : a.name;
+  const money = (minor, currency, options = {}) => moneyOf(minor, currency, { digits: a.readDigits ?? null, ...options });
   const facts = [
     `<span class="tag${a.owed ? ' owed' : ''}">${a.owed ? 'Owed' : 'Yours'}</span>`,
     `<span>${esc(TYPE[a.type] ?? a.type)}</span>`,
