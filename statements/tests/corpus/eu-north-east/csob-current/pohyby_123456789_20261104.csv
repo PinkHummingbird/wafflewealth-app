@@ -1,0 +1,6 @@
+èíslo úètu;datum zaúètování;èástka;mìna;zùstatek;èíslo úètu protiúètu;kód banky protiúètu;název úètu protiúètu;konstantní symbol;variabilní symbol;specifický symbol;oznaèení operace;ID transakce;poznámka;
+123456789;29.10.2026;-129,00;CZK;42959,80;;;;;;;Platba kartou;11223344555;Místo: PØÍKLAD STREAM PRAHA;
+123456789;22.10.2026;-899,00;CZK;43088,80;2345678901;2700;PØÍKLAD ENERGIE A.S.;;1234567890;;Inkaso;11223344554;Záloha elektøina;
+123456789;15.10.2026;38450,00;CZK;43987,80;123456789;0100;PØÍKLADOVÁ FIRMA S.R.O.;0138;102026;;Pøíchozí úhrada;11223344553;Mzda 10/2026;
+123456789;07.10.2026;-412,50;CZK;5537,80;;;;;;;Platba kartou;11223344552;Místo: PØÍKLAD MARKET PRAHA;
+123456789;01.10.2026;-12500,00;CZK;5950,30;2001234567;0800;PØÍKLAD BYTOVÉ DRUŽSTVO;0308;102026;;Trvalý pøíkaz;11223344551;Nájem 10/2026;

@@ -1,0 +1,52 @@
+{
+  "bank": "Česká spořitelna",
+  "country": "CZ",
+  "product": "osobní účet (current account)",
+  "format": "csv",
+  "file": "CZ6508000000192000145399_2026-10-01_2026-10-31.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/at/erstebank/README.md and example.png (George, the Erste group internet bank that Česká spořitelna also runs: the CSV export is UTF-16LE, its fields are chosen and ordered in the export dialog, separator \";\" by default, a quote-character option, sort by booking date) with default.json (semicolon, d.m.Y, header row)",
+    "https://github.com/firefly-iii/import-configurations/blob/main/ro/bcr/README (BCR George: the same UTF-16LE export)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [CZ Ceska Sporitelna] (the older TH_<from>-<to>.csv export, semicolon)"
+  ],
+  "layout_confidence": 35,
+  "notes": "George (Česká spořitelna) \"Export pohybů\" as CSV. UTF-16 little-endian with a BOM, CRLF, semicolon-separated, every field double-quoted (the quote option), dates DD.MM.YYYY, Částka signed with a comma decimal (no thousands mark assumed), a Měna column, newest first (sorted by booking date). The encoding, separator and date form follow the Erste/BCR George exports; the Czech column names and which columns are on by default are not confirmed (the user picks them). Expected dates are \"Datum zaúčtování\".",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CZK",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -1450000,
+            "text": "příklad bytové družstvo"
+          },
+          {
+            "date": "2026-10-06",
+            "amount": -38760,
+            "text": "příklad market"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -165000,
+            "text": "příklad energie"
+          },
+          {
+            "date": "2026-10-24",
+            "amount": 5240000,
+            "text": "příkladová firma"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -12900,
+            "text": "příklad stream"
+          }
+        ]
+      }
+    ]
+  }
+}

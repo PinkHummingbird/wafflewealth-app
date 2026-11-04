@@ -1,0 +1,50 @@
+{
+  "bank": "LHV Pank",
+  "country": "EE",
+  "product": "current account",
+  "format": "csv",
+  "file": "statement_EE717700771001234567_2026-10-01_2026-10-31.csv",
+  "layout_sources": [
+    "From memory of LHV internet bank \"Account statement\" CSV exports (English interface) as quoted in Estonian accounting-software import guides; not re-checked in this run (the web search budget was used up and no importer config for LHV was among the sources fetched)."
+  ],
+  "layout_confidence": 45,
+  "notes": "LHV account statement CSV, English column names (the Estonian interface gives the same 19 columns in Estonian: Kliendi konto, Dokumendi number, Kuupäev, ...). Comma-separated, every field double-quoted, UTF-8, ISO dates, Amount signed with a point decimal and the D/C column beside it, Fee, Currency EUR; an \"Empty\" column. No balance. Oldest first. File name, BOM and line ends not confirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-03",
+            "amount": -450,
+            "text": "näidis kohvik"
+          },
+          {
+            "date": "2026-10-06",
+            "amount": -72000,
+            "text": "näidis kinnisvara"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 315000,
+            "text": "näidis tarkvara"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -3890,
+            "text": "näidis energia"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": 2500,
+            "text": "mari maasikas"
+          }
+        ]
+      }
+    ]
+  }
+}

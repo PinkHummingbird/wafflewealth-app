@@ -1,0 +1,12 @@
+"Cislo uctu";"123-4567890217/0100"
+"Vypis od";"01.10.2026"
+"Vypis do";"31.10.2026"
+"Pocatecni zustatek";"8420,50"
+"Konecny zustatek";"42005,70"
+
+"Datum zauctovani";"Datum provedeni";"Protistrana";"Nazev protiuctu";"Castka";"Mena";"Typ transakce";"Identifikace transakce";"Variabilni symbol";"Konstantni symbol";"Specificky symbol";"Zprava pro prijemce";"Popis pro me"
+"01.10.2026";"01.10.2026";"2001234567/2010";"PØÍKLAD SVJ";"-3500,00";"CZK";"Trvalı pøíkaz";"0102610010001";"102026";"0308";"";"Fond oprav 10/2026";""
+"09.10.2026";"08.10.2026";"";"PØÍKLAD MARKET PRAHA";"-634,80";"CZK";"Nákup u obchodníka";"0102610090002";"";"";"";"";""
+"14.10.2026";"14.10.2026";"123456789/0300";"PØÍKLADOVÁ FIRMA S.R.O.";"41200,00";"CZK";"Pøíchozí úhrada";"0102610140003";"102026";"0138";"";"Mzda 10/2026";""
+"20.10.2026";"20.10.2026";"";"";"-2000,00";"CZK";"Vıbìr hotovosti z bankomatu";"0102610200004";"";"";"";"";"ATM Praha"
+"27.10.2026";"27.10.2026";"1234567890/0600";"PØÍKLAD POJIŠOVNA A.S.";"-1480,00";"CZK";"Odchozí úhrada";"0102610270005";"7012345678";"3558";"";"Pojistné";"pojištìní bytu"

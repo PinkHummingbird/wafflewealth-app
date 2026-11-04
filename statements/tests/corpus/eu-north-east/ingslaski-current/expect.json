@@ -1,0 +1,50 @@
+{
+  "bank": "ING Bank Śląski",
+  "country": "PL",
+  "product": "Konto Direct (current account)",
+  "format": "csv",
+  "file": "Lista_transakcji_nr_0123456789_041126.csv",
+  "layout_sources": [
+    "From memory of Moje ING \"Lista transakcji\" CSV exports (file Lista_transakcji_nr_<10 digits>_<ddmmyy>.csv) as quoted in Polish YNAB/Firefly III discussions; not re-checked in this run: the web search budget was used up and no importer config for ING Śląski was among the sources fetched."
+  ],
+  "layout_confidence": 45,
+  "notes": "Moje ING \"Lista transakcji\" CSV. Windows-1250, CRLF, semicolon-separated. About 17 rows above the table (title, document number, generation time, the user's name and address, the chosen account, the date range, the chosen categories) and a disclaimer line below it. Header row with 17 named columns and three empty ones (\";;;\" at the end of every table line); \"Waluta\" appears four times. Dates YYYY-MM-DD in \"Data transakcji\" and \"Data księgowania\"; \"Kwota transakcji (waluta rachunku)\" signed with a comma decimal (no thousands mark assumed); \"Saldo po transakcji\" after each line; account and transaction numbers prefixed with an apostrophe. Newest first. Expected dates are \"Data księgowania\" (the card line was made a day before). Closing = the newest balance; opening = the oldest balance minus its amount. Row count above the table and some column words are from memory.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "PLN",
+        "owed": false,
+        "opening": 234560,
+        "closing": 791741,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -140000,
+            "text": "wspólnota mieszkaniowa"
+          },
+          {
+            "date": "2026-10-09",
+            "amount": -5820,
+            "text": "sklep przykładowy"
+          },
+          {
+            "date": "2026-10-24",
+            "amount": 712000,
+            "text": "przykładowa firma"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -11999,
+            "text": "przykładowy sklep internetowy"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 3000,
+            "text": "anna przykładowa"
+          }
+        ]
+      }
+    ]
+  }
+}

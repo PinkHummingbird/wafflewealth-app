@@ -1,0 +1,6 @@
+"Datum provedení";"Datum zaúčtování";"Číslo účtu";"Název účtu";"Kategorie transakce";"Číslo protiúčtu";"Název protiúčtu";"Typ transakce";"Zpráva";"Poznámka";"VS";"KS";"SS";"Zaúčtovaná částka";"Měna účtu";"Původní částka a měna";"Původní částka a měna";"Poplatky";"Id transakce";"Vlastní poznámka";"Název obchodníka";"Město"
+"28.10.2026";"29.10.2026 02:10";"1234512345/5500";"Běžný účet";"Restaurace";"";"";"Platba kartou";"PŘÍKLAD KAVÁRNA";"";"";"";"";"-89,00";"CZK";"-89,00";"CZK";"";"9876543205";"";"PŘÍKLAD KAVÁRNA";"PRAHA"
+"21.10.2026";"21.10.2026 09:30";"1234512345/5500";"Běžný účet";"Energie";"2345678901/2700";"PŘÍKLAD ENERGIE A.S.";"Inkaso";"Záloha elektřina";"";"1234567890";"";"";"-1 890,00";"CZK";"";"";"";"9876543204";"";"";""
+"15.10.2026";"15.10.2026 10:44";"1234512345/5500";"Běžný účet";"Příjem";"123456789/0300";"PŘÍKLADOVÁ FIRMA S.R.O.";"Příchozí platba";"Mzda 10/2026";"";"102026";"";"";"41 500,00";"CZK";"";"";"";"9876543203";"";"";""
+"06.10.2026";"08.10.2026 03:12";"1234512345/5500";"Běžný účet";"Potraviny";"";"";"Platba kartou";"PŘÍKLAD MARKET";"";"";"";"";"-523,40";"CZK";"-523,40";"CZK";"";"9876543202";"";"PŘÍKLAD MARKET";"PRAHA"
+"01.10.2026";"01.10.2026 06:02";"1234512345/5500";"Běžný účet";"Bydlení";"2001234567/2010";"PŘÍKLAD BYTOVÉ DRUŽSTVO";"Trvalý převod";"Nájem 10/2026";"";"102026";"0308";"";"-13 500,00";"CZK";"";"";"";"9876543201";"";"";""

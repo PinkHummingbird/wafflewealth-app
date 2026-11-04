@@ -16,8 +16,8 @@
       {
         "currency": "ISK",
         "owed": false,
-        "opening": 185420,
-        "closing": 543740,
+        "opening": 285420,
+        "closing": 643740,
         "lines": [
           {
             "date": "2026-10-01",

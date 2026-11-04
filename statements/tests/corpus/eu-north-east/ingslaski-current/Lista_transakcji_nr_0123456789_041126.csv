@@ -1,0 +1,25 @@
+"Lista transakcji"
+""
+"Dokument nr 0123456789"
+"Wygenerowany dnia: 2026-11-04, 10:15"
+""
+"Dane U¿ytkownika:"
+"JAN PRZYK£ADOWY"
+"UL. PRZYK£ADOWA 1"
+"00-001 WARSZAWA"
+""
+"Wybrane rachunki:"
+"Konto Direct";"(PLN)";"12 1050 1234 1000 0090 1234 5678"
+""
+"Zakres dat:";"01.10.2026 - 31.10.2026"
+""
+"Wybrane kategorie:";"Wszystkie"
+""
+"Data transakcji";"Data ksiêgowania";"Dane kontrahenta";"Tytu³";"Nr rachunku";"Nazwa banku";"Szczegó³y";"Nr transakcji";"Kwota transakcji (waluta rachunku)";"Waluta";"Kwota blokady/zwolnienie blokady";"Waluta";"Kwota p³atnoœci w walucie";"Waluta";"Konto";"Saldo po transakcji";"Waluta";;;
+2026-10-30;2026-10-30;"ANNA PRZYK£ADOWA ";"Przelew na telefon";"'12114020040000300298765432'";"mBank S.A.";"P.BLIK";"'202610300000000005'";30,00;PLN;;;;;Konto Direct;7917,41;PLN;;;
+2026-10-27;2026-10-27;"PRZYK£ADOWY SKLEP INTERNETOWY ";"Transakcja BLIK 27.10.2026 Nr 123456789";"";"";"TR.BLIK";"'202610270000000004'";-119,99;PLN;;;;;Konto Direct;7887,41;PLN;;;
+2026-10-24;2026-10-24;"PRZYK£ADOWA FIRMA SP. Z O.O. UL. FIKCYJNA 2 00-002 WARSZAWA ";"WYNAGRODZENIE 10/2026";"'11114020040000300212345678'";"mBank S.A.";"PRZELEW";"'202610240000000003'";7120,00;PLN;;;;;Konto Direct;8007,40;PLN;;;
+2026-10-08;2026-10-09;"SKLEP PRZYK£ADOWY WARSZAWA PL ";"P³atnoœæ kart¹ 08.10.2026 Nr karty 4246xx1234";"";"";"TR.KART";"'202610090000000002'";-58,20;PLN;;;;;Konto Direct;887,40;PLN;;;
+2026-10-01;2026-10-01;"WSPÓLNOTA MIESZKANIOWA PRZYK£AD UL. PRZYK£ADOWA 1 00-001 WARSZAWA ";"CZYNSZ 10/2026";"'12102010260000042270201111'";"PKO BP S.A.";"PRZELEW";"'202610010000000001'";-1400,00;PLN;;;;;Konto Direct;945,60;PLN;;;
+""
+"Dokument ma charakter informacyjny, nie stanowi dowodu ksiêgowego"

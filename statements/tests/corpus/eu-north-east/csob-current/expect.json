@@ -1,0 +1,51 @@
+{
+  "bank": "ČSOB",
+  "country": "CZ",
+  "product": "ČSOB Plus Konto (current account)",
+  "format": "csv",
+  "file": "pohyby_123456789_20261104.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/cz/postovnisporitelna/default.json (Poštovní spořitelna, a ČSOB brand on the ČSOB platform: semicolon, header row, d.m.Y, 15 columns: account, booking date, amount, currency, balance, counter-account number, its bank code, its name, five ignored (KS, VS, SS, operation, transaction id), the note, and a trailing empty field)",
+    "Column words (lower-case, \"číslo účtu;datum zaúčtování;částka;měna;zůstatek;...\") from memory of ČSOB Internetbanking exports."
+  ],
+  "layout_confidence": 50,
+  "notes": "ČSOB internet banking transaction history as CSV. Windows-1250, CRLF, semicolon-separated, unquoted, every line ending in ;. Lower-case column names; dates DD.MM.YYYY; částka signed with a comma decimal (no thousands mark assumed); měna CZK; zůstatek is the balance after each line. Newest first (assumed). Closing = the newest zůstatek; opening = the oldest zůstatek minus its amount. The newer ČSOB internet bank may export a different layout; not confirmed.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CZK",
+        "owed": false,
+        "opening": 1845030,
+        "closing": 4295980,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -1250000,
+            "text": "nájem"
+          },
+          {
+            "date": "2026-10-07",
+            "amount": -41250,
+            "text": "příklad market"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 3845000,
+            "text": "příkladová firma"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -89900,
+            "text": "příklad energie"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": -12900,
+            "text": "příklad stream"
+          }
+        ]
+      }
+    ]
+  }
+}

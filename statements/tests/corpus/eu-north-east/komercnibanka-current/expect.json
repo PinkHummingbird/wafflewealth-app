@@ -1,0 +1,50 @@
+{
+  "bank": "Komerční banka",
+  "country": "CZ",
+  "product": "osobní účet (current account)",
+  "format": "csv",
+  "file": "Vypis_z_uctu_4567890217_20261001_20261031.csv",
+  "layout_sources": [
+    "https://github.com/medovina/ofxstatement-cz-komercni (README: in 2025 KB moved from MojeBanka to KB+ and the CSV changed; the statement CSV comes from \"Statements and confirmations\" > \"Account statement\" > CSV) and src/ofxstatement/plugins/komercni.py (cp1250; semicolon; rows above the table keyed \"Cislo uctu\", \"Vypis od\", \"Vypis do\", \"Pocatecni zustatek\", \"Konecny zustatek\"; the header row starts \"Datum zauctovani\" and has the unaccented names Protistrana, Nazev protiuctu, Castka, Mena, Identifikace transakce, Typ transakce, Popis pro me, Zprava pro prijemce; %d.%m.%Y; transaction types with accents such as \"Nákup u obchodníka\", \"Příchozí úhrada\", \"Výběr hotovosti z bankomatu\")"
+  ],
+  "layout_confidence": 55,
+  "notes": "KB+ account statement CSV (2025 format). Windows-1250, semicolon-separated. Labelled rows above the table give the account, the period and the opening and closing balances; then the header, whose column names are written without accents, while the values keep them. Dates DD.MM.YYYY; Castka signed with a comma decimal (no thousands mark assumed); Mena CZK per line. The other columns (Datum provedeni, the symbols) and their order, the quoting, CRLF, any further rows above the table and the oldest-first order are assumed. Expected dates are \"Datum zauctovani\".",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CZK",
+        "owed": false,
+        "opening": 842050,
+        "closing": 4200570,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -350000,
+            "text": "příklad svj"
+          },
+          {
+            "date": "2026-10-09",
+            "amount": -63480,
+            "text": "příklad market"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": 4120000,
+            "text": "příkladová firma"
+          },
+          {
+            "date": "2026-10-20",
+            "amount": -200000,
+            "text": "bankomatu"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -148000,
+            "text": "příklad pojišťovna"
+          }
+        ]
+      }
+    ]
+  }
+}

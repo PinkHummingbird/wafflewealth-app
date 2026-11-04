@@ -1,0 +1,6 @@
+"Customer account no","Document no","Date","Sender/receiver account no","Sender/receiver name","Sender bank code","Empty","Debit/Credit (D/C)","Amount","Reference number","Archiving code","Description","Fee","Currency","Personal code or register code","Sender/receiver bank BIC","Ultimate debtor name","Transaction reference","Account servicer reference"
+"EE717700771001234567","","2026-10-03","","NÄIDIS KOHVIK","","","D","-4.50","","RO2026100312345","(..1234) 2026-10-02 12:31 NÄIDIS KOHVIK TALLINN EST","0.00","EUR","","","","","RO2026100312345"
+"EE717700771001234567","101","2026-10-06","EE382200221020145685","NÄIDIS KINNISVARA OÜ","22","","D","-720.00","","RO2026100612346","Üür oktoober","0.00","EUR","","HABAEE2X","","","RO2026100612346"
+"EE717700771001234567","","2026-10-15","EE471000001020145685","NÄIDIS TARKVARA AS","10","","C","3150.00","","RO2026101512347","Palk oktoober 2026","0.00","EUR","","EEUHEE2X","","","RO2026101512347"
+"EE717700771001234567","102","2026-10-22","EE342200221034126658","NÄIDIS ENERGIA AS","22","","D","-38.90","1234567890","RO2026102212348","Arve 2026-10","0.00","EUR","","HABAEE2X","","","RO2026102212348"
+"EE717700771001234567","","2026-10-29","EE717700771009876543","MARI MAASIKAS","77","","C","25.00","","RO2026102912349","Tagasi","0.00","EUR","","LHVBEE22","","","RO2026102912349"

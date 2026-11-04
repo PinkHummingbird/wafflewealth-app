@@ -1,0 +1,51 @@
+{
+  "bank": "Raiffeisenbank",
+  "country": "CZ",
+  "product": "běžný účet (current account)",
+  "format": "csv",
+  "file": "Pohyby_1234512345_202611041015.csv",
+  "layout_sources": [
+    "https://github.com/milankni/ofxstatement-raiffeisencz/blob/HEAD/src/ofxstatement/plugins/raiffeisencz.py (UTF-8; semicolon; double quotes; one header row; columns by name: \"Datum zaúčtování\" as DD.MM.YYYY HH:MM, \"Datum provedení\" as DD.MM.YYYY, Zpráva, Název protiúčtu, Číslo protiúčtu, Zaúčtovaná částka, VS, KS, SS, Id transakce, Typ transakce, Poznámka, Poplatky; amounts with a comma decimal and possibly spaces for thousands)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [CZ Raiffeisen bank] (file Pohyby_<10 digits>_<12 digits>.csv or Movements_...; semicolon; first column a %d.%m.%Y date; the amount in the 14th column)"
+  ],
+  "layout_confidence": 60,
+  "notes": "Raiffeisenbank internet banking \"Pohyby na účtu\" CSV. UTF-8 without BOM, CRLF assumed, semicolon-separated, every field double-quoted. \"Datum provedení\" (DD.MM.YYYY) comes first and \"Datum zaúčtování\" (booking, DD.MM.YYYY HH:MM) second; \"Zaúčtovaná částka\" signed with a comma decimal and a space for thousands (\"-13 500,00\"); \"Měna účtu\" CZK; the original amount and currency in two columns both named \"Původní částka a měna\"; no balance. Newest first. The full 22-column order is from memory; the plugin confirms the names it uses and bank2ynab the positions of the date and amount. Expected dates are \"Datum zaúčtování\" (the booking; card lines are booked a day or two after they are made).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CZK",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -1350000,
+            "text": "bytové družstvo"
+          },
+          {
+            "date": "2026-10-08",
+            "amount": -52340,
+            "text": "příklad market"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 4150000,
+            "text": "příkladová firma"
+          },
+          {
+            "date": "2026-10-21",
+            "amount": -189000,
+            "text": "příklad energie"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": -8900,
+            "text": "příklad kavárna"
+          }
+        ]
+      }
+    ]
+  }
+}

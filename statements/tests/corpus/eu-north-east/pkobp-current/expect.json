@@ -1,0 +1,51 @@
+{
+  "bank": "PKO Bank Polski",
+  "country": "PL",
+  "product": "PKO Konto za Zero (current account)",
+  "format": "csv",
+  "file": "history_csv_20261104_101530.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [PL PKO BP] (file history_csv_YYYYMMDD_HHMMSS.csv; comma; quoted header \"Data operacji\",\"Data waluty\",\"Typ transakcji\",\"Kwota\",\"Waluta\",...,\"Opis transakcji\",\"\",\"\",\"\",\"\"; dates \"2023-06-07\"; 10 input columns with the amount 4th and the description split over the trailing columns)",
+    "iPKO history exports as widely quoted by Polish budgeting tools: a \"Saldo po transakcji\" column after Waluta, amounts and balances with a point decimal and an explicit + on money in, and the description spread over several \"Label: value\" cells (Tytuł, Lokalizacja, Nazwa nadawcy/odbiorcy, Numer karty ...). From memory."
+  ],
+  "layout_confidence": 65,
+  "notes": "iPKO \"Historia rachunku\" CSV. Comma-separated, every field double-quoted, Windows-1250 (Polish letters as one byte), CRLF. Dates YYYY-MM-DD; Kwota and \"Saldo po transakcji\" signed with a point decimal, no thousands mark, a + on money in and on positive balances. The header names one \"Opis transakcji\" column followed by empty-named ones; each line carries as many description cells as it has (4 or 5 here), so lines are not all as long as the header. Newest first. Expected dates are \"Data operacji\"; the card line's purchase day is in its \"Data wykonania operacji\" cell. Closing = the newest balance; opening = the oldest balance minus its amount. bank2ynab's header comment omits \"Saldo po transakcji\" but its column count matches a file that has it.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "PLN",
+        "owed": false,
+        "opening": 214055,
+        "closing": 706489,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -180000,
+            "text": "spółdzielnia mieszkaniowa"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": -4567,
+            "text": "sklep przykładowy"
+          },
+          {
+            "date": "2026-10-24",
+            "amount": 685000,
+            "text": "przykładowa firma"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -12999,
+            "text": "www.przyklad.pl"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": 5000,
+            "text": "anna przykładowa"
+          }
+        ]
+      }
+    ]
+  }
+}

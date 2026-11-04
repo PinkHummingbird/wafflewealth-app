@@ -1,0 +1,50 @@
+{
+  "bank": "Bank Pekao",
+  "country": "PL",
+  "product": "Konto Przekorzystne (current account)",
+  "format": "csv",
+  "file": "Lista_operacji_20261104_101530.csv",
+  "layout_sources": [
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [PL Bank Pekao] (2024: file Lista_operacji_YYYYMMDD_HHMMSS.csv; semicolon; header \"Data księgowania;Data waluty;Nadawca / Odbiorca;Adres nadawcy / odbiorcy;Rachunek źródłowy;Rachunek docelowy;Tytułem;Kwota operacji;Waluta;Numer referencyjny;Typ operacji\"; %d.%m.%Y; signed amount in \"Kwota operacji\")"
+  ],
+  "layout_confidence": 55,
+  "notes": "Pekao24 \"Lista operacji\" CSV. Semicolon-separated, unquoted, one header row, dates DD.MM.YYYY, \"Kwota operacji\" signed with a comma decimal (no thousands mark assumed), Waluta PLN, newest first, no balance. Not confirmed: the encoding (UTF-8 with BOM assumed; the header in the source shows the Polish letters intact), CRLF, the exact \"Typ operacji\" values, and whether a \"Kategoria\" column follows in newer exports. Expected dates are \"Data księgowania\" (the card line's Data waluty is the purchase day).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "PLN",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": 15000,
+            "text": "anna przykładowa"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -120000,
+            "text": "wspólnota mieszkaniowa"
+          },
+          {
+            "date": "2026-10-12",
+            "amount": -18640,
+            "text": "przykładowa energia"
+          },
+          {
+            "date": "2026-10-26",
+            "amount": 725000,
+            "text": "przykładowa firma"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -6430,
+            "text": "sklep przykładowy"
+          }
+        ]
+      }
+    ]
+  }
+}

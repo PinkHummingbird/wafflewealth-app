@@ -1,0 +1,50 @@
+{
+  "bank": "Fio banka",
+  "country": "CZ",
+  "product": "běžný účet (current account)",
+  "format": "csv",
+  "file": "Pohyby_na_uctu-2000123456_20261001-20261031.csv",
+  "layout_sources": [
+    "From memory of the Fio API/internet-banking CSV (\"Fio API Bankovnictví\" documentation: an account block of key;value lines accountId, bankId, currency, iban, bic, openingBalance, closingBalance, dateStart, dateEnd, idFrom, idTo, then the movements with Czech column names). www.fio.cz could not be fetched in this run (host not allowed) and the web search budget was used up, so this was not re-checked."
+  ],
+  "layout_confidence": 40,
+  "notes": "Fio \"Pohyby na účtu\" exported as CSV, assumed to be the same engine as the Fio API CSV. Eleven key;value lines above the table (with the opening and closing balance and the currency), a blank line, then the header 13 lines down. Semicolon-separated, unquoted, UTF-8, dates DD.MM.YYYY, Objem signed with a comma decimal and no thousands mark, Měna CZK. Oldest first, no running balance. Not confirmed: the exact key names, column names (ID pohybu/ID operace, Komentář/Poznámka), quoting and line ends.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "CZK",
+        "owed": false,
+        "opening": 1523450,
+        "closing": 4821035,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -1350000,
+            "text": "bytové družstvo"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -45620,
+            "text": "příklad market"
+          },
+          {
+            "date": "2026-10-14",
+            "amount": 4800000,
+            "text": "příkladová firma"
+          },
+          {
+            "date": "2026-10-22",
+            "amount": -107995,
+            "text": "příklad energie"
+          },
+          {
+            "date": "2026-10-31",
+            "amount": 1200,
+            "text": "úrok"
+          }
+        ]
+      }
+    ]
+  }
+}

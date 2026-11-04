@@ -1,0 +1,52 @@
+{
+  "bank": "Revolut",
+  "country": "PL",
+  "product": "personal current account (PLN)",
+  "format": "csv",
+  "file": "account-statement_2026-10-01_2026-10-31_pl-pl_8c3b1e.csv",
+  "layout_sources": [
+    "https://github.com/mlaitinen/ofxstatement-revolut (sample exports: the 10-column header Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance, \"YYYY-MM-DD HH:MM:SS\" date-times, signed Amount, Balance after the line, oldest first, UTF-8)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [Revolut] (file account-statement_<from>_<to>_<...>.csv, one header row, %Y-%m-%d %H:%M:%S)",
+    "Same layout as eu-west/revolut-current-eur in this corpus"
+  ],
+  "layout_confidence": 80,
+  "notes": "Revolut app statement as CSV for a PLN account (Revolut Bank UAB, Polish branch). Comma-separated, unquoted, UTF-8 without BOM (Ż kept as two bytes), LF. Started and completed date-times; signed Amount with a point decimal, Fee, Currency PLN, State COMPLETED, Balance after the line; oldest first. The header is assumed to stay in English with the app set to Polish. Card payments complete the next day here: the expected dates are the Completed Date (when the balance changed). Closing = the last Balance; opening = the first Balance minus its amount.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "PLN",
+        "owed": false,
+        "opening": 23240,
+        "closing": 439941,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": 150000,
+            "text": "top-up"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -1899,
+            "text": "żabka"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": -45000,
+            "text": "anna przykładowa"
+          },
+          {
+            "date": "2026-10-23",
+            "amount": -6400,
+            "text": "przykładowe kino"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": 320000,
+            "text": "przykładowa firma"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "bank": "OTP Bank",
+  "country": "HU",
+  "product": "lakossági számla (current account)",
+  "format": "xlsx",
+  "file": "Szamlatortenet_20261104.xlsx",
+  "layout_sources": [
+    "https://github.com/abesto/ofxstatement-otp (README: the OTP netbank download is an XLSX; the CSV/XML exports belonged to the netbank retired in September 2021; the layout changed in June 2026 to a metadata preamble, a relocated header and a new column order) and https://pypi.org/project/ofxstatement-otp/ 0.2.0 src/ofxstatement_otp/otp.py (sheet \"Tranzakciók\"; preamble labels in column A with values in B, among them \"Lekérdezés kezdete\"/\"Lekérdezés vége\" as YYYY-MM-DD; header row found by \"Számlaszám\" + \"Ellenoldali számlaszám\"; 11 columns; transaction time \"YYYY-MM-DD HH:MM:SS\" and booking date \"YYYY-MM-DD\" usually as text; signed amounts; currency column; one file can hold several accounts)",
+    "https://raw.githubusercontent.com/abesto/ofxstatement-otp/HEAD/manual_test/generate_sample.py (the full header words and preamble rows of a synthetic export modelled on a real one: Számlatörténet, Számlaszám, Lekérdezés időpontja/kezdete/vége, Szűrési feltétel; account numbers written without dashes)",
+    "Older headerless semicolon CSV (pre-2021): https://github.com/firefly-iii/import-configurations/blob/main/hu/otp/default.json and bank2ynab [HU OTP]"
+  ],
+  "layout_confidence": 55,
+  "notes": "OTP Internetbank \"Számlatörténet\" download, Excel only (no CSV in the current netbank). Sheet \"Tranzakciók\": a preamble (title, account list, query time, period start and end, filter) in columns A:B, the header on row 9, then one row per line. Dates are text cells (\"2026-10-02 14:31:07\" and \"2026-10-03\"), not date serials; Összeg is a signed number in forints; Devizanem HUF. Oldest first. No balance. Expected dates are \"Könyvelés dátuma\" (booking); expected amounts are in fillér (HUF has two minor digits in ISO 4217). The synthetic sample this follows was built from a real export by the plugin author, but this layout is only a few months old.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "HUF",
+        "owed": false,
+        "opening": null,
+        "closing": null,
+        "lines": [
+          {
+            "date": "2026-10-03",
+            "amount": -1249000,
+            "text": "példa áruház"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -18500000,
+            "text": "példa lakásszövetkezet"
+          },
+          {
+            "date": "2026-10-10",
+            "amount": 68500000,
+            "text": "példa munkáltató"
+          },
+          {
+            "date": "2026-10-18",
+            "amount": -1875000,
+            "text": "példa benzinkút"
+          },
+          {
+            "date": "2026-10-31",
+            "amount": -129000,
+            "text": "otp bank"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "bank": "Santander Bank Polska",
+  "country": "PL",
+  "product": "Konto Jakie Chcę (current account)",
+  "format": "csv",
+  "file": "historia_2026-11-04_12109010140000071219812874.csv",
+  "layout_sources": [
+    "https://github.com/firefly-iii/import-configurations/blob/main/pl/santander/default.json (comma; \"headers\": true, i.e. the first line is skipped; date d-m-Y; 9 columns: ignored, transaction date, description, counterparty name, counterparty IBAN, amount, ignored, ignored, ignored)"
+  ],
+  "layout_confidence": 35,
+  "notes": "Santander internet \"Historia\" CSV. No header row: the first line is an account summary (period, account number, account name, currency, opening and closing balance, number of lines; its exact fields are not confirmed), then one line per transaction: operation date, booking date (DD-MM-YYYY), description, counterparty, counterparty account, amount, balance after the line, line number, and a trailing comma. Comma-separated with comma-decimal amounts, so amounts and balances are double-quoted (\"-1100,00\"). Newest first. Encoding (UTF-8 assumed) and line ends not confirmed. Expected dates are the booking dates (column 2, the one Firefly III reads).",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "PLN",
+        "owed": false,
+        "opening": 187020,
+        "closing": 593247,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -110000,
+            "text": "czynsz"
+          },
+          {
+            "date": "2026-10-10",
+            "amount": -4285,
+            "text": "sklep przykładowy"
+          },
+          {
+            "date": "2026-10-24",
+            "amount": 545000,
+            "text": "wynagrodzenie"
+          },
+          {
+            "date": "2026-10-27",
+            "amount": -18668,
+            "text": "przykładowy sklep online"
+          },
+          {
+            "date": "2026-10-30",
+            "amount": -5820,
+            "text": "przykładowe kino"
+          }
+        ]
+      }
+    ]
+  }
+}

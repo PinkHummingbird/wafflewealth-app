@@ -1,0 +1,18 @@
+accountId;2000123456
+bankId;2010
+currency;CZK
+iban;CZ6520100000002000123456
+bic;FIOBCZPPXXX
+openingBalance;15234,50
+closingBalance;48210,35
+dateStart;01.10.2026
+dateEnd;31.10.2026
+idFrom;26789012345
+idTo;26789012349
+
+ID pohybu;Datum;Objem;Měna;Protiúčet;Název protiúčtu;Kód banky;Název banky;KS;VS;SS;Uživatelská identifikace;Zpráva pro příjemce;Typ;Provedl;Upřesnění;Komentář;BIC;ID pokynu
+26789012345;01.10.2026;-13500,00;CZK;2001234567;PŘÍKLAD BYTOVÉ DRUŽSTVO;0800;Česká spořitelna, a.s.;0308;102026;;Nájem 10/2026;Nájem 10/2026;Bezhotovostní platba;Jan Příklad;;Nájem 10/2026;;
+26789012346;05.10.2026;-456,20;CZK;;;;;;;;Nákup: PŘÍKLAD MARKET, Praha, CZ, dne 3.10.2026, částka 456.20 CZK;;Platba kartou;Jan Příklad;;Nákup: PŘÍKLAD MARKET, Praha, CZ, dne 3.10.2026, částka 456.20 CZK;;
+26789012347;14.10.2026;48000,00;CZK;123456789;PŘÍKLADOVÁ FIRMA S.R.O.;0300;Československá obchodní banka, a. s.;0138;102026;;;Mzda 10/2026;Bezhotovostní příjem;;;PŘÍKLADOVÁ FIRMA S.R.O.;;
+26789012348;22.10.2026;-1079,95;CZK;2345678901;PŘÍKLAD ENERGIE A.S.;2700;UniCredit Bank Czech Republic and Slovakia, a.s.;;1234567890;;Záloha elektřina;;Inkaso;;;Záloha elektřina;;
+26789012349;31.10.2026;12,00;CZK;;;;;;;;Připsaný úrok;;Připsaný úrok;;;Připsaný úrok;;

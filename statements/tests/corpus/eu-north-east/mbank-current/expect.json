@@ -1,0 +1,52 @@
+{
+  "bank": "mBank",
+  "country": "PL",
+  "product": "eKONTO (current account)",
+  "format": "csv",
+  "file": "12345678_261001_261031.csv",
+  "layout_sources": [
+    "https://pypi.org/project/beancount-mbank/ 0.1.0 src/beancount_mbank/mbank.py (cp1250; semicolon; header \"#Data operacji;#Data księgowania;#Opis operacji;#Tytuł;#Nadawca/Odbiorca;#Numer konta;#Kwota;#Saldo po operacji\" found below a preamble; \"mBank S.A.\" in the first lines; file name <8 digits>_<yymmdd>_<yymmdd>.csv; comma decimal)",
+    "https://github.com/yay6/ofxstatement-polish/blob/HEAD/src/ofxstatement/plugins/mbank_pl.py (cp1250; preamble keys \"#Za okres:\" followed by DD.MM.YYYY;DD.MM.YYYY, \"#Waluta\" followed by the currency, \"#Numer rachunku\" followed by the spaced account number, a \"Łącznie\" summary row, \"#Saldo początkowe;<amount>\"; lines of 8 fields plus a trailing empty one; account numbers wrapped in apostrophes; footer \";;;;;;#Saldo końcowe;<amount>;\"; amounts may hold spaces)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [PL mBank] (file eKonto_12345678_190801_190916, the same 8 #-headings)"
+  ],
+  "layout_confidence": 65,
+  "notes": "mBank \"zestawienie operacji\" CSV (the 8-column form with #Data księgowania; the transaction-list download \"Lista operacji\" is a 6-column variant, #Data operacji;#Opis operacji;#Rachunek;#Kategoria;#Kwota;#Saldo po operacji, see Firefly III pl/mbank). Windows-1250, CRLF, semicolon-separated, every line ending in ;. A long preamble: bank address, client, title, \"#Za okres:\", account type, \"#Waluta\" PLN, account number, rates, the turnover summary (Uznania/Obciążenia/Łącznie) and \"#Saldo początkowe\", then the #-prefixed header 42 lines down. Dates YYYY-MM-DD in the table (DD.MM.YYYY in the preamble); #Kwota signed with a comma decimal and a space for thousands (\"6 034,00\"); \"#Saldo po operacji\" after each line; #Tytuł and #Nadawca/Odbiorca quoted, account numbers in apostrophes. Oldest first. A footer row \";;;;;;#Saldo końcowe;6 317,55;\". Expected dates are \"#Data księgowania\" (the card line was made a day earlier). The address lines and some preamble rows are from memory.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "PLN",
+        "owed": false,
+        "opening": 152340,
+        "closing": 631755,
+        "lines": [
+          {
+            "date": "2026-10-01",
+            "amount": -95000,
+            "text": "czynsz"
+          },
+          {
+            "date": "2026-10-06",
+            "amount": -8745,
+            "text": "sklep przykładowy"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 603400,
+            "text": "wynagrodzenie"
+          },
+          {
+            "date": "2026-10-21",
+            "amount": -15990,
+            "text": "przykładowy sklep online"
+          },
+          {
+            "date": "2026-10-28",
+            "amount": -4250,
+            "text": "pizza"
+          }
+        ]
+      }
+    ]
+  }
+}

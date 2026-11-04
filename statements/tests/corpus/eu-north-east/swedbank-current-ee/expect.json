@@ -1,0 +1,52 @@
+{
+  "bank": "Swedbank",
+  "country": "EE",
+  "product": "arvelduskonto (current account)",
+  "format": "csv",
+  "file": "statement.csv",
+  "layout_sources": [
+    "https://github.com/rsi2m/ofxstatement-ee-swedbank/blob/HEAD/src/ofxstatement/plugins/ee_swedbank.py (Estonian Swedbank CSV: semicolon, %d.%m.%Y, date col 2, payer/payee col 3, details col 4, unsigned amount col 5, D/K col 7, archive id col 8, type col 9 with AS/K2/LS rows skipped, first two rows skipped)",
+    "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [LV Swedbank] (statement.csv, semicolon, 2 header rows, 4 footer rows, 12 columns, D/K indicator in column 7, %d.%m.%Y) and https://github.com/firefly-iii/import-configurations/blob/main/lv/swedbank/default.json",
+    "https://pypi.org/project/ofxstatement-lithuanian/ 1.2.0 tests/samples/swedbank.csv (the same Baltic Swedbank layout in Lithuanian: every field quoted, a trailing separator, row types 10 opening / 20 line / 82 turnover D and K / 86 closing, codes AS, K, MK, K2, LS, UTF-8, LF)"
+  ],
+  "layout_confidence": 70,
+  "notes": "Swedbank Estonia internet bank account statement CSV. Every field double-quoted, semicolon-separated, a trailing ; on each line, UTF-8, LF. Row type (Reatüüp) 10 is the opening balance (Algsaldo), 20 a line, 82 the debit and credit turnovers (Käive), 86 the closing balance (Lõppsaldo). Dates DD.MM.YYYY; Summa is unsigned with a comma decimal, the sign is in Deebet/Kreedit (D = money out, K = money in). The Estonian column names are from memory (the sources confirm positions and codes; the Lithuanian sample has 16 columns). Oldest first. Opening and closing come from the 10 and 86 rows.",
+  "must_pass": false,
+  "expect": {
+    "accounts": [
+      {
+        "currency": "EUR",
+        "owed": false,
+        "opening": 153415,
+        "closing": 367896,
+        "lines": [
+          {
+            "date": "2026-10-02",
+            "amount": -2340,
+            "text": "näidis pood"
+          },
+          {
+            "date": "2026-10-05",
+            "amount": -65000,
+            "text": "näidis kinnisvara"
+          },
+          {
+            "date": "2026-10-15",
+            "amount": 285000,
+            "text": "näidis tarkvara"
+          },
+          {
+            "date": "2026-10-21",
+            "amount": -2499,
+            "text": "näidis telekom"
+          },
+          {
+            "date": "2026-10-29",
+            "amount": -680,
+            "text": "näidis kohvik"
+          }
+        ]
+      }
+    ]
+  }
+}
