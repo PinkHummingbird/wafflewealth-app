@@ -1407,7 +1407,13 @@ export function ofxText(bytes) {
   return new TextDecoder('windows-1252').decode(bytes);
 }
 
-const ofxUnescape = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+// Numbered characters first: `&#252;` and `&#xF6;` are ü and ö.
+const ofxUnescape = (s) => s.replace(/&#[xX]?[0-9A-Fa-f]+;/g, (m) => {
+  const body = m.slice(2, -1);
+  const value = /^[xX]/.test(body) ? (/^[xX][0-9A-Fa-f]+$/.test(body) ? parseInt(body.slice(1), 16) : NaN)
+    : (/^\d+$/.test(body) ? parseInt(body, 10) : NaN);
+  return Number.isInteger(value) && value <= 0x10FFFF && !(value >= 0xD800 && value <= 0xDFFF) ? String.fromCodePoint(value) : m;
+}).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
   .replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
 
 /** What follows `<TAG>` up to the next tag or line end: an SGML value has no closing tag. */
@@ -1538,7 +1544,8 @@ function mt940Fields(text) {
     const bare = trimSpaces(row);
     // The envelope's end, alone or with its trailer (`-}{5:{CHK:…}}`).
     if (row.startsWith('{') || bare === '-' || bare.startsWith('-}')) continue;
-    const m = /^:(\d{2}[A-Z]?):(.*)$/.exec(row);
+    // `:NS:` is a bank's own extra field: its own, never part of the one before.
+    const m = /^:(\d{2}[A-Z]?|NS):(.*)$/.exec(row);
     if (m) fields.push({ tag: m[1], value: m[2] });
     else if (fields.length && bare) fields[fields.length - 1].value += '\n' + row;
   }
@@ -1573,7 +1580,8 @@ function mt940Balance(value) {
 function mt940Line(value, digits) {
   const cut = value.indexOf('\n');
   const first = cut < 0 ? value : value.slice(0, cut);
-  const m = /^(\d{6})(\d{4})?(RC|RD|C|D)[A-Z]?([\d,]+)([NFS][A-Z0-9]{3})([^/]*)(?:\/\/(.*))?$/.exec(trimSpaces(first));
+  // Only `//` opens the bank's reference: the customer's may hold a single slash.
+  const m = /^(\d{6})(\d{4})?(RC|RD|C|D)[A-Z]?([\d,]+)([NFS][A-Z0-9]{3})(.*?)(?:\/\/(.*))?$/.exec(trimSpaces(first));
   if (!m) return null;
   const size = mt940Amount(m[4], digits);
   const valueDate = yymmdd(m[1]);
@@ -1608,11 +1616,12 @@ function mt940Description(value) {
     const parts = {};
     for (const m of flat.matchAll(/\?(\d{2})([^?]*)/g)) parts[m[1]] = (parts[m[1]] ?? '') + m[2];
     const name = trimSpaces(['32', '33'].map((k) => parts[k]).filter((v) => v != null).join(''));
-    const purpose = trimSpaces(Array.from({ length: 10 }, (_, i) => parts[String(20 + i)]).filter((v) => v != null).join(' '));
+    // The purpose is cut into 27-character pieces wherever they fall, words and all.
+    const purpose = trimSpaces(Array.from({ length: 10 }, (_, i) => parts[String(20 + i)]).filter((v) => v != null).join(''));
     const words = [name, purpose].filter(Boolean);
     if (words.length) return collapse(words.join(' · '));
   }
-  if (flat.includes('/NAME/') || flat.includes('/REMI/')) {
+  if (flat.includes('/NAME/') || flat.includes('/REMI/') || flat.includes('/CNTP/')) {
     const part = (key) => {
       const m = new RegExp(`/${key}/(.*?)(?:/(?:[A-Z]{3,4})/|$)`).exec(flat);
       return m ? trimSpaces(m[1]) : null;
@@ -1620,7 +1629,10 @@ function mt940Description(value) {
     // `/REMI/USTD//Rent/`: the purpose after its code, without the slashes.
     const remi = part('REMI');
     const purpose = remi == null ? null : remi.replace(/^(?:USTD|STRD)\/+/, '').replace(/^[/ ]+|[/ ]+$/g, '');
-    const words = [part('NAME'), purpose].filter(Boolean);
+    // ING gives the other side as `/CNTP/<account>/<bank>/<name>/` instead of `/NAME/`.
+    const cntp = /\/CNTP\/[^/]*\/[^/]*\/([^/]+)\//.exec(flat);
+    const name = part('NAME') ?? (cntp ? trimSpaces(cntp[1]) : null);
+    const words = [name, purpose].filter(Boolean);
     if (words.length) return collapse(words.join(' · '));
   }
   return collapse(value.replace(/\n/g, ' '));
@@ -1637,12 +1649,14 @@ export function readMt940Statement(text, { fileName = null } = {}) {
   const built = new Map();
   let number = null;
   let key = null;
-  // A `:86:` belongs to the line just before it; one after the balances is the statement's own.
+  // A `:86:` belongs to the line just read before it (an `:NS:` between them aside); one after the
+  // balances, or after a line that couldn't be read, is not that line's.
   let afterLine = false;
+  const unread = new Map();
   for (const field of mt940Fields(text)) {
     const b = key ? built.get(key) : null;
     const lineBefore = afterLine;
-    afterLine = field.tag === '61';
+    afterLine = field.tag === 'NS' && lineBefore;
     if (field.tag === '25') {
       number = field.value.trim();
       key = null;
@@ -1655,8 +1669,11 @@ export function readMt940Statement(text, { fileName = null } = {}) {
         order.push(key);
       }
     } else if (field.tag === '61') {
-      const l = b ? mt940Line(field.value, minorDigits(b.currency)) : null;
-      if (l) b.lines.push(l);
+      if (!b) continue;
+      const l = mt940Line(field.value, minorDigits(b.currency));
+      if (!l) { unread.set(key, (unread.get(key) ?? 0) + 1); continue; }
+      b.lines.push(l);
+      afterLine = true;
     } else if (field.tag === '86') {
       // What the line before was for; a statement's own `:86:` (no line yet) says nothing.
       if (!lineBefore || !b || !b.lines.length) continue;
@@ -1671,7 +1688,9 @@ export function readMt940Statement(text, { fileName = null } = {}) {
   const accounts = order.map((k) => {
     const b = built.get(k);
     const digitsOnly = b.number.replace(/[^0-9]/g, '');
+    const count = unread.get(k);
     return account({
+      notes: count ? [count === 1 ? '1 line could not be read' : `${count} lines could not be read`] : [],
       ref: `MT940:${b.number.toUpperCase().replace(/\s/g, '')}`, number: b.number,
       numbers: digitsOnly.length >= 8 ? [digitsOnly] : [],
       name: digitsOnly.length >= 4 ? `Account ·· ${digitsOnly.slice(-4)}` : 'Account',
@@ -1722,10 +1741,17 @@ function camtBlocks(tag, text) {
 
 const camtBlock = (tag, text) => camtBlocks(tag, text)[0] ?? null;
 
-/** A leaf's text, unescaped and trimmed. */
-function camtValue(tag, text) {
-  const raw = camtBlock(tag, text)?.trim();
+/** A leaf's text, unescaped and trimmed; a `<![CDATA[…]]>` is its text as it stands. */
+function camtLeaf(found) {
+  const raw = found.trim();
+  const cdata = /^<!\[CDATA\[([\s\S]*)\]\]>$/.exec(raw);
+  if (cdata) return cdata[1].trim() || null;
   return raw && !raw.includes('<') ? ofxUnescape(raw) : null;
+}
+
+function camtValue(tag, text) {
+  const found = camtBlock(tag, text);
+  return found == null ? null : camtLeaf(found);
 }
 
 /** A leaf's `Ccy="…"` attribute. */
@@ -1766,7 +1792,7 @@ function camtLine(entry, digits) {
   // Who was paid for money out, who paid for money in.
   const side = camtBlock(amount < 0 ? 'Cdtr' : 'Dbtr', parties);
   const other = side == null ? null : camtValue('Nm', side);
-  const purpose = camtBlocks('Ustrd', camtBlock('RmtInf', details) ?? '').map((u) => ofxUnescape(u.trim())).join(' ');
+  const purpose = camtBlocks('Ustrd', camtBlock('RmtInf', details) ?? '').map(camtLeaf).filter((u) => u != null).join(' ');
   const extra = camtValue('AddtlTxInf', details) ?? camtValue('AddtlNtryInf', entry);
   let words = [other, purpose || null].filter((w) => w != null);
   if (!words.length && extra != null) words = [extra];
@@ -1817,23 +1843,36 @@ export function readCamtStatement(text, { fileName = null } = {}) {
           name: digitsOnly.length >= 4 ? `Account ·· ${digitsOnly.slice(-4)}` : 'Account',
           type: 'current', currency,
         }),
-        from: null, to: null, closingDay: null,
+        from: null, to: null, openingDay: null, closingDay: null,
       });
       order.push(key);
     }
     const b = built.get(key);
+    // The earliest opening and the latest closing, whatever order the statements come in; a
+    // report during the day (camt.052) may close on its interim balance (`ITBD`).
+    let closed = null;
+    let interim = null;
     for (const found of balances) {
       // A credit line printed with a balance carries an `Amt` of its own, before the balance's.
       const balance = found.replace(/<CdtLine(?:\s[^>]*)?>[\s\S]*?<\/CdtLine>/g, '');
       const kind = camtBalanceKind(balance);
+      const date = camtFirstDay(balance);
       const amount = camtSigned(balance, digits);
       if (amount == null) continue;
-      // The first statement's opening and the last one's closing.
-      if ((kind === 'OPBD' || kind === 'PRCD') && b.account.opening == null) b.account.opening = amount;
-      if (kind === 'CLBD') {
-        b.account.closing = amount;
-        b.closingDay = camtFirstDay(balance);
+      if (kind === 'OPBD' || kind === 'PRCD') {
+        const earlier = b.account.opening == null || (date != null && b.openingDay != null && date < b.openingDay);
+        if (earlier) {
+          b.account.opening = amount;
+          b.openingDay = date;
+        }
       }
+      if (kind === 'CLBD') closed = { amount, date };
+      if (kind === 'ITBD') interim = { amount, date };
+    }
+    const last = closed ?? interim;
+    if (last && (b.account.closing == null || last.date == null || b.closingDay == null || last.date >= b.closingDay)) {
+      b.account.closing = last.amount;
+      b.closingDay = last.date;
     }
     b.account.lines.push(...camtBlocks('Ntry', statement).map((e) => camtLine(e, digits)).filter(Boolean));
     const range = camtBlock('FrToDt', statement);
@@ -1846,9 +1885,10 @@ export function readCamtStatement(text, { fileName = null } = {}) {
   }
   const accounts = order.map((key) => {
     const a = built.get(key).account;
-    // Oldest first, as a statement prints them.
-    const dates = a.lines.map((l) => l.date).filter(Boolean);
-    if (dates.length && dates[0] > dates[dates.length - 1]) a.lines.reverse();
+    // Oldest first, as a statement prints them, the file's order kept within a day.
+    a.lines = a.lines.map((l, i) => [l, i])
+      .sort(([x, i], [y, j]) => (x.date && y.date && x.date !== y.date ? (x.date < y.date ? -1 : 1) : i - j))
+      .map(([l]) => l);
     const sum = a.lines.reduce((t, l) => t + l.amount, 0);
     // One balance missing: the other worked out from the lines, and said to be.
     if (a.opening == null && a.closing != null) {
@@ -1899,64 +1939,16 @@ export function looksLikeQif(text) {
 /** Quicken writes `1/ 5'26` and `12/31'2025`: the apostrophe is the year's slash, spaces pad. */
 const qifDate = (s) => s.replace(/'/g, '/').replace(/ /g, '');
 
-/**
- * One QIF file → one statement with one account, or a statement with no accounts when it has no
- * bank or card lines. `dayFirstWhenUnsure` settles dates that could be read either way when
- * nothing in the file does: false when the main currency is the US dollar.
- */
-export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
-  const none = { reader: null, fileName, accounts: [], unknownQif: true };
-  if (!looksLikeQif(text)) return none;
-  let section = '';
-  let accountName = null;
-  let card = false;
-  const records = [];
-  let current = {};
-  let inAccountBlock = false;
-  for (const raw of text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
-    const row = raw.replace(/^[﻿\t\p{Zs}]+|[﻿\t\p{Zs}]+$/gu, '');
-    if (!row) continue;
-    const first = row[0];
-    if (first === '!') {
-      if (row.startsWith('!Account')) { inAccountBlock = true; continue; }
-      if (row.startsWith('!Type:')) {
-        section = trimSpaces(row.slice(6)).toLowerCase();
-        card = section === 'ccard' || section === 'oth l';
-        inAccountBlock = false;
-      }
-      continue;
-    }
-    const rest = trimSpaces(row.slice(1));
-    if (inAccountBlock) {
-      // The account list before the lines: its name, kept for the account's.
-      if (first === 'N') accountName = accountName ?? rest;
-      if (first === 'T') card = card || rest.toLowerCase() === 'ccard';
-      continue;
-    }
-    if (!['bank', 'ccard', 'cash', 'oth a', 'oth l'].includes(section)) continue;
-    if (first === 'D') current.date = rest;
-    else if (first === 'T' || first === 'U') { if (current.amount == null || first === 'T') current.amount = rest; }
-    else if (first === 'P') current.payee = rest;
-    else if (first === 'M') current.memo = rest;
-    else if (first === 'N') current.number = rest;
-    else if (first === 'L') current.category = rest;
-    else if (first === '^') {
-      if (current.amount != null || current.date != null) records.push(current);
-      current = {};
-    }
-  }
-  if (current.amount != null) records.push(current);
-  if (!records.length) return none;
+/** The file names no currency, so amounts are read at three decimals (`readDigits`): the review moves them to the currency given, losing nothing for a three-decimal one. */
+const QIF_READ_DIGITS = 3;
 
-  // Quicken's apostrophe year is American, month first; decimal commas put the day first.
-  const rawDates = records.filter((r) => r.date != null).map((r) => r.date);
-  const unsure = rawDates.some((d) => d.includes("'")) ? false
-    : decimalComma(records.filter((r) => r.amount != null).map((r) => r.amount)) ? true : dayFirstWhenUnsure;
-  const dayFirst = dayFirstOf(rawDates.map(qifDate), unsure);
+/** One section of a QIF file → its account. */
+function qifAccount(section, dayFirst) {
+  const card = section.card;
   let opening = null;
   let lines = [];
-  for (const record of records) {
-    const amount = record.amount == null ? null : csvAmount(record.amount, 2);
+  for (const record of section.records) {
+    const amount = record.amount == null ? null : csvAmount(record.amount, QIF_READ_DIGITS);
     if (amount == null) continue;
     const payee = trimSpaces(record.payee ?? '');
     // Quicken's opening balance: a record to the account itself (`L[name]`), not a line, wherever
@@ -1978,9 +1970,10 @@ export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = t
   const dates = lines.map((l) => l.date).filter(Boolean);
   if (dates.length && dates[0] > dates[dates.length - 1]) lines = lines.reverse();
   const acct = account({
-    ref: null, name: accountName || (card ? 'Card' : 'Account'), type: card ? 'card' : 'current', owed: card,
+    ref: null, name: section.name || (card ? 'Card' : 'Account'), type: card ? 'card' : 'current', owed: card,
     currency: null, lines,
   });
+  acct.readDigits = QIF_READ_DIGITS;
   if (opening != null) {
     const sum = lines.reduce((t, l) => t + l.amount, 0);
     acct.opening = opening;
@@ -1989,12 +1982,128 @@ export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = t
   } else {
     acct.notes.push('no balance in the file');
   }
-  finishAccount(acct, acct.closing == null);
+  return acct;
+}
+
+/**
+ * One QIF file → one statement, an account per account in it (a Quicken export of several sends
+ * each as `!Account` then `!Type:`), or a statement with no accounts when it has no bank or card
+ * lines. `dayFirstWhenUnsure` settles dates that could be read either way when nothing in the
+ * file does: false when the main currency is the US dollar.
+ */
+export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
+  const none = { reader: null, fileName, accounts: [], unknownQif: true };
+  if (!looksLikeQif(text)) return none;
+  let sections = [];
+  let type = '';
+  let current = {};
+  // `!Option:AutoSwitch` opens a list of the accounts in the file, closed by `!Clear:AutoSwitch`:
+  // declarations, not where lines go.
+  let listing = false;
+  let header = null;
+  let inHeader = false;
+  const flush = () => {
+    if (current.amount == null && current.date == null) { current = {}; return; }
+    if (!sections.length) sections.push({ name: null, card: type === 'ccard' || type === 'oth l', records: [] });
+    sections[sections.length - 1].records.push(current);
+    current = {};
+  };
+  for (const raw of text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
+    const row = raw.replace(/^[﻿\t\p{Zs}]+|[﻿\t\p{Zs}]+$/gu, '');
+    if (!row) continue;
+    const first = row[0];
+    if (first === '!') {
+      const tag = row.toLowerCase();
+      if (tag.startsWith('!option:autoswitch')) { listing = true; continue; }
+      if (tag.startsWith('!clear:autoswitch')) { listing = false; continue; }
+      if (tag.startsWith('!account')) {
+        if (!listing) { header = { name: null, card: false }; inHeader = true; }
+        continue;
+      }
+      if (tag.startsWith('!type:')) {
+        flush();
+        type = trimSpaces(tag.slice(6));
+        const card = type === 'ccard' || type === 'oth l';
+        // Each `!Type:` after an account's header starts that account; one without a header
+        // starts a new one only once the last has lines.
+        if (header) sections.push({ name: header.name, card: card || header.card, records: [] });
+        else if (!sections.length || sections[sections.length - 1].records.length) sections.push({ name: null, card, records: [] });
+        header = null;
+        inHeader = false;
+      }
+      continue;
+    }
+    const rest = trimSpaces(row.slice(1));
+    if (listing) continue;
+    if (inHeader) {
+      if (first === 'N' && header) header.name = rest;
+      if (first === 'T' && header) header.card = ['ccard', 'oth l'].includes(rest.toLowerCase());
+      if (first === '^') inHeader = false;
+      continue;
+    }
+    if (!['bank', 'ccard', 'cash', 'oth a', 'oth l'].includes(type)) continue;
+    if (first === 'D') current.date = rest;
+    else if (first === 'T' || first === 'U') { if (current.amount == null || first === 'T') current.amount = rest; }
+    else if (first === 'P') current.payee = rest;
+    else if (first === 'M') current.memo = rest;
+    else if (first === 'N') current.number = rest;
+    else if (first === 'L') current.category = rest;
+    else if (first === '^') flush();
+  }
+  flush();
+  sections = sections.filter((sec) => sec.records.length);
+  if (!sections.length) return none;
+
+  // Quicken's apostrophe year is American, month first; decimal commas put the day first.
+  const records = sections.flatMap((sec) => sec.records);
+  const rawDates = records.filter((r) => r.date != null).map((r) => r.date);
+  const unsure = rawDates.some((d) => d.includes("'")) ? false
+    : decimalComma(records.filter((r) => r.amount != null).map((r) => r.amount)) ? true : dayFirstWhenUnsure;
+  const dayFirst = dayFirstOf(rawDates.map(qifDate), unsure);
+  const accounts = sections.map((sec) => qifAccount(sec, dayFirst));
+  const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
+  for (const a of accounts) finishAccount(a, a.closing == null);
   return {
     reader: 'QIF', institution: null, country: null, general: false, fileName, holder: null,
-    period: { from: lines[0]?.date ?? null, to: lines[lines.length - 1]?.date ?? null }, accounts: [acct],
+    period: { from: lineDates[0] ?? null, to: lineDates[lineDates.length - 1] ?? null }, accounts,
   };
 }
+
+// ---------------------------------------------------------------------------------------------
+// A currency given after reading
+
+/**
+ * The account in `currency`, its figures moved from the decimals they were read at (`readDigits`,
+ * for a file that names no currency) to the currency's own: 12.500 read at three is 1250 in
+ * pounds, 12 in yen. Null when that would drop a digit (12.50 in yen). Starts from the figures as
+ * read, whatever currency was tried before. The same as the app's StatementAccount.inCurrency.
+ */
+export function inCurrency(acct, currency) {
+  const from = acct.readDigits ?? minorDigits(acct.currency);
+  const to = minorDigits(currency);
+  const scale = 10 ** Math.abs(to - from);
+  let lost = false;
+  const moved = (value) => {
+    if (value == null) return null;
+    if (to >= from) {
+      const product = value * scale;
+      if (!Number.isSafeInteger(product)) lost = true;
+      return product;
+    }
+    if (value % scale !== 0) lost = true;
+    return value / scale;
+  };
+  const out = {
+    ...acct, currency, readDigits: to, opening: moved(acct.opening), closing: moved(acct.closing),
+    lines: acct.lines.map((l) => ({ ...l, amount: moved(l.amount), running: moved(l.running) })),
+  };
+  if (lost) return null;
+  out.check = acct.check?.checked ? check(out) : acct.check;
+  return out;
+}
+
+/** The decimals an account's figures are in: `readDigits` for a file that names no currency, else the currency's own. */
+export const figureDigits = (acct) => acct.readDigits ?? minorDigits(acct.currency);
 
 /**
  * The files in a zip, as { name, bytes }. Stored and deflated entries, read through the

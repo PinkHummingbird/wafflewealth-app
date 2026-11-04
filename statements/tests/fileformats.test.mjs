@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  readMt940Statement, readCamtStatement, readQifStatement, readCsvStatement, csvAmount,
+  readMt940Statement, readCamtStatement, readQifStatement, readCsvStatement, csvAmount, inCurrency,
   looksLikeMt940, looksLikeCamt, looksLikeQif, looksLikeOfx,
 } from '../readers.js';
 
@@ -90,6 +90,35 @@ test('MT940: whole amounts, and the statement’s own words', () => {
   assert.deepEqual(amounts(account), [10_000]);
   assert.deepEqual(descriptions(account), ['Gift']);
   assert.ok(account.check.ok);
+});
+
+// A customer reference with one slash is still a line; `:NS:` is a field of its own; German
+// purpose pieces join without a space; ING's `/CNTP/` names the other side.
+test('MT940: references, extra fields and the other side’s name', () => {
+  const text = `:20:D1
+:25:NL91EXMP0417164300
+:60F:C260901EUR600,00
+:61:260901C100,00NTRFREF1
+:86:?20Woh?21nung September?32Example Haus
+:61:260902D10,00NMSC/TRTP/SEPA
+:NS:01Shop
+:86:/CNTP/NL00EXMP0123456789/EXMPNL2A/Corner Grocer/REMI/USTD//Groceries/
+:61:260903D5,00NMSCNONREF
+:86:Caf&#xE9; Example
+:62F:C260903EUR685,00`;
+  const account = readMt940Statement(text).accounts[0];
+  assert.deepEqual(amounts(account), [10_000, -1_000, -500]);
+  assert.deepEqual(descriptions(account), ['Example Haus · Wohnung September', 'Corner Grocer · Groceries', 'Caf&#xE9; Example']);
+  assert.equal(account.lines[1].ref, '/TRTP/SEPA');
+  assert.ok(account.check.ok);
+});
+
+test('MT940: a line that can’t be read is said', () => {
+  const text = ':20:D1\n:25:12345678\n:60F:C260901EUR600,00\n:61:260901C100,00NTRFREF1\n:86:Gift\n:61:garbled\n:86:Lost\n:62F:C260901EUR690,00\n';
+  const account = readMt940Statement(text).accounts[0];
+  assert.deepEqual(descriptions(account), ['Gift']);
+  assert.deepEqual(account.notes, ['1 line could not be read']);
+  assert.equal(account.check.ok, false);
 });
 
 test('MT940: text that isn’t MT940 is left alone', () => {
@@ -183,6 +212,25 @@ test('CAMT: a balance isn’t its credit line', () => {
   assert.ok(account.check.ok);
 });
 
+// Statements newest first: the opening is the earliest, the closing the latest. Numbered
+// characters and CDATA come through as text.
+test('CAMT: statements in any order, and their text', () => {
+  const stmt = (open, openDay, close, closeDay, amount, mark, day, words) => `<Stmt><Acct><Id><IBAN>CH9300762011623852957</IBAN></Id><Ccy>CHF</Ccy></Acct>
+<Bal><Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">${open}</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>${openDay}</Dt></Dt></Bal>
+<Bal><Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">${close}</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>${closeDay}</Dt></Dt></Bal>
+<Ntry><Amt Ccy="CHF">${amount}</Amt><CdtDbtInd>${mark}</CdtDbtInd><Sts>BOOK</Sts><BookgDt><Dt>${day}</Dt></BookgDt>
+<NtryDtls><TxDtls><RmtInf><Ustrd>${words}</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry></Stmt>`;
+  const text = '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04"><BkToCstmrStmt>'
+    + stmt('90.00', '2027-01-01', '95.00', '2027-01-02', '5.00', 'CRDT', '2027-01-02', 'M&#252;ller')
+    + stmt('100.00', '2026-12-31', '90.00', '2027-01-01', '10.00', 'DBIT', '2026-12-31', '<![CDATA[Rent & more]]>')
+    + '</BkToCstmrStmt></Document>';
+  const account = readCamtStatement(text).accounts[0];
+  assert.equal(account.opening, 10_000);
+  assert.equal(account.closing, 9_500);
+  assert.ok(account.check.ok);
+  assert.deepEqual(descriptions(account), ['Rent & more', 'Müller']);
+});
+
 // ---------------------------------------------------------------------------------------------
 // QIF
 
@@ -197,7 +245,7 @@ T100.00
 POpening Balance
 L[Current]
 ^`;
-  const account = readQifStatement(text).accounts[0];
+  const account = inCurrency(readQifStatement(text).accounts[0], 'GBP');
   assert.deepEqual(amounts(account), [-2_000]);
   assert.equal(account.opening, 10_000);
   assert.equal(account.closing, 8_000);
@@ -231,7 +279,13 @@ PRent
 N1043
 ^`;
   const statement = readQifStatement(text, { fileName: 'export.qif' });
-  const account = statement.accounts[0];
+  const read = statement.accounts[0];
+  // Read at three decimals with no currency, then given pounds in the review.
+  assert.equal(read.currency, null);
+  assert.equal(read.ref, null);
+  assert.equal(read.readDigits, 3);
+  assert.equal(read.lines[0].amount, -45_200);
+  const account = inCurrency(read, 'GBP');
   assert.equal(statement.reader, 'QIF');
   assert.deepEqual(amounts(account), [-4_520, 250_000, -125_000]);
   assert.deepEqual(descriptions(account), ['Corner Grocer · Weekly shop', 'Example Studio', 'Rent · Cheque 1043']);
@@ -239,8 +293,10 @@ N1043
   assert.equal(account.opening, 10_000);
   assert.equal(account.closing, 130_480);
   assert.equal(account.closingWorkedOut, true);
-  assert.equal(account.currency, null);
-  assert.equal(account.ref, null);
+  assert.equal(account.currency, 'GBP');
+  // In yen the pennies have nowhere to go; in dinars they gain a place.
+  assert.equal(inCurrency(read, 'JPY'), null);
+  assert.equal(inCurrency(read, 'KWD').lines[0].amount, -45_200);
   assert.equal(looksLikeQif(text), true);
 });
 
@@ -258,7 +314,7 @@ D9/20'26
 T92.50
 PPayment, thank you
 ^`;
-  const account = readQifStatement(text).accounts[0];
+  const account = inCurrency(readQifStatement(text).accounts[0], 'USD');
   assert.equal(account.type, 'card');
   assert.equal(account.owed, true);
   assert.equal(account.name, 'Card');
@@ -267,6 +323,53 @@ PPayment, thank you
   assert.equal(account.closing, null);
   assert.deepEqual(account.notes, ['no balance in the file']);
   assert.equal(account.check.checked, false);
+});
+
+// A whole-yen file: read at three decimals, it moves to yen exactly.
+test('QIF: a file in yen keeps its figures', () => {
+  const text = '!Type:Bank\nD2026/09/03\nT-1234\nPCorner Grocer\n^\n';
+  const account = inCurrency(readQifStatement(text).accounts[0], 'JPY');
+  assert.deepEqual(amounts(account), [-1_234]);
+});
+
+// Quicken's export of several accounts: the AutoSwitch list declares them, then each comes as
+// `!Account` and `!Type:` with its own lines.
+test('QIF: a Quicken file of several accounts is an account each', () => {
+  const text = `!Option:AutoSwitch
+!Account
+NChecking
+TBank
+^
+NVisa
+TCCard
+^
+!Clear:AutoSwitch
+!Account
+NChecking
+TBank
+^
+!Type:Bank
+D09/01/2026
+T1000.00
+PExample Studio
+^
+D09/02/2026
+T-20.00
+PCorner Grocer
+^
+!Account
+NVisa
+TCCard
+^
+!Type:CCard
+D09/03/2026
+T-45.00
+PBook Example
+^`;
+  const statement = readQifStatement(text);
+  assert.deepEqual(statement.accounts.map((a) => a.name), ['Checking', 'Visa']);
+  assert.deepEqual(statement.accounts.map((a) => a.owed), [false, true]);
+  assert.deepEqual(statement.accounts.map((a) => a.lines.length), [2, 1]);
 });
 
 // ---------------------------------------------------------------------------------------------

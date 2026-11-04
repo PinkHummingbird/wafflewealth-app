@@ -4,7 +4,7 @@
 import * as pdfjs from './vendor/pdfjs/pdf.min.mjs';
 import {
   pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
-  ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines, monthly, minorDigits,
+  ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines, monthly, minorDigits, inCurrency, figureDigits,
 } from './readers.js';
 import { SAMPLES } from './samples.js';
 
@@ -18,10 +18,12 @@ const state = { statements: [], example: true, problems: [], seen: new Set() };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-/** Minor units → "2,468.10", without ever going through a float. */
-function money(minor, currency, { sign = false } = {}) {
+/**
+ * Minor units → "2,468.10", without ever going through a float. `digits` is the currency's own
+ * unless said otherwise: a file that names no currency (QIF) is read at three decimals.
+ */
+function money(minor, currency, { sign = false, digits = minorDigits(currency) } = {}) {
   if (minor == null) return '—';
-  const digits = minorDigits(currency);
   const negative = minor < 0;
   const s = String(Math.abs(minor)).padStart(digits + 1, '0');
   const whole = s.slice(0, s.length - digits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -160,7 +162,10 @@ function render() {
   $('stat-unchecked').textContent = [unchecked ? `${unchecked} not checked` : '', downloaded ? `${downloaded} from a bank download` : '']
     .filter(Boolean).map((t) => ` · ${t}`).join('');
 
-  const months = monthly(state.statements);
+  // Figures read at three decimals for want of a currency (QIF) are added up at two, as the
+  // other currency-less ones are; kept as read when that would drop a digit.
+  const months = monthly(state.statements.map((s) => ({ ...s, accounts: s.accounts.map((a) =>
+    (a.readDigits != null && a.readDigits !== minorDigits(a.currency) ? inCurrency(a, a.currency) ?? a : a)) })));
   $('months').innerHTML = months.length
     ? months.map((m) => `<tr><th scope="row">${month(m.month)} <span class="cur">${esc(m.currency)}</span></th><td>${money(m.in, m.currency)}</td><td>${money(m.out, m.currency)}</td><td>${m.interest ? money(m.interest, m.currency) : '—'}</td></tr>`).join('')
     : '<tr><td colspan="4" class="none">No lines yet.</td></tr>';
@@ -186,6 +191,8 @@ function statementCard(s) {
 }
 
 function accountRow(a, s) {
+  // An account's figures at the decimals they were read at: a QIF file's three, for want of a currency.
+  const fig = (minor, options = {}) => money(minor, a.currency, { ...options, digits: figureDigits(a) });
   const name = s.general ? `${a.name} · ${s.fileName.replace(/\.pdf$/i, '')}` : a.name;
   const facts = [
     `<span class="tag${a.owed ? ' owed' : ''}">${a.owed ? 'Owed' : 'Yours'}</span>`,
@@ -195,13 +202,13 @@ function accountRow(a, s) {
     a.closes && !a.closed ? `<span>Ends ${day(a.closes, true)}</span>` : '',
   ].filter(Boolean).join('');
   const inCredit = a.owed && a.closing < 0;
-  const figure = inCredit ? `${money(-a.closing, a.currency)} <small>in credit</small>` : money(a.closing, a.currency);
+  const figure = inCredit ? `${fig(-a.closing)} <small>in credit</small>` : fig(a.closing);
   const verdict = a.check.ok
     ? '<span class="pill ok">Adds up</span>'
     : a.openingWorkedOut ? '<span class="pill plain">Bank’s own figures</span>'
     : a.check.checked ? '<span class="pill warn">Doesn’t add up</span>' : '<span class="pill plain">Not checked</span>';
   const why = !a.check.ok && a.check.checked
-    ? `<p class="why">From ${money(a.opening, a.currency)}, the lines come to ${money(a.check.expected, a.currency)}; the statement says ${money(a.closing, a.currency)}.${a.check.messages.filter((m) => m.kind === 'line').length ? ` ${a.check.messages.filter((m) => m.kind === 'line').length} running balance${a.check.messages.filter((m) => m.kind === 'line').length === 1 ? '' : 's'} don’t follow on, marked below.` : ''}</p>`
+    ? `<p class="why">From ${fig(a.opening)}, the lines come to ${fig(a.check.expected)}; the statement says ${fig(a.closing)}.${a.check.messages.filter((m) => m.kind === 'line').length ? ` ${a.check.messages.filter((m) => m.kind === 'line').length} running balance${a.check.messages.filter((m) => m.kind === 'line').length === 1 ? '' : 's'} don’t follow on, marked below.` : ''}</p>`
     : a.openingWorkedOut ? '<p class="why">From the bank’s own download: its figures are exact, but it carries no opening balance to check the lines against.</p>'
     : !a.check.checked && !a.lines.length && a.closing == null ? '<p class="why">No lines in this file, so it carries no balance for this account. Wise leaves a currency’s file empty when nothing happened in it.</p>'
     : !a.check.checked ? '<p class="why">The statement doesn’t print an opening and closing balance this page could find, so the lines aren’t checked.</p>' : '';
@@ -218,8 +225,8 @@ function accountRow(a, s) {
           <td class="d">${day(l.date)}</td>
           <td class="desc">${esc(l.description)}${l.foreign ? `<span class="fx">${l.foreign.amount != null ? money(Math.abs(l.foreign.amount), l.foreign.currency) : ''} ${esc(l.foreign.currency)}</span>` : ''}</td>
           <td><span class="kind k-${l.label}">${LABEL[l.label] ?? ''}</span></td>
-          <td class="num ${l.amount >= 0 ? 'in' : ''}">${money(l.amount, a.currency, { sign: true })}</td>
-          ${a.lines.some((x) => x.running != null) ? `<td class="num run">${money(l.running, a.currency)}</td>` : ''}
+          <td class="num ${l.amount >= 0 ? 'in' : ''}">${fig(l.amount, { sign: true })}</td>
+          ${a.lines.some((x) => x.running != null) ? `<td class="num run">${fig(l.running)}</td>` : ''}
         </tr>`).join('')}</tbody>
       </table></div>`
     : '<p class="why">No lines this month.</p>';
@@ -229,7 +236,7 @@ function accountRow(a, s) {
       <span class="main"><span class="name">${esc(name)}</span><span class="facts">${facts}</span></span>
       <span class="end"><span class="bal fig">${figure}</span>${verdict}</span>
     </summary>
-    <div class="body">${why}${overdrawn}${a.lines.length ? `<p class="count">${a.lines.length} line${a.lines.length === 1 ? '' : 's'} · opening ${money(a.opening, a.currency)}</p>` : ''}${lines}</div>
+    <div class="body">${why}${overdrawn}${a.lines.length ? `<p class="count">${a.lines.length} line${a.lines.length === 1 ? '' : 's'} · opening ${fig(a.opening)}</p>` : ''}${lines}</div>
   </details>`;
 }
 
