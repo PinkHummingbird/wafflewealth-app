@@ -1000,7 +1000,8 @@ export function monthly(statements) {
     else m.out -= l.amount;
     months.set(key, m);
   }
-  return [...months.values()].sort((a, b) => a.month.localeCompare(b.month) || a.currency.localeCompare(b.currency));
+  // A file that names no currency (a QIF, many a CSV or spreadsheet) has none: it sorts first.
+  return [...months.values()].sort((a, b) => a.month.localeCompare(b.month) || (a.currency ?? '').localeCompare(b.currency ?? ''));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1359,23 +1360,14 @@ const BankCSV = {
 export const CSV_READERS = [INTLWise];
 
 /**
- * One CSV file → one statement: Wise's own, then any bank's, found from its header. A statement
- * with no accounts when no reader knows its columns. `dayFirstWhenUnsure` settles dates that
- * could be read either way when nothing in the file does: false when the main currency is the
- * US dollar.
+ * A CSV's rows → one statement: Wise's own, then any bank's, found from its header. A statement
+ * with no accounts when no reader knows its columns. A spreadsheet's rows are read so too (xlsx.js).
+ * `dayFirstWhenUnsure` settles dates that could be read either way when nothing in the file does:
+ * false when the main currency is the US dollar.
  */
-export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
-  const rows = parseCsv(text);
+export function readCsvRows(rows, { fileName = null, dayFirstWhenUnsure = true } = {}) {
   const reader = rows.length ? CSV_READERS.find((r) => r.recognises(rows[0])) : null;
-  if (!reader) {
-    // The separator is the one whose header reads: a comma, or the semicolon or tab of banks
-    // whose decimal mark is a comma.
-    for (const separator of [',', ';', '\t']) {
-      const statement = BankCSV.read(separator === ',' ? rows : parseCsv(text, separator), fileName, dayFirstWhenUnsure);
-      if (statement) return statement;
-    }
-    return { reader: null, fileName, accounts: [], unknownCsv: true };
-  }
+  if (!reader) return BankCSV.read(rows, fileName, dayFirstWhenUnsure) ?? { reader: null, fileName, accounts: [], unknownCsv: true };
   const read = reader.read(rows, fileName);
   for (const a of read.accounts) {
     a.check = check(a);
@@ -1386,6 +1378,20 @@ export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = t
     reader: reader.id, institution: reader.institution, country: reader.country, general: false,
     fileName, holder: read.holder, period: read.period, accounts: read.accounts,
   };
+}
+
+/**
+ * One CSV file → one statement, its rows read as readCsvRows reads them. The separator is the one
+ * whose header reads: a comma, or the semicolon or tab of banks whose decimal mark is a comma.
+ */
+export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = true } = {}) {
+  const statement = readCsvRows(parseCsv(text), { fileName, dayFirstWhenUnsure });
+  if (!statement.unknownCsv) return statement;
+  for (const separator of [';', '\t']) {
+    const other = BankCSV.read(parseCsv(text, separator), fileName, dayFirstWhenUnsure);
+    if (other) return other;
+  }
+  return statement;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -2106,9 +2112,9 @@ export function inCurrency(acct, currency) {
 export const figureDigits = (acct) => acct.readDigits ?? minorDigits(acct.currency);
 
 /**
- * The files in a zip, as { name, bytes }. Stored and deflated entries, read through the
- * browser's own DecompressionStream (Node's too), so no library is needed. Folders and the
- * Mac's __MACOSX copies are skipped.
+ * The files in a zip, as { name, path, bytes }: the file's own name, and its place in the zip.
+ * Stored and deflated entries, read through the browser's own DecompressionStream (Node's too),
+ * so no library is needed. Folders and the Mac's __MACOSX copies are skipped.
  */
 export async function unzip(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -2134,10 +2140,10 @@ export async function unzip(bytes) {
     if (name.endsWith('/') || name.startsWith('__MACOSX/') || name.split('/').pop().startsWith('._')) continue;
     const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
     const data = bytes.subarray(start, start + size);
-    if (method === 0) files.push({ name: name.split('/').pop(), bytes: data });
+    if (method === 0) files.push({ name: name.split('/').pop(), path: name, bytes: data });
     else if (method === 8) {
       const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-      files.push({ name: name.split('/').pop(), bytes: new Uint8Array(await new Response(stream).arrayBuffer()) });
+      files.push({ name: name.split('/').pop(), path: name, bytes: new Uint8Array(await new Response(stream).arrayBuffer()) });
     }
   }
   return files;

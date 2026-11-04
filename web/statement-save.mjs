@@ -9,7 +9,7 @@
 
    Statements come from ../statements/readers.js, which reads the same banks the app reads. */
 
-import { inCurrency } from '../statements/readers.js?v=28';
+import { inCurrency } from '../statements/readers.js?v=30';
 
 /** Lines and no balance in the file (a QIF file, many banks' CSVs): the review asks for the
     balance on the statement's last day before the account can be added, as the app's does
