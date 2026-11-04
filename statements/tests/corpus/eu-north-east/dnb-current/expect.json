@@ -8,7 +8,7 @@
     "https://github.com/firefly-iii/import-configurations/blob/main/no/dnb/default.json (semicolon, header row, d.m.Y, 5 columns: transaction date, description, interest date, debit, credit)",
     "https://github.com/bank2ynab/bank2ynab/blob/develop/bank2ynab/data/bank2ynab.conf [NO DNB] (file maanedtransaksjonliste-<month>.csv, semicolon, %d.%m.%Y, Date,Payee,skip,Outflow,Inflow)"
   ],
-  "layout_confidence": 60,
+  "layout_confidence": 55,
   "notes": "DNB nettbank transaction download. Semicolon-separated with five columns: Dato, Forklaring, Rentedato, \"Ut fra konto\" (money out, unsigned) and \"Inn på konto\" (money in), one of the two filled. Dates DD.MM.YYYY, comma decimal, no thousands mark, newest first. The heading words are from memory of the export (the two sources confirm the columns and their order, not the words); every field quoted, UTF-8 without BOM and CRLF are assumed. No balance and no currency in the file (NOK).",
   "must_pass": false,
   "expect": {
