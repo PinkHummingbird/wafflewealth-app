@@ -9,7 +9,7 @@
 
    Statements come from ../statements/readers.js, which reads the same banks the app reads. */
 
-import { minorDigits } from '../statements/readers.js?v=27';
+import { inCurrency } from '../statements/readers.js?v=28';
 
 /** Lines and no balance in the file (a QIF file, many banks' CSVs): the review asks for the
     balance on the statement's last day before the account can be added, as the app's does
@@ -32,18 +32,18 @@ export function includedByDefault(account) {
  * and a typed balance (`closing`, minor units, below zero allowed) is its balance on the last day,
  * the opening worked back from the lines. Without a typed balance it is returned as read.
  *
- * A file that names no currency was read before its currency was known, at `readDigits` decimals
- * (2 unless the reader says otherwise): its figures are put into the chosen currency's minor units
- * (yen have none, dinars three). When that would drop a digit the bank printed, the account is
- * marked `scaleLost` and can't be added in that currency.
+ * A file that names no currency was read before its currency was known, at `readDigits` decimals:
+ * its figures are moved into the chosen currency's minor units (yen have none, dinars three) by
+ * readers.js `inCurrency`, as the app's importer moves them (StatementAccount.inCurrency). When that
+ * would drop a digit the bank printed, the account is marked `scaleLost` and can't be added in that
+ * currency.
  */
 export function accountToSave(account, { currency = null, closing = null } = {}) {
   let filled = { ...account, notes: [...(account.notes ?? [])] };
   if (!filled.currency && currency) {
-    filled.currency = currency;
-    const scaled = rescaled(account, account.readDigits ?? 2, minorDigits(currency));
-    if (scaled) filled = { ...filled, ...scaled };
-    else filled.scaleLost = true;
+    const moved = inCurrency(account, currency);
+    if (moved) filled = { ...moved, notes: filled.notes };
+    else filled = { ...filled, currency, scaleLost: true };
   }
   if (needsBalance(account) && closing != null) {
     const sum = filled.lines.reduce((t, l) => t + l.amount, 0);
@@ -53,24 +53,6 @@ export function accountToSave(account, { currency = null, closing = null } = {})
     filled.belowZero = !account.owed && [filled.opening, filled.closing].some((v) => v < 0);
   }
   return filled;
-}
-
-/** An account's figures read at `from` decimals, in minor units of a currency with `to`: its lines'
-    amounts and balances after them, its opening and closing. Null when a figure has a digit the
-    currency can't hold (12.50 in yen). The same figures when `from` is `to`. */
-function rescaled(account, from, to) {
-  if (from === to) return {};
-  const factor = 10 ** Math.abs(to - from);
-  let exact = true;
-  const scale = (v) => {
-    if (v == null) return v;
-    if (to > from) return v * factor;
-    if (v % factor !== 0) exact = false;
-    return Math.trunc(v / factor);
-  };
-  const lines = account.lines.map((l) => ({ ...l, amount: scale(l.amount), running: scale(l.running) }));
-  const out = { lines, opening: scale(account.opening), closing: scale(account.closing) };
-  return exact ? out : null;
 }
 
 const monthOf = (day) => day.slice(0, 7);
