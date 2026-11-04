@@ -760,13 +760,15 @@
         const known = a.ref ? store.accountByRef(a.ref) : null;
         if (choice.include) anything = true;
         if (choice.include && asksBalance && a.closing == null) waiting = true;
+        if (choice.include && a.scaleLost) waiting = true;
         if (choice.include && a.belowZero && !a.owed && !choice.keepBelowZero) unconfirmed = true;
         const closing = a.closing != null && a.currency ? M.format(a.closing, a.currency) : "No closing balance";
         const lastDay = (st.period && st.period.to) || (read.lines.length ? read.lines[read.lines.length - 1].date : null);
         const typed = asksBalance ? typedBalance(choice.balanceText, a.currency) : null;
         const currencyField = read.currency ? "" : `<div class="field"><label for="rv-cur-${si}-${ai}">Currency</label><select id="rv-cur-${si}-${ai}" data-review-currency="${si}:${ai}">
             ${M.currencies().map((c) => `<option value="${c}" ${c === a.currency ? "selected" : ""}>${c} · ${esc(M.currencyName(c))}</option>`).join("")}</select>
-            <span class="note">The file doesn't say which currency: your main one is taken. Change it if this account is in another.</span></div>`;
+            <span class="note">The file doesn't say which currency: your main one is taken. Change it if this account is in another.</span>
+            ${a.scaleLost ? `<span class="note bad">Its amounts have decimals ${esc(a.currency)} doesn't have: choose the currency they're in.</span>` : ""}</div>`;
         const balanceField = !asksBalance ? "" : `<div class="field"><label for="rv-bal-${si}-${ai}">${a.owed ? "Owed" : "Balance"} on ${esc(lastDay ? M.dayLabel(lastDay) : "the last day")} (${esc(a.currency)})</label>
             <input id="rv-bal-${si}-${ai}" data-review-balance="${si}:${ai}" inputmode="decimal" autocomplete="off" value="${esc(choice.balanceText)}" placeholder="As your bank shows it">
             <span class="err" id="rv-bal-err-${si}-${ai}">${esc(typed && typed.reason ? typed.reason : "")}</span>

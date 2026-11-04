@@ -67,6 +67,16 @@ test('read here: a bank’s CSV is hashed on its name and bytes, as the app hash
   assert.ok(statements[0].accounts[0].check.ok);
 });
 
+test('read here: an OFX download is hashed as the app hashes it, by its name: a .csv on its name and bytes', async () => {
+  const ofx = 'OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\n\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><CURDEF>USD<BANKACCTFROM><BANKID>1<ACCTID>000123456789<ACCTTYPE>CHECKING</BANKACCTFROM>'
+    + '<BANKTRANLIST><DTSTART>20260901<DTEND>20260930<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260915<TRNAMT>-25.00<FITID>F1<NAME>Corner Grocer</STMTTRN></BANKTRANLIST>'
+    + '<LEDGERBAL><BALAMT>975.00<DTASOF>20260930</LEDGERBAL></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>';
+  const asOfx = await readDocument('download.ofx', bytes(ofx));
+  assert.equal(asOfx.statements[0].sha256, sha(ofx));
+  const asCsv = await readDocument('export.csv', bytes(ofx));
+  assert.equal(asCsv.statements[0].reader, asOfx.statements[0].reader);
+  assert.equal(asCsv.statements[0].sha256, sha('export.csv', ofx), 'StatementImporter hashes a .csv name and bytes whatever is in it');
+});
 test('read here: a zip is every statement file in it', async () => {
   const zip = zipOf([{ name: 'a.sta', text: mt940 }, { name: 'b.qif', text: qif }, { name: 'c.csv', text: csv }, { name: 'd.png', text: 'not one' }]);
   const { statements, problems } = await readDocument('downloads.zip', zip);

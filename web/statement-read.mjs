@@ -38,12 +38,14 @@ const isPdf = (bytes) => bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 
 export async function readDocument(name, bytes, { dayFirstWhenUnsure = true } = {}) {
   const statements = [];
   const problems = [];
-  // A bank's download (OFX, QFX, QBO) is read exactly as the bank sent it, and hashed on its bytes
-  // alone, like a PDF. Some banks name it .csv, so a CSV's contents are looked at first.
+  // A bank's download (OFX, QFX, QBO) is read exactly as the bank sent it. Some banks name it .csv,
+  // so a CSV's contents are looked at first. It is hashed as the app hashes every file, by its
+  // name: on its bytes alone, and a file named .csv on its name and bytes, so the phone and the
+  // website know it for the same file.
   const addOfx = async (fileName, data) => {
     const statement = readOfxStatement(ofxText(data), { fileName });
     if (statement.unknownOfx) problems.push(`${fileName}: no bank or card statement was found in this download.`);
-    else statements.push({ ...statement, sha256: await fingerprint('download.ofx', data) });
+    else statements.push({ ...statement, sha256: await fingerprint(fileName, data) });
   };
   // The other bank files (CAMT, MT940, QIF, any bank's CSV): hashed as the app hashes them, a CSV
   // by its name and bytes (Wise's empty currency files differ only in name), the rest by bytes.

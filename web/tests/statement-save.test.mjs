@@ -136,6 +136,27 @@ test('typed below zero: an account you own was overdrawn, and Keep it below zero
   assert.ok(run(statement, [{ include: true, name: 'Mine', keepBelowZero: true }]).records.some((r) => r.type === 'Balance' && r.f.value_minor === -1_000));
 });
 
+test('no currency in the file: figures read at 2 decimals go into the chosen currency’s minor units (yen none, dinars three)', () => {
+  // A QIF under a yen main currency: T-1234 is read as -1234.00, i.e. -123400 at 2 decimals.
+  const yen = { ...current(), currency: null, opening: null, closing: null, lines: [line('2026-09-03', -123_400)] };
+  const filled = accountToSave(yen, { currency: 'JPY', closing: 50_000 });
+  assert.deepEqual([filled.lines[0].amount, filled.closing, filled.opening, filled.scaleLost], [-1_234, 50_000, 51_234, undefined]);
+  assert.equal(yen.lines[0].amount, -123_400, 'the account read is left as it was');
+  // Dinars have three: 12.50 read as 1250 is 12500 fils.
+  const dinar = accountToSave({ ...yen, lines: [line('2026-09-03', -1_250, 'x', { running: 98_750 })] }, { currency: 'KWD' });
+  assert.deepEqual([dinar.lines[0].amount, dinar.lines[0].running], [-12_500, 987_500]);
+  // A reader that read at 3 decimals says so.
+  assert.equal(accountToSave({ ...yen, readDigits: 3, lines: [line('2026-09-03', -1_234_000)] }, { currency: 'JPY' }).lines[0].amount, -1_234);
+  assert.equal(accountToSave({ ...yen, readDigits: 3, lines: [line('2026-09-03', -1_234_500)] }, { currency: 'USD' }).lines[0].amount, -123_450);
+  // 1,234.50 can't be yen: the account is marked and isn't saved in that currency.
+  const lost = accountToSave({ ...yen, lines: [line('2026-09-03', -123_450)] }, { currency: 'JPY', closing: 50_000 });
+  assert.equal(lost.scaleLost, true);
+  const statement = { reader: 'QIF', period: { from: '2026-09-01', to: '2026-09-30' }, accounts: [lost] };
+  assert.throws(() => run(statement, [{ include: true, name: 'Mine' }]), (e) => e.code === 'needsCurrency' && /decimals/.test(e.reason));
+  // The same figures when the currency has the digits they were read at.
+  assert.equal(accountToSave(yen, { currency: 'GBP' }).lines[0].amount, -123_400);
+});
+
 test('no currency in the file (a QIF file, many banks’ CSVs): the one chosen in the review, the main one unless changed', () => {
   const noCurrency = { ...current(), currency: null };
   assert.equal(accountToSave(noCurrency, { currency: 'GBP' }).currency, 'GBP');
