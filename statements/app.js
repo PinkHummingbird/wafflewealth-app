@@ -6,6 +6,7 @@ import {
   pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
   ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines, monthly, minorDigits,
 } from './readers.js';
+import { readXlsxStatement, looksLikeXlsx, unreadableExcel } from './xlsx.js';
 import { SAMPLES } from './samples.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
@@ -45,7 +46,7 @@ const LABEL = { in: 'Money in', out: 'Money out', own: 'Between your accounts', 
 const BANK_FILE = /\.(sta|mt940|940|swi|qif|xml|txt)$/i;
 
 const kindOf = (name) => (/\.pdf$/i.test(name) ? 'pdf' : /\.csv$/i.test(name) ? 'csv' : isOfxName(name) ? 'ofx'
-  : /\.zip$/i.test(name) ? 'zip' : BANK_FILE.test(name) ? 'bank' : null);
+  : /\.xlsx?$/i.test(name) ? 'excel' : /\.zip$/i.test(name) ? 'zip' : BANK_FILE.test(name) ? 'bank' : null);
 
 /**
  * A bank file that isn't OFX → a statement, or a note on why it couldn't be read. Known by what
@@ -62,10 +63,27 @@ function addBankFile(name, bytes) {
     : 'No statement was found in this file.' });
 }
 
-/** Any file in a bank's download format: OFX first, as some banks name it .csv; then the others. */
-function addDownload(name, bytes) {
+/**
+ * Any file in a bank's download format: OFX first, as some banks name it .csv; then an Excel
+ * workbook, whatever it is called; then the others.
+ */
+async function addDownload(name, bytes) {
+  // A file named for Excel that isn't a workbook: one saved with a password, or the older .xls.
+  const unreadable = kindOf(name) === 'excel' && !looksLikeXlsx(bytes) ? unreadableExcel(bytes) : null;
   if (kindOf(name) === 'ofx' || looksLikeOfx(new TextDecoder().decode(bytes.subarray(0, 4096)))) addOfx(name, bytes);
-  else addBankFile(name, bytes);
+  else if (looksLikeXlsx(bytes)) await addXlsx(name, bytes);
+  else if (unreadable) {
+    state.problems.push({ file: name, text: unreadable === 'password'
+      ? 'This spreadsheet has a password. Open it, save a copy without the password, and add that copy.'
+      : 'This is an older Excel file (.xls), which this page can’t read. Open it in a spreadsheet app, save it as .xlsx or CSV, and add that copy.' });
+  } else addBankFile(name, bytes);
+}
+
+/** An Excel workbook → a statement from its first sheet with a table of lines, or a note on why not. */
+async function addXlsx(name, bytes) {
+  const statement = await readXlsxStatement(bytes, { fileName: name });
+  if (statement.accounts.length) state.statements.push(statement);
+  else state.problems.push({ file: name, text: 'No table of lines was found in this spreadsheet.' });
 }
 
 /** A bank's OFX or QFX download → a statement, or a note on why it couldn't be read. */
@@ -77,7 +95,7 @@ function addOfx(name, bytes) {
 
 async function addFiles(files) {
   const pdfs = [...files].filter((f) => kindOf(f.name));
-  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s download (OFX, QFX, MT940, CAMT, QIF or CSV), a Wise CSV, or a zip of them.' });
+  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s download (OFX, QFX, MT940, CAMT, QIF, CSV or Excel .xlsx), a Wise CSV, or a zip of them.' });
   if (!pdfs.length) return render();
   if (state.example) { state.statements = []; state.example = false; }
   $('reading').hidden = false;
@@ -86,16 +104,21 @@ async function addFiles(files) {
     if (state.seen.has(key)) { state.problems.push({ file: file.name, text: 'Already read above.' }); continue; }
     $('reading-name').textContent = file.name;
     try {
-      if (['ofx', 'csv', 'bank'].includes(kindOf(file.name))) {
+      if (['ofx', 'csv', 'bank', 'excel'].includes(kindOf(file.name))) {
         // Some banks name their OFX download .csv, or their MT940 .txt; what's in it decides.
-        addDownload(file.name, new Uint8Array(await file.arrayBuffer()));
+        await addDownload(file.name, new Uint8Array(await file.arrayBuffer()));
         state.seen.add(key);
         continue;
       }
       if (kindOf(file.name) === 'zip') {
-        const inside = (await unzip(new Uint8Array(await file.arrayBuffer()))).filter((f) => ['csv', 'ofx', 'bank'].includes(kindOf(f.name)));
-        if (!inside.length) state.problems.push({ file: file.name, text: 'There are no statement files in this zip.' });
-        for (const f of inside) addDownload(f.name, f.bytes);
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        // An Excel workbook is a zip itself: one renamed .zip is read as the workbook it is.
+        if (looksLikeXlsx(bytes)) await addXlsx(file.name, bytes);
+        else {
+          const inside = (await unzip(bytes)).filter((f) => ['csv', 'ofx', 'bank', 'excel'].includes(kindOf(f.name)));
+          if (!inside.length) state.problems.push({ file: file.name, text: 'There are no statement files in this zip.' });
+          for (const f of inside) await addDownload(f.name, f.bytes);
+        }
         state.seen.add(key);
         continue;
       }
@@ -110,7 +133,7 @@ async function addFiles(files) {
     } catch (error) {
       const text = error?.name === 'PasswordException'
         ? 'This PDF has a password. Open it, save a copy without the password, and add that copy.'
-        : 'This file couldn’t be opened as a PDF.';
+        : kindOf(file.name) === 'excel' ? 'This file couldn’t be opened as a spreadsheet.' : 'This file couldn’t be opened as a PDF.';
       state.problems.push({ file: file.name, text });
     }
   }

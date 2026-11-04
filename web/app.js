@@ -216,7 +216,7 @@
       const download = d.file && d.file.downloadURL
         ? `<a class="linkbtn" href="${esc(d.file.downloadURL.replace("${f}", encodeURIComponent(d.f.file_name)))}" download="${esc(d.f.file_name)}" rel="noreferrer">Download</a>`
         : Number(d.f.parts) > 0 ? `<button type="button" class="linkbtn" data-download-doc="${esc(d.name)}">Download</button>` : "";
-      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip|ofx|qfx|qbo|sta|mt940|940|swi|qif|xml|txt)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
+      const readable = d.f.status === "NEW" && /\.(pdf|csv|zip|ofx|qfx|qbo|sta|mt940|940|swi|qif|xml|txt|xlsx|xls)$/i.test(d.f.file_name) && (Number(d.f.parts) > 0 || (d.file && d.file.downloadURL));
       const read = readable ? `<button type="button" class="linkbtn" data-read-doc="${esc(d.name)}">Read here</button>` : "";
       return `<div class="row">
         <span class="ic" aria-hidden="true">${icon(d.f.file_name)}</span>
@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=26"), import("./statement-save.mjs?v=26")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=27"), import("./statement-save.mjs?v=27")]);
     const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
     return { ...read, ...save, match };
   }
