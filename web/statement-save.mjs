@@ -9,18 +9,38 @@
 
    Statements come from ../statements/readers.js, which reads the same banks the app reads. */
 
-/** An account the website can't add: lines but no balance in its file (a QIF file, many banks'
-    CSVs), or no currency named. The phone asks for the balance and the currency as it adds one;
-    this page takes no typed balance, so it says to add the account on the phone. */
-export function needsPhone(account) {
-  return (account.closing == null && account.lines.length > 0) || !account.currency;
+/** Lines and no balance in the file (a QIF file, many banks' CSVs): the review asks for the
+    balance on the statement's last day before the account can be added, as the app's does
+    (StatementImporter.Choice.needsBalance). */
+export function needsBalance(account) {
+  return account.closing == null && account.lines.length > 0;
 }
 
-/** The default for each account read: kept when there is a closing balance, it isn't a deposit
-    that has closed, and it isn't an empty account with nothing in it (the app's includedByDefault),
-    and never one the website can't add (needsPhone). */
+/** The default for each account read: kept when it has a closing balance or lines, it isn't a
+    deposit that has closed, and it isn't an empty account with nothing in it (the app's
+    includedByDefault). One with lines and no balance waits for the balance to be typed. */
 export function includedByDefault(account) {
-  return account.closing != null && !account.closed && !(account.closing === 0 && account.lines.length === 0) && !needsPhone(account);
+  return (account.closing != null || account.lines.length > 0) && !account.closed
+    && !(account.closing === 0 && account.lines.length === 0);
+}
+
+/**
+ * The account as it is saved, as the app's review holds it (Choice.accountToSave): a file that
+ * names no currency takes the one chosen in the review (`currency`, the main one unless changed),
+ * and a typed balance (`closing`, minor units, below zero allowed) is its balance on the last day,
+ * the opening worked back from the lines. Without a typed balance it is returned as read.
+ */
+export function accountToSave(account, { currency = null, closing = null } = {}) {
+  const filled = { ...account, notes: [...(account.notes ?? [])] };
+  if (!filled.currency && currency) filled.currency = currency;
+  if (needsBalance(account) && closing != null) {
+    const sum = account.lines.reduce((t, l) => t + l.amount, 0);
+    filled.closing = closing;
+    filled.opening = account.owed ? closing + sum : closing - sum;
+    filled.openingWorkedOut = true;
+    filled.belowZero = !account.owed && [filled.opening, filled.closing].some((v) => v < 0);
+  }
+  return filled;
 }
 
 const monthOf = (day) => day.slice(0, 7);
@@ -79,6 +99,8 @@ function availableFromMonth(account, today) {
  *
  * - `statement`: as readers.js returns it, its lines labelled (labelLines).
  * - `choices`: one per account, `{ include, name, keepBelowZero }`, in the statement's order.
+ *   Its accounts are as they are saved (accountToSave): with a currency, and a balance when the
+ *   file had lines and none.
  * - `sha256`: the file's fingerprint, made as the app makes it.
  * - `choices[i].accountId`: an account already in iCloud to add it to, when its bank reference
  *   isn't linked yet; it must be one `known.choosable(account)` offers. Null makes a new account.
@@ -105,9 +127,12 @@ export function recordsForStatement({ statement, choices, sha256, known, uuid, n
   statement.accounts.forEach((account, index) => {
     const choice = choices[index];
     if (!choice || !choice.include) return;
-    // The review never ticks one the website can't add; should one come through, nothing is saved.
-    if (needsPhone(account)) {
-      throw { code: 'needsPhone', reason: `${choice.name || account.name}: no balance in the file. Add this one on the phone.` };
+    // The review fills these in (accountToSave) before Add; should one come through without, nothing is saved.
+    if (needsBalance(account)) {
+      throw { code: 'needsBalance', reason: `${choice.name || account.name}: type its balance on the statement's last day.` };
+    }
+    if (!account.currency) {
+      throw { code: 'needsCurrency', reason: `${choice.name || account.name}: choose its currency.` };
     }
     // An account you own that went below zero is kept below zero only once you've said so.
     const keepBelowZero = Boolean(account.belowZero && !account.owed && choice.keepBelowZero);

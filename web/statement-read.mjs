@@ -8,7 +8,7 @@ import {
   pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
   ofxText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines,
 } from '../statements/readers.js?v=28';
-import { fingerprint } from './statement-save.mjs?v=26';
+import { fingerprint } from './statement-save.mjs?v=29';
 
 // Putting a reading right, as the app does: the same functions the statements page uses.
 export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=28';

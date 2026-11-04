@@ -343,6 +343,7 @@ let ENGINES={}; let submit2;
   d.querySelector(`[data-edit="${t.recordName}"]`).click(); setVal(d,'txn-note','Fuel 2'); submit(d,'txn-form'); await sleep(200);
   ok(/changed somewhere else/.test(d.getElementById('txn-error').textContent),'icloud: conflict explained');
   // a statement line from the phone: listed as Auto, own moves left out of the totals
+  w.__ck.put({recordType:'Statement',recordName:'s1',fields:{reader:{value:'General'},file_name:{value:'Made up.pdf'},file_sha256:{value:'0'.repeat(64)},period_from:{value:'2026-10-01'},period_to:{value:'2026-10-31'},read_at:{value:'2026-11-01T10:00:00.000Z'},nulls:{value:'institution'}}});
   w.__ck.put({recordType:'StatementLine',recordName:'l1',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:0},posted_on:{value:'2026-10-10'},description:{value:'Made up grocer'},amount_minor:{value:-2000},line_kind:{value:'out'},nulls:{value:''}}});
   w.__ck.put({recordType:'StatementLine',recordName:'l2',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:1},posted_on:{value:'2026-10-10'},description:{value:'To my savings'},amount_minor:{value:-500000},line_kind:{value:'own'},nulls:{value:''}}});
   w.__ck.put({recordType:'StatementLine',recordName:'l3',fields:{statement_id:{value:'s1'},account_id:{value:'a1'},position:{value:2},description:{value:'Undated'},amount_minor:{value:-1},nulls:{value:'posted_on'}}});
@@ -380,7 +381,7 @@ let ENGINES={}; let submit2;
     w.__ck.atomics=[];
     d.getElementById('review-add').click(); await sleep(200);
     const all=[...w.__ck.records.values()];
-    const st=all.find(r=>r.recordType==='Statement'); const acct=all.find(r=>r.recordType==='Account'&&r.fields.name.value==='My SGD account');
+    const st=all.find(r=>r.recordType==='Statement'&&r.fields.file_sha256.value==='a'.repeat(64)); const acct=all.find(r=>r.recordType==='Account'&&r.fields.name.value==='My SGD account');
     ok(st && st.fields.file_sha256.value==='a'.repeat(64) && st.fields.reader.value==='SG-UOB','statement: the statement kept');
     ok(acct && acct.fields.display_order.type==='INT64' && acct.fields.kind.value==='ASSET' && acct.fields.currency_code.value==='SGD','statement: a new account');
     const bals=all.filter(r=>r.recordType==='Balance'&&r.fields.account_id.value===acct.recordName);
@@ -462,15 +463,30 @@ let ENGINES={}; let submit2;
     d.querySelector('[data-rl-out="0:0:2"]').click(); await sleep(30);
     ok(/add up to the statement, with 2 changes of yours/.test(rv()) && !d.querySelector('[data-review-include="0:0"]').checked,'correct: a line left out; it adds up, and the untick is kept: '+rv().replace(/\s+/g,' ').slice(0,200));
     d.getElementById('review-cancel').click(); await sleep(20);
-    // lines and no balance (a QIF file, read by the real reader): the website takes no typed balance, so it waits for the phone
+    // lines and no balance or currency (a QIF file, read by the real reader): the main currency is
+    // taken, open to change, and Add waits for the balance on the last day, as on the phone
     w.WWStatementModules={ ...save, readDocument: async ()=>({statements:[{ ...readers.readQifStatement('!Type:Bank\nD03/08/2026\nT-45.20\nPCorner Grocer\n^', { fileName:'aug.qif' }), sha256:'9'.repeat(64) }], problems:[]}) };
     Object.defineProperty(up,'files',{value:[new w.File(['qif\n'],'aug.qif')],configurable:true}); up.dispatchEvent(new w.Event('change')); await sleep(200);
     const doc6=[...w.__ck.records.values()].find(r=>r.recordType==='Document'&&r.fields.file_name.value==='aug.qif');
-    ok(d.querySelector(`[data-read-doc="${doc6.recordName}"]`),'phone: a QIF file can be read here');
+    ok(d.querySelector(`[data-read-doc="${doc6.recordName}"]`),'typed balance: a QIF file can be read here');
     d.querySelector(`[data-read-doc="${doc6.recordName}"]`).click(); await sleep(150);
-    const box6=d.getElementById('rv-0-0');
-    ok(/No balance in the file: add this one on the phone\./.test(rv()) && box6 && box6.disabled && !box6.checked && d.getElementById('review-add').disabled,'phone: no balance, unticked, and nothing to add: '+rv().replace(/\s+/g,' ').slice(0,200));
-    d.getElementById('review-cancel').click(); await sleep(20);
+    const box6=d.getElementById('rv-0-0'), cur6=d.querySelector('[data-review-currency="0:0"]'), bal6=d.querySelector('[data-review-balance="0:0"]');
+    ok(box6 && box6.checked && cur6 && bal6 && /your main one is taken/.test(rv()) && /No balance in the file: type the one your bank shows/.test(rv()) && d.getElementById('review-add').disabled,
+      'typed balance: ticked, the main currency taken, and Add waits for the balance: '+rv().replace(/\s+/g,' ').slice(0,200));
+    bal6.value='12.3.4'; bal6.dispatchEvent(new w.Event('input',{bubbles:true})); await sleep(10);
+    ok(d.getElementById('review-add').disabled && /Type a number/.test(d.getElementById('rv-bal-err-0-0').textContent),'typed balance: not a figure, Add still waits');
+    bal6.value='1,000.00'; bal6.dispatchEvent(new w.Event('input',{bubbles:true})); await sleep(10);
+    ok(!d.getElementById('review-add').disabled && d.activeElement!==null,'typed balance: a figure, Add is open');
+    bal6.dispatchEvent(new w.Event('change',{bubbles:true})); await sleep(20);
+    const main6=d.querySelector('[data-review-currency="0:0"]').value;
+    d.getElementById('review-add').click(); await sleep(200);
+    const all6=[...w.__ck.records.values()];
+    const st6=all6.find(r=>r.recordType==='Statement'&&r.fields.file_sha256&&r.fields.file_sha256.value==='9'.repeat(64));
+    const lines6=st6?all6.filter(r=>r.recordType==='StatementLine'&&r.fields.statement_id.value===st6.recordName):[];
+    const acct6=lines6.length?w.__ck.records.get(lines6[0].fields.account_id.value):null;
+    const bals6=acct6?all6.filter(r=>r.recordType==='Balance'&&r.fields.account_id.value===acct6.recordName):[];
+    ok(st6 && lines6.length===1 && acct6 && acct6.fields.currency_code.value===main6 && bals6.length===1 && bals6[0].fields.value_minor.value===100000 && bals6[0].fields.as_of_date.value==='2026-08-03',
+      'typed balance: saved with the main currency and the balance typed on the last day: '+JSON.stringify(bals6.map(b=>[b.fields.as_of_date.value,b.fields.value_minor.value])));
   }
   // settings from the phone, edited here: types, nulls and the change tag as the app needs them
   w.__ck.put({recordType:'Assumptions',recordName:'assumptions-1',fields:{base_currency_code:{value:'AED'},monthly_income_minor:{value:4500000},monthly_spending_minor:{value:2200000},annual_raise_pct:{value:'5'},raise_effective_month:{value:4},annual_spending_growth_pct:{value:'3'},annual_return_pct:{value:'7'},horizon_months:{value:12},updated_at:{value:'2026-09-08T10:00:00.000Z'},annual_withdrawal_pct:{value:'4'},nulls:{value:'birth_month,birth_year,fire_growth_pct,fire_interest_pct,income_day'}}});

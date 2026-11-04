@@ -309,6 +309,9 @@
       txn("ex-t3", "ex-car", -110_000, "USD", 6, "P_LOAN", null),
       txn("ex-t4", null, -4_250, "USD", 8, "P_SUBSCRIPTION", "Streaming"),
       txn("ex-t5", "ex-savings", 50_000, "GBP", 35, "P_DIVIDEND", "Interest"),
+      // A statement read on the phone: its lines hang from it, as every phone's do.
+      { name: "ex-s1", type: "Statement", tag: "x", file: null, f: { reader: "General", institution: null, file_name: "Savings statement Q3.pdf",
+        file_sha256: "0".repeat(64), period_from: day(12), period_to: day(1), read_at: at(1) } },
       line("ex-l1", "ex-current", 0, -6_420, 5, "out", "Corner Grocer"),
       line("ex-l2", "ex-current", 1, -50_000, 5, "own", "To Savings (UK)"),
       line("ex-l3", "ex-current", 2, 112, 1, "interest", "Interest earned"),
@@ -489,8 +492,11 @@
     /** Lines read from statements, each with its account's currency. Lines with no date are
         listed under their account in the app, never here. */
     statementLines() {
+      // Only the lines of a statement that is all there: lines left by a save that stopped half
+      // way have no statement, and are never shown (the phone drops them too).
+      const statements = new Set(this.of("Statement").map((s) => s.name));
       return this.of("StatementLine")
-        .filter((l) => l.f.posted_on)
+        .filter((l) => l.f.posted_on && statements.has(l.f.statement_id))
         .map((l) => {
           const account = this.rows.get(l.f.account_id);
           return { ...l, currency: account && account.type === "Account" ? account.f.currency_code : null, accountName: account ? account.f.name : null };
@@ -1014,7 +1020,9 @@
     /** Keeps a statement's records and marks its document added. **All or nothing where iCloud
         allows it**: up to 390 records go in one request iCloud keeps whole. A longer statement
         sends its lines first and everything else last, together; lines that arrive without
-        their statement are dropped by the phone, so a statement half sent adds nothing. */
+        their statement are dropped by the phone and never shown here (statementLines), so a
+        statement half sent adds nothing. If a later request fails, the lines already sent are
+        taken back, as a half-sent upload's pieces are, so trying again leaves no copies behind. */
     async saveStatement(records, document) {
       const marked = document ? [{ name: document.name, type: "Document", tag: document.tag,
         f: { ...document.f, status: "ADDED", status_note: null, status_at: M.stamp() } }] : [];
@@ -1026,9 +1034,21 @@
         for (let i = 0; i < lines.length; i += LIMIT) batches.push(lines.slice(i, i + LIMIT));
         batches.push([...records.filter((r) => r.type !== "StatementLine"), ...marked]);
       }
-      for (const batch of batches) {
-        const saved = await this.backend.save(batch, { atomic: true });
-        for (const r of saved) this.rows.set(r.name, r);
+      const sent = [];
+      try {
+        for (const batch of batches) {
+          const saved = await this.backend.save(batch, { atomic: true });
+          for (const r of saved) this.rows.set(r.name, r);
+          sent.push(...saved);
+        }
+      } catch (error) {
+        // Only lines can have gone before the failure: the last request holds everything else.
+        const lines = sent.filter((r) => r.type === "StatementLine");
+        for (let i = 0; i < lines.length; i += 200) {
+          try { await this.backend.remove(lines.slice(i, i + 200)); } catch (e) { /* left over in iCloud; never shown, dropped by the phone */ }
+        }
+        for (const r of lines) this.rows.delete(r.name);
+        throw error;
       }
     }
 
