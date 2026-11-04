@@ -34,6 +34,13 @@ export function layouts(root = here) {
   return found;
 }
 
+/** The main currency a person in each country would have, for reading their files as the site does. */
+const MAIN_CURRENCY = { US: 'USD', CA: 'CAD', GB: 'GBP', IE: 'EUR', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', SG: 'SGD',
+  HK: 'HKD', TW: 'TWD', IL: 'ILS', AE: 'AED', SA: 'SAR', QA: 'QAR', MX: 'MXN', CL: 'CLP', TR: 'TRY', CH: 'CHF', SE: 'SEK',
+  DK: 'DKK', NO: 'NOK', IS: 'ISK', PL: 'PLN', CZ: 'CZK', HU: 'HUF',
+  DE: 'EUR', AT: 'EUR', NL: 'EUR', BE: 'EUR', FR: 'EUR', LU: 'EUR', ES: 'EUR', IT: 'EUR', PT: 'EUR', GR: 'EUR', FI: 'EUR',
+  EE: 'EUR', LV: 'EUR', LT: 'EUR', SK: 'EUR' };
+
 const words = (s) => String(s ?? '').toLowerCase().replace(/\s+/g, ' ');
 
 /** One account read against one expected: the list of what differs (empty when right). */
@@ -72,7 +79,10 @@ export async function score(dir) {
   if (!existsSync(file)) return { ...base, status: 'FAIL', problems: [`missing file ${spec.file}`], wrong: [] };
   let result;
   try {
-    result = await readDocument(spec.file, new Uint8Array(readFileSync(file)));
+    // Read as a person in that country reads it on the website: their main currency settles dates
+    // that could be either way round, as web/app.js passes it (month first for the US dollar).
+    const main = spec.main_currency ?? MAIN_CURRENCY[spec.country] ?? null;
+    result = await readDocument(spec.file, new Uint8Array(readFileSync(file)), { dayFirstWhenUnsure: main !== 'USD', mainCurrency: main });
   } catch (error) {
     return { ...base, status: 'FAIL', problems: [`threw: ${error?.message ?? error}`], wrong: [] };
   }
