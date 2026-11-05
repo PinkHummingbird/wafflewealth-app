@@ -219,7 +219,8 @@ test('Label: value blocks (Santander UK .txt)', () => {
   assert.equal(a.closing, 153_839);
   assert.ok(a.check.ok);
   assert.equal(a.name, 'Santander ·· 1234');
-  assert.equal(a.ref, 'CSV:XXXXXXXXXXXX1234');
+  // A number shown masked is its last four digits, with the bank's name (verification N7).
+  assert.equal(a.ref, 'CSV:Santander:1234');
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -863,7 +864,7 @@ test('without a header: a summary row first is read as the rows above; a single 
   const abn = read('123456789\tEUR\t20261001\t1640,25\t390,25\t20261001\t-1250,00\tHuur oktober\n', 'TXT261104101530.TAB').accounts[0];
   assert.deepEqual([abn.opening, abn.closing], [164_025, 39_025]);
   const cibc = read('2026-09-01,GROCER,50.00,,4500********1234\n2026-09-03,AMAZON.CA,45.20,,4500********1234\n', 'cibc.csv').accounts[0];
-  assert.deepEqual([cibc.owed, cibc.ref, ...amounts(cibc)], [true, 'CSV:4500********1234', -5_000, -4_520]);
+  assert.deepEqual([cibc.owed, cibc.ref, ...amounts(cibc)], [true, 'CSV:CIBC:1234', -5_000, -4_520]);
 });
 
 test('dates either way: a bank’s country decides before the main currency; the currency before decimal commas (the brief’s order)', () => {
@@ -892,3 +893,24 @@ test('a line called Total in the middle of the table is a line; the longest bank
   const millennium = read('Data;Opis;Kwota\n2026-10-01;ZAKUP;-10,00\n', 'Bank Millennium historia.csv');
   assert.deepEqual([millennium.institution, millennium.country], ['Bank Millennium', 'PL']);
 });
+
+test('verification fixes: a prepaid card, a card read the other way, masked numbers, QIF notes and dates, dotted dates', () => {
+  // N2: a file named for a card whose balance is the person's money (each balance the one before plus
+  // its line, never below zero, mostly money out) is an account you own; the switch can turn it round.
+  const travel = read('Date,Description,Amount,Balance\n2026-09-01,Top up,500.00,500.00\n2026-09-03,Cafe,-4.50,495.50\n', 'travel card.csv', { mainCurrency: 'GBP' }).accounts[0];
+  assert.deepEqual([travel.owed, travel.closing, travel.check.ok, travel.other.owed], [false, 49_550, true, true]);
+  // A real card named so keeps being one: charges printed positive with what is owed rising.
+  const card = read('Date,Description,Amount,Balance\n2026-09-01,SHOP,45.20,45.20\n2026-09-03,CAFE,4.50,49.70\n', 'my card.csv', { mainCurrency: 'GBP' }).accounts[0];
+  assert.equal(card.owed, true);
+  // N3: read as an account its balances don't follow on; read as a card every one does: a card.
+  const tesco = read('Date,Description,Amount,Debit/Credit Flag,Balance\n01/09/2026,TESCO STORES,45.20,D,1189.36\n28/08/2026,PAYMENT RECEIVED,500.00,C,1144.16\n20/08/2026,CAFE,6.75,D,1644.16\n', 'transactions.csv', { mainCurrency: 'GBP' }).accounts[0];
+  assert.deepEqual([tesco.owed, tesco.opening, tesco.closing, tesco.check.ok, tesco.other.owed], [true, 163_741, 118_936, true, false]);
+  // N7: masked numbers above the table are the bank's and the last four digits, never one ref for every bank.
+  const masked = (bank) => read(`Account number,****5678\nDate,Description,Amount\n2026-09-01,PAY,10.00\n`, `${bank}.csv`, { mainCurrency: 'GBP' }).accounts[0].ref;
+  assert.deepEqual([masked('export'), masked('Monzo export')], ['CSV:Account:5678', 'CSV:Monzo:5678']);
+  // N11: dates written with dots put the day first, even for a person whose main currency is the dollar.
+  const dotted = read('Datum;Text;Betrag\n01.09.2026;Miete;-1250,00\n05.09.2026;Gehalt;2500,00\n', 'umsaetze.csv', { mainCurrency: 'USD' });
+  assert.deepEqual(dates(dotted.accounts[0]), ['2026-09-01', '2026-09-05']);
+  assert.equal(dotted.dateOrder, 'DMY');
+});
+

@@ -1474,6 +1474,9 @@ export function dateOrderOf(cells, { bankOrder = null, currency = null, decimalC
   const dayFirstSorted = sorted(true);
   if (dayFirstSorted !== sorted(false)) return settled(dayFirstSorted);
   if (bankOrder === 'DMY' || bankOrder === 'MDY') return settled(bankOrder === 'DMY');
+  // Dates written with dots ("01.09.2026") put the day first wherever they are written so.
+  const written = cells.map((c) => withoutTime(c)).filter((c) => AB_Y.test(c));
+  if (written.length && written.every((c) => /^\d{1,2}\s*\.\s*\d{1,2}\s*\.\s*\d/.test(c))) return settled(true, true);
   if (currency) return settled(!MONTH_FIRST_CURRENCIES.has(currency), true);
   if (commas) return settled(true, true);
   if (mainCurrency) return settled(!MONTH_FIRST_CURRENCIES.has(mainCurrency), true);
@@ -1699,17 +1702,18 @@ function saysCard(text, words) {
  * Navy Federal's checking exports carry both dates too); the file's name saying card (`cardFile` or
  * `creditCard`, without a `debitFile` word: "Apple Card Transactions", "CardStatement", not "Visa
  * Debit"); or a row above the table saying credit card (`creditCard`: DKB's "Kreditkarte:") or
- * labelled with a card heading ("Card Number 4835-****-****-1234").
+ * labelled with a card heading ("Card Number 4835-****-****-1234"). Says which (null when none): the
+ * file's name alone is overruled by a balance that is the person's money (`prepaid`, in readTable).
  */
 function cardExport(bank, cardHeader, headerKeys, fileName, above, { balance = false, sign = false, cardColumn = false } = {}) {
-  if (bank?.card || cardHeader) return true;
-  if (cardColumn) return true;
-  if (CARD_MADE.some((w) => headerKeys.includes(w)) && CARD_POSTED.some((w) => headerKeys.includes(w)) && !balance && !sign) return true;
-  if (saysCard(baseName(fileName).replace(/\.[^.]*$/, ''), [...WORDS.cardFile, ...WORDS.creditCard])) return true;
+  if (bank?.card || cardHeader) return 'layout';
+  if (cardColumn) return 'column';
+  if (CARD_MADE.some((w) => headerKeys.includes(w)) && CARD_POSTED.some((w) => headerKeys.includes(w)) && !balance && !sign) return 'dates';
+  if (saysCard(baseName(fileName).replace(/\.[^.]*$/, ''), [...WORDS.cardFile, ...WORDS.creditCard])) return 'name';
   return above.some((r) => {
     const cells = r.map((x) => cleanCell(x)).filter(Boolean);
     return cells.length > 0 && (saysCard(cells.join(' '), WORDS.creditCard) || labelled(csvKey(cells[0]), WORDS.card));
-  });
+  }) ? 'above' : null;
 }
 
 /**
@@ -2196,8 +2200,9 @@ function readTable(rows, layout, { fileName, dayFirstWhenUnsure, mainCurrency })
   // A card: its heading of a card ("Card No.") counts when filled on nine lines in ten or more.
   const cardColumn = headerKeys.some((k, j) => WORDS.card.includes(k)
     && lineRows.length > 0 && lineRows.filter(({ r }) => cell(r, j) !== '').length * 10 >= lineRows.length * 9);
-  const card = cardExport(bank, cardHeader, headerKeys, fileName, above, { balance: balanceCol != null, sign: signCol != null, cardColumn })
-    || Boolean(c.maskedCard) || balanceKind === 'owed';
+  const cardBy = cardExport(bank, cardHeader, headerKeys, fileName, above, { balance: balanceCol != null, sign: signCol != null, cardColumn });
+  const card = Boolean(cardBy) || Boolean(c.maskedCard) || balanceKind === 'owed';
+  const cardByNameOnly = cardBy === 'name' && !c.maskedCard && balanceKind !== 'owed';
 
   // The own account column: filled on every line, each value with four digits or more (or an IBAN),
   // and, when the rows above name the account, that one (DKB's old "Kontonummer" is the other side's).
@@ -2432,9 +2437,19 @@ function readTable(rows, layout, { fileName, dayFirstWhenUnsure, mainCurrency })
 
   // An account type column decides each account: a card when its lines all say a card ("Visa",
   // "MasterCard", "Credit Card": RBC's download of every account), else not. Without one, the file does.
+  // A file whose name alone says card, but whose balance is the person's money (each balance the one
+  // before plus its line, never below zero, the lines mostly money out): a prepaid or travel card, or a
+  // debit card's account. It is read as an account you own; the switch turns it round.
+  const prepaid = (k) => {
+    const printed = built.get(k).lines;
+    if (!printed.length || printed.some((l) => l.running == null)) return false;
+    const ls = printed[0].date > printed[printed.length - 1].date ? [...printed].reverse() : printed;
+    return ls.every((l, i) => i === 0 || l.running === ls[i - 1].running + l.amount) && ls.every((l) => l.running >= 0)
+      && ls.filter((l) => l.amount < 0).length >= ls.filter((l) => l.amount > 0).length;
+  };
   const cardOf = (k) => {
     const types = records.filter((x) => x.key === k).map((x) => x.accountType);
-    if (c.accountType == null || types.some((t) => t === '')) return card;
+    if (c.accountType == null || types.some((t) => t === '')) return card && !(cardByNameOnly && prepaid(k));
     return types.every((t) => saysCard(t, [...WORDS.cardFile, ...WORDS.creditCard]));
   };
   // Each account, built as read (a card or not) and the other way round, for the review's "It's a
@@ -2463,8 +2478,10 @@ function readTable(rows, layout, { fileName, dayFirstWhenUnsure, mainCurrency })
       if (holderSide) for (const l of lines) if (l.running != null) l.running = -l.running;
     }
     const number = b.number ?? facts.number ?? c.constAccount ?? fileNameNumber ?? null;
-    // decaf's ref: an id of four characters or fewer is the bank's (or "Account"'s) and the id's.
-    const id = number == null ? null : number.toUpperCase().replace(/\s/g, '');
+    // decaf's ref: an id of four characters or fewer is the bank's (or "Account"'s) and the id's. A
+    // number shown masked ("****5678", "XXXX5678") is its last four digits, so it is such an id too.
+    const masked = number != null && /[*•●]|[Xx]{2,}/.test(number);
+    const id = number == null ? null : masked ? (number.replace(/\D/g, '').slice(-4) || null) : number.toUpperCase().replace(/\s/g, '');
     const ref = id == null ? null : id.length <= 4 ? `CSV:${bank?.brand ?? 'Account'}:${id}` : `CSV:${id}`;
     const digitsOnly = (number ?? '').replace(/\D/g, '');
     const brand = bank?.brand ?? null;
@@ -2501,8 +2518,17 @@ function readTable(rows, layout, { fileName, dayFirstWhenUnsure, mainCurrency })
     finishAccount(acct, acct.closing == null);
     return acct;
   });
-  const accounts = build(false);
-  build(true).forEach((other, n) => { accounts[n].other = other; });
+  // Read the other way round when that way's every balance follows on and the reading made doesn't
+  // (Tesco Bank's card: a D/C flag, and what is owed printed as a plain figure): the reading made is
+  // then the other, for the switch.
+  const turnedRound = build(true);
+  const accounts = build(false).map((asRead, n) => {
+    const other = turnedRound[n];
+    const better = asRead.check.checked && !asRead.check.ok && other.check.checked && other.check.ok;
+    const [kept, spare] = better ? [other, asRead] : [asRead, other];
+    kept.other = spare;
+    return kept;
+  });
   // Accounts of one file that would share a ref (an account named above the table, its lines in two
   // currencies) each carry their currency after it, so they are never written into one account.
   const shared = new Set(accounts.map((a) => a.ref).filter((ref, n, refs) => ref != null && refs.indexOf(ref) !== n));
@@ -3378,9 +3404,11 @@ function qifAccount(section, dayFirst, places) {
   const card = section.card;
   let opening = null;
   let lines = [];
+  let unread = 0;
   for (const record of section.records) {
     const amount = record.amount == null ? null : csvAmount(record.amount, QIF_READ_DIGITS, null, places);
-    if (amount == null) continue;
+    // An amount written but not a figure: counted, and said, as a CSV's row is.
+    if (amount == null) { if (record.amount != null && trimSpaces(record.amount) !== '') unread++; continue; }
     const payee = trimSpaces(record.payee ?? '');
     // Quicken's opening balance: a record to the account itself (`L[name]`), not a line, wherever
     // it sits; a newest-first file puts it last.
@@ -3405,6 +3433,7 @@ function qifAccount(section, dayFirst, places) {
     currency: null, lines,
   });
   acct.readDigits = QIF_READ_DIGITS;
+  if (unread) acct.notes.push(`${unread} row${unread === 1 ? '' : 's'} could not be read`);
   if (opening != null) {
     const sum = lines.reduce((t, l) => t + l.amount, 0);
     acct.opening = opening;
@@ -3489,9 +3518,9 @@ export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = t
   // Quicken's apostrophe year is American, month first; decimal commas put the day first.
   const records = sections.flatMap((sec) => sec.records);
   const rawDates = records.filter((r) => r.date != null).map((r) => r.date);
-  const unsure = rawDates.some((d) => d.includes("'")) ? false
-    : decimalComma(records.filter((r) => r.amount != null).map((r) => r.amount)) ? true : dayFirstWhenUnsure;
-  const dayFirst = dayFirstOf(rawDates.map(qifDate), unsure);
+  const order = rawDates.some((d) => d.includes("'")) ? dateOrderOf(rawDates.map(qifDate), { bankOrder: 'MDY' })
+    : dateOrderOf(rawDates.map(qifDate), { decimalComma: decimalComma(records.filter((r) => r.amount != null).map((r) => r.amount)), mainCurrency, dayFirstWhenUnsure });
+  const dayFirst = order.dayFirst;
   const places = minorDigits(mainCurrency ?? null);
   const accounts = sections.map((sec) => qifAccount(sec, dayFirst, places));
   const lineDates = accounts.flatMap((a) => a.lines.map((l) => l.date)).filter(Boolean).sort();
@@ -3501,7 +3530,8 @@ export function readQifStatement(text, { fileName = null, dayFirstWhenUnsure = t
   }
   return {
     reader: 'QIF', institution: null, country: null, general: false, fileName, holder: null,
-    period: { from: lineDates[0] ?? null, to: lineDates[lineDates.length - 1] ?? null }, accounts,
+    period: { from: lineDates[0] ?? null, to: lineDates[lineDates.length - 1] ?? null },
+    dateOrder: order.order, dateOrderGuessed: order.guessed, accounts,
   };
 }
 

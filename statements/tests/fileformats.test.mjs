@@ -594,3 +594,16 @@ test('each format is known by what is in it, and by nothing else', () => {
     [looksLikeMt940(t), looksLikeCamt(t), looksLikeQif(t), looksLikeOfx(t)].map(Number).join('')]));
   assert.deepEqual(seen, { mt940: '1000', camt053: '0100', qif: '0010', csv: '0000' });
 });
+
+test('QIF: an amount that isn’t a figure is counted and said; dates that read either way say how they were read (verification N4, N8)', () => {
+  const text = '!Type:Bank\nD09/01/2026\nT2,000.00\nPPay\n^\nD09/02/2026\nT12.50*\nPShop\n^\nD09/03/2026\nTN/A\nPOther\n^\nD09/04/2026\nT-5.00\nPCafe\n^\n';
+  const usd = readQifStatement(text, { fileName: 'bad.qif', dayFirstWhenUnsure: false, mainCurrency: 'USD' });
+  assert.deepEqual(usd.accounts[0].notes, ['2 rows could not be read', 'no balance in the file']);
+  assert.deepEqual([usd.dateOrder, usd.dateOrderGuessed], ['MDY', true]);
+  const yen = readQifStatement('!Type:Bank\nD09/01/2026\nT-10\n^\nD09/05/2026\nT-20\n^\n', { fileName: 'export.qif', mainCurrency: 'JPY' });
+  assert.deepEqual([yen.dateOrder, yen.dateOrderGuessed, yen.accounts[0].lines[0].date], ['DMY', true, '2026-01-09']);
+  // Quicken's apostrophe year is its own: month first, not a guess.
+  const quicken = readQifStatement("!Type:Bank\nD9/ 2'26\nT-12.50\n^\n", { fileName: 'q.qif', mainCurrency: 'GBP' });
+  assert.deepEqual([quicken.dateOrder, quicken.dateOrderGuessed], ['MDY', false]);
+});
+
