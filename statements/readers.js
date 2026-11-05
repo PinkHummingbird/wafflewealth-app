@@ -4,7 +4,7 @@
 // balances and lines. Amounts are whole numbers of the currency's smallest unit, never floats.
 
 import { PROFILES } from './profiles.js';
-import { CSV_WORDS } from './csv-words.js?v=2';
+import { CSV_WORDS } from './csv-words.js?v=3';
 
 // ---------------------------------------------------------------------------------------------
 // Rows

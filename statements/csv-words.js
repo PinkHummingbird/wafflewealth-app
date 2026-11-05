@@ -96,7 +96,7 @@ export const CSV_WORDS = {
     "опис операції", "деталі", "деталі операції", "keterangan", "deskripsi", "uraian", "rincian",
     "keterangan transaksi", "butiran", "huraian", "รายการ", "รายละเอียด", "คำอธิบาย", "nội dung", "diễn giải",
     "mô tả", "nội dung giao dịch", "chi tiết", "uživatelská identifikace", "komentář", "notifications", "title",
-    "transactions", "location"
+    "transactions", "location", "descrizione completa", "descrizione operazioni", "movimiento"
   ],
   "party": [
     "name", "payee", "merchant", "counterparty", "counter party", "beneficiary", "payer",
@@ -121,7 +121,7 @@ export const CSV_WORDS = {
     "penerima", "nama penerima", "pihak lawan", "ผู้รับเงิน", "ชื่อผู้รับ", "người nhận", "đối tác", "tên đối ứng",
     "người thụ hưởng", "sub description", "empfänger auftraggeber", "sender empfänger",
     "empfänger zahlungspflichtiger", "partnername", "op name", "other party name", "摘要内容", "交易資訊", "取引内容詳細",
-    "název účtu protiúčtu", "sender receiver name", "sender/receiver name", "name description"
+    "název účtu protiúčtu", "sender receiver name", "sender/receiver name", "name description", "보낸분/받는분"
   ],
   "kind": [
     "type", "transaction type", "typ transakce", "typ transakcji", "rodzaj transakcji", "typ", "umsatzart",
@@ -187,14 +187,14 @@ export const CSV_WORDS = {
     "sold final", "sold disponibil", "sold contabil", "bokfört saldo", "behållning", "jääk", "atlikums", "likutis",
     "υπόλοιπο", "λογιστικό υπόλοιπο", "bakiye", "残高", "差引残高", "お取引後残高", "잔액", "거래후잔액", "거래후 잔액", "余额", "账户余额",
     "交易后余额", "餘額", "帳戶餘額", "結餘", "יתרה", "الرصيد", "رصيد", "остаток", "баланс", "остаток после операции", "залишок",
-    "baki", "ยอดคงเหลือ", "คงเหลือ", "số dư", "số dư cuối", "取引後残高", "staða"
+    "baki", "ยอดคงเหลือ", "คงเหลือ", "số dư", "số dư cuối", "取引後残高", "staða", "יתרה בש\"ח"
   ],
   "currency": [
     "currency", "ccy", "currency code", "waehrung", "wahrung", "munt", "posted currency", "account currency",
     "transaction currency", "whg", "valuta rekening", "devies", "devise", "divisa", "moneda", "moeda", "waluta",
     "měna", "mena", "pénznem", "deviza", "valuta", "valuutta", "valuuta", "valūta", "valiuta", "νόμισμα",
     "para birimi", "döviz", "通貨", "통화", "币种", "币别", "货币", "幣別", "幣種", "貨幣", "מטבע", "العملة", "валюта", "mata uang",
-    "mata wang", "สกุลเงิน", "loại tiền", "tiền tệ", "mynt", "měna účtu"
+    "mata wang", "สกุลเงิน", "loại tiền", "tiền tệ", "mynt", "měna účtu", "devizanem"
   ],
   "account": [
     "account", "account number", "account no", "card number", "account #", "card no", "card", "posted account",

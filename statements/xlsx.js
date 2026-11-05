@@ -7,7 +7,7 @@
 // CSV readers (readers.js). A number is written out from its own digits and never goes through a
 // float, so an amount comes out exactly as the cell shows it.
 
-import { unzip, readCsvRows } from './readers.js?v=31';
+import { unzip, readCsvRows } from './readers.js?v=32';
 
 export const isXlsxName = (name) => /\.xlsx$/i.test(name);
 

@@ -914,3 +914,14 @@ test('verification fixes: a prepaid card, a card read the other way, masked numb
   assert.equal(dotted.dateOrder, 'DMY');
 });
 
+test('more headings: a full description, a currency column, a balance in shekels, who sent or got it (Fineco, OTP, Hapoalim, KB Kookmin)', () => {
+  const otp = read('Számlaszám;Közlemény;Könyvelés dátuma;Összeg;Devizanem\n1177301612345678;Lakbér;2026-10-05;-185000;HUF\n1177301612345678;Munkabér;2026-10-10;685000;HUF\n', 'Szamlatortenet.csv', { mainCurrency: 'HUF' }).accounts[0];
+  assert.deepEqual([otp.currency, ...amounts(otp)], ['HUF', -18_500_000, 68_500_000]);
+  const kb = read('거래일시,적요,보낸분/받는분,출금액,입금액,잔액\n2026-10-02 09:12,체크카드,리틀빈카페,4200,0,2346290\n2026-10-15 10:30,급여,예시스튜디오,0,2150000,4496290\n', 'kb.csv', { mainCurrency: 'KRW' }).accounts[0];
+  assert.deepEqual(kb.lines.map((l) => l.description), ['리틀빈카페 · 체크카드', '예시스튜디오 · 급여']);
+  const hapoalim = read('תאריך,פרטים,חובה,זכות,יתרה בש"ח\n2026-10-02,קפה,18,,4982\n2026-10-05,שכר דירה,4800,,182\n', 'hapoalim.csv', { mainCurrency: 'ILS' }).accounts[0];
+  assert.deepEqual([hapoalim.opening, hapoalim.closing, hapoalim.check.ok], [500_000, 18_200, true]);
+  const fineco = read('Data_Operazione,Entrate,Uscite,Descrizione,Descrizione_Completa\n2026-07-10,2129.78,,Stipendio,Ord: ESEMPIO SPA Stipendio luglio\n', 'fineco.csv', { mainCurrency: 'EUR' }).accounts[0];
+  assert.equal(fineco.lines[0].description, 'Ord: ESEMPIO SPA Stipendio luglio');
+});
+
