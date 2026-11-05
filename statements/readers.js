@@ -4,7 +4,7 @@
 // balances and lines. Amounts are whole numbers of the currency's smallest unit, never floats.
 
 import { PROFILES } from './profiles.js';
-import { CSV_WORDS } from './csv-words.js?v=3';
+import { CSV_WORDS } from './csv-words.js?v=4';
 
 // ---------------------------------------------------------------------------------------------
 // Rows
@@ -2673,6 +2673,37 @@ export function readCsvRows(rows, { fileName = null, dayFirstWhenUnsure = true, 
 }
 
 /**
+ * **A web page of a table**, as banks serve their "Excel" download (Israeli banks' .xls, several
+ * others'): text beginning with a tag, holding table rows. Its rows go to the CSV readers as they are.
+ */
+export function looksLikeHtmlTable(text) {
+  const head = String(text).replace(/^\uFEFF/, '').trimStart().slice(0, 4000);
+  return head.startsWith('<') && /<t[dh][\s>]/i.test(head) && /<tr[\s>]/i.test(head) && !/^<\?xml[^>]*>\s*<(?!html)/i.test(head);
+}
+
+/**
+ * The rows of every table on the page, a row per `<tr>` and a cell per `<td>` or `<th>` (a cell
+ * spanning columns is followed by empty ones), each cell's text without its tags, its character
+ * references read (`&amp;`, `&nbsp;`, `&#1488;`) and its white space as one space. A row or cell left
+ * open ends at the next one, as browsers read them.
+ */
+export function htmlTableRows(text) {
+  const page = String(text).replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '');
+  const rows = [];
+  for (const tr of page.matchAll(/<tr\b[^>]*>([\s\S]*?)(?=<tr\b|<\/table\s*>|$)/gi)) {
+    const cells = [];
+    for (const td of tr[1].matchAll(/<t[dh]\b([^>]*)>([\s\S]*?)(?=<t[dh]\b|<\/tr\s*>|$)/gi)) {
+      cells.push(ofxUnescape(td[2].replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' '))
+        .replace(/\s+/g, ' ').trim());
+      const span = /colspan\s*=\s*["']?([0-9]+)/i.exec(td[1]);
+      for (let k = 1; k < Math.min(Number(span ? span[1] : 1), 64); k++) cells.push('');
+    }
+    if (cells.length) rows.push(cells);
+  }
+  return rows;
+}
+
+/**
  * **One CSV file → one statement**: Wise's own; else any bank's, read from its header (comma,
  * semicolon, tab or bar, or what Excel's "sep=" line says), then without a header, then as
  * `Label: value` blocks. A statement with no accounts when nothing reads it: `datesUnread` when its
@@ -2681,6 +2712,8 @@ export function readCsvRows(rows, { fileName = null, dayFirstWhenUnsure = true, 
  * the file does (see `dateOrderOf`).
  */
 export function readCsvStatement(text, { fileName = null, dayFirstWhenUnsure = true, mainCurrency = null } = {}) {
+  // A table saved as a web page (a bank's .xls that is HTML) is read from its rows.
+  if (looksLikeHtmlTable(text)) return readCsvRows(htmlTableRows(text), { fileName, dayFirstWhenUnsure, mainCurrency });
   const rows = parseCsv(text);
   const wise = wiseStatement(rows, fileName);
   if (wise) return wise;
@@ -2827,7 +2860,8 @@ function headingWords(text) {
  * **A file's bytes as text**, for every text format (CSV, TSV, OFX, MT940, CAMT, QIF, .txt):
  * 1. a byte order mark: UTF-8, UTF-16 LE or BE;
  * 2. no mark, but NUL in alternate bytes: UTF-16 (little-endian when the NULs come second);
- * 3. an OFX header's `CHARSET:1252` (or another Windows page, 1250 to 1258: Swift's 1255, 1256 and
+ * 3. an OFX header's `CHARSET:1252` (or another Windows page, 1250 to 1258), or a web page's
+ *    `<meta … charset=windows-1255>` (1250 to 1258, or utf-8), in the first 400 bytes (Swift's 1255, 1256 and
  *    1258 are CFStringEncodings.windowsHebrew, .windowsArabic and .windowsVietnamese): that page;
  * 4. valid UTF-8: UTF-8;
  * 5. else each of the code pages above reads the lines that differ (the CJK ones refusing bytes
@@ -2845,6 +2879,9 @@ export function decodeText(bytes) {
   const head = new TextDecoder('windows-1252').decode(b.subarray(0, 400));
   const charset = /CHARSET:\s*(125[0-8])/i.exec(head);
   if (charset) return new TextDecoder(`windows-${charset[1]}`).decode(b);
+  // A web page's own word on its code page (a bank's "Excel" download that is an HTML table).
+  const meta = /<meta[^>]*charset\s*=\s*["']?\s*(windows-125[0-8]|utf-8)(?![0-9a-z-])/i.exec(head);
+  if (meta) return new TextDecoder(meta[1].toLowerCase()).decode(b);
   try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { /* not UTF-8 */ }
   const sample = linesBeyondAscii(b);
   let best = null;

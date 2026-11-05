@@ -125,3 +125,11 @@ test('code pages told by their letters alone: Cyrillic isn’t accented Latin; T
   const thai = 'Date,Description,Amount\n20/08/2026,ค่าอาหารกลางวันที่ร้าน,-100.00\n';
   assert.equal(decodeText(encode(thai, 'windows-874')), thai);
 });
+
+test('a web page’s own word on its code page is taken: windows-1255 Hebrew, not Cyrillic', () => {
+  const head = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1255"></head><body><table><tr><th>';
+  const hebrew = [0xFA, 0xE0, 0xF8, 0xE9, 0xEA]; // תאריך in windows-1255
+  const bytes = new Uint8Array([...new TextEncoder().encode(head), ...hebrew, ...new TextEncoder().encode('</th></tr></table></body></html>')]);
+  assert.match(decodeText(bytes), /<th>תאריך<\/th>/);
+});
+

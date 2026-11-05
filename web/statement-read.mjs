@@ -7,12 +7,12 @@ import * as pdfjs from '../statements/vendor/pdfjs/pdf.min.mjs';
 import {
   pagesFromPdf, readStatement, readCsvStatement, readOfxStatement, readMt940Statement, readCamtStatement, readQifStatement,
   decodeText, isOfxName, looksLikeOfx, looksLikeMt940, looksLikeCamt, looksLikeQif, unzip, labelLines,
-} from '../statements/readers.js?v=32';
-import { readXlsxStatement, looksLikeXlsx, unreadableExcel } from '../statements/xlsx.js?v=32';
-import { fingerprint } from './statement-save.mjs?v=32';
+} from '../statements/readers.js?v=33';
+import { readXlsxStatement, looksLikeXlsx, unreadableExcel } from '../statements/xlsx.js?v=33';
+import { fingerprint } from './statement-save.mjs?v=33';
 
 // Putting a reading right, as the app does: the same functions the statements page uses.
-export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=32';
+export { correctLine, leaveOutLine, linesOff, correctedCount } from '../statements/readers.js?v=33';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('../statements/vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 

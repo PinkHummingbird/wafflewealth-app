@@ -4,7 +4,7 @@
 // the same words (csv-words.js is its Statements/CSV/words.json) and must give the same results.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readCsvStatement, csvAmount, csvDate, csvKey, dateOrderOf, dayFirstOf, validIban, minorDigits } from '../readers.js';
+import { readCsvStatement, csvAmount, csvDate, csvKey, dateOrderOf, dayFirstOf, validIban, minorDigits, looksLikeHtmlTable, htmlTableRows } from '../readers.js';
 import { CSV_WORDS } from '../csv-words.js';
 
 const amounts = (a) => a.lines.map((l) => l.amount);
@@ -923,5 +923,25 @@ test('more headings: a full description, a currency column, a balance in shekels
   assert.deepEqual([hapoalim.opening, hapoalim.closing, hapoalim.check.ok], [500_000, 18_200, true]);
   const fineco = read('Data_Operazione,Entrate,Uscite,Descrizione,Descrizione_Completa\n2026-07-10,2129.78,,Stipendio,Ord: ESEMPIO SPA Stipendio luglio\n', 'fineco.csv', { mainCurrency: 'EUR' }).accounts[0];
   assert.equal(fineco.lines[0].description, 'Ord: ESEMPIO SPA Stipendio luglio');
+});
+
+test('a bank’s "Excel" download that is a web page: its table’s rows are read as a CSV’s (Leumi, Banco BPM, Openbank)', () => {
+  const page = `<html dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1255"></head>
+<body><!-- export --><table border="1">
+<tr><td colspan="4">Movimenti &amp; saldo</td></tr>
+<tr><th>Data Contabile</th><th>Importo</th><th>Divisa</th><th>Causale / Descrizione</th>
+<tr><td>26/02/2026<td>-27,80</td><td>EUR</td><td>pagamento pos<br>farmacia&nbsp;esempio</td></tr>
+<tr><td>10/02/2026</td><td>1.985,60</td><td>EUR</td><td>bonifico &#40;stipendio&#41;</td></tr>
+</table></body></html>`;
+  assert.equal(looksLikeHtmlTable(page), true);
+  assert.deepEqual(htmlTableRows(page)[0], ['Movimenti & saldo', '', '', '']);
+  assert.deepEqual(htmlTableRows(page)[2], ['26/02/2026', '-27,80', 'EUR', 'pagamento pos farmacia esempio']);
+  const statement = read(page, 'movimenti.xls', { mainCurrency: 'EUR' });
+  const a = statement.accounts[0];
+  assert.deepEqual([a.currency, ...amounts(a)], ['EUR', 198_560, -2_780]);
+  assert.deepEqual(a.lines.map((l) => l.description), ['bonifico (stipendio)', 'pagamento pos farmacia esempio']);
+  // Not a page: a CSV, and an XML file that isn't a page.
+  assert.equal(looksLikeHtmlTable('Date,Description,Amount\n2026-09-01,<td>,1.00\n'), false);
+  assert.equal(looksLikeHtmlTable('<?xml version="1.0"?><Document><tr><td>1</td></tr></Document>'), false);
 });
 

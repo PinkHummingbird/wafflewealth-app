@@ -96,7 +96,8 @@ export const CSV_WORDS = {
     "опис операції", "деталі", "деталі операції", "keterangan", "deskripsi", "uraian", "rincian",
     "keterangan transaksi", "butiran", "huraian", "รายการ", "รายละเอียด", "คำอธิบาย", "nội dung", "diễn giải",
     "mô tả", "nội dung giao dịch", "chi tiết", "uživatelská identifikace", "komentář", "notifications", "title",
-    "transactions", "location", "descrizione completa", "descrizione operazioni", "movimiento"
+    "transactions", "location", "descrizione completa", "descrizione operazioni", "movimiento",
+    "causale / descrizione"
   ],
   "party": [
     "name", "payee", "merchant", "counterparty", "counter party", "beneficiary", "payer",
@@ -160,7 +161,7 @@ export const CSV_WORDS = {
     "지급액", "支出", "支出金额", "借方金额", "借方发生额", "转出", "支出金額", "提款", "借方", "חובה", "חיוב", "משיכה", "مدين", "سحب",
     "المسحوبات", "خصم", "расход", "списание", "дебет", "сумма списания", "видаток", "списання", "keluar",
     "pengeluaran", "penarikan", "ถอน", "ถอนเงิน", "เดบิต", "ghi nợ", "số tiền ghi nợ", "rút", "提出", "支払い金額",
-    "お支払い金額", "引き出し", "お引き出し", "فلوس خارجة"
+    "お支払い金額", "引き出し", "お引き出し", "فلوس خارجة", "בחובה"
   ],
   "in": [
     "credit", "credit amount", "money in", "paid in", "deposit", "deposits", "deposit amount", "deposit amt", "in",
@@ -174,7 +175,7 @@ export const CSV_WORDS = {
     "gelir", "入金", "お預り金額", "お預入金額", "預入額", "入金額", "お預入れ", "입금", "입금액", "맡기신금액", "맡기신 금액", "收入", "收入金额", "贷方金额",
     "贷方发生额", "存入", "转入", "存款", "貸方", "收入金額", "זכות", "הפקדה", "זיכוי", "دائن", "إيداع", "الإيداعات", "приход",
     "поступление", "зачисление", "кредит", "сумма зачисления", "надходження", "зарахування", "masuk", "pemasukan",
-    "setoran", "ฝาก", "ฝากเงิน", "เครดิต", "ghi có", "số tiền ghi có", "預かり金額", "お預かり金額", "お預け入れ", "預け入れ"
+    "setoran", "ฝาก", "ฝากเงิน", "เครดิต", "ghi có", "số tiền ghi có", "預かり金額", "お預かり金額", "お預け入れ", "預け入れ", "בזכות"
   ],
   "balance": [
     "balance", "running balance", "balance after", "account balance", "closing balance", "available balance",
@@ -187,7 +188,7 @@ export const CSV_WORDS = {
     "sold final", "sold disponibil", "sold contabil", "bokfört saldo", "behållning", "jääk", "atlikums", "likutis",
     "υπόλοιπο", "λογιστικό υπόλοιπο", "bakiye", "残高", "差引残高", "お取引後残高", "잔액", "거래후잔액", "거래후 잔액", "余额", "账户余额",
     "交易后余额", "餘額", "帳戶餘額", "結餘", "יתרה", "الرصيد", "رصيد", "остаток", "баланс", "остаток после операции", "залишок",
-    "baki", "ยอดคงเหลือ", "คงเหลือ", "số dư", "số dư cuối", "取引後残高", "staða", "יתרה בש\"ח"
+    "baki", "ยอดคงเหลือ", "คงเหลือ", "số dư", "số dư cuối", "取引後残高", "staða", "יתרה בש\"ח", "היתרה", "היתרה בש\"ח"
   ],
   "currency": [
     "currency", "ccy", "currency code", "waehrung", "wahrung", "munt", "posted currency", "account currency",

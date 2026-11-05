@@ -620,7 +620,7 @@
      their own (WWStatementModules). */
   async function statementModules() {
     if (globalThis.WWStatementModules) return globalThis.WWStatementModules;
-    const [read, save] = await Promise.all([import("./statement-read.mjs?v=32"), import("./statement-save.mjs?v=32")]);
+    const [read, save] = await Promise.all([import("./statement-read.mjs?v=33"), import("./statement-save.mjs?v=33")]);
     const match = globalThis.WWAccountMatch || await import("./account-match.mjs?v=25");
     return { ...read, ...save, match };
   }
