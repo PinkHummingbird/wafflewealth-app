@@ -99,7 +99,7 @@ function addOfx(name, bytes) {
 
 async function addFiles(files) {
   const pdfs = [...files].filter((f) => kindOf(f.name));
-  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s download (OFX, QFX, MT940, CAMT, QIF, CSV or Excel .xlsx), a Wise CSV, or a zip of them.' });
+  for (const f of [...files].filter((f) => !pdfs.includes(f))) state.problems.push({ file: f.name, text: 'This isn’t a statement this page reads: choose a PDF, a bank’s download (OFX, QFX, QBO, MT940, CAMT, QIF, CSV or Excel), a Wise CSV, or a zip of them.' });
   if (!pdfs.length) return render();
   if (state.example) { state.statements = []; state.example = false; }
   $('reading').hidden = false;

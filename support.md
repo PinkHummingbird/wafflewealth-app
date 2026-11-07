@@ -1,4 +1,4 @@
-# WaffleWealth — Support
+# WaffleWealth: Support
 
 [WaffleWealth home](./) · [Try the free calculator](try/) · [Get it on the App Store](https://apps.apple.com/us/app/wafflewealth/id6811611595)
 
@@ -9,6 +9,10 @@ WaffleWealth is a net worth projection app for iPhone. You tell it what you have
 Everything is computed on your device. There is no account, no server of ours, and no data collection.
 
 **Using the web page:** in WaffleWealth on your iPhone, open Settings and turn on "Keep a copy in iCloud". Then sign in on the [web page](web/) with the same Apple ID. If you use Advanced Data Protection, also turn on "Access iCloud Data on the Web" in Settings › your name › iCloud.
+
+## A statement that isn't read
+
+Tell us the bank, the country and the file type (PDF, CSV, Excel, OFX and so on). Please don't send a real statement: it holds your account numbers and every payment.
 
 [Privacy Policy](privacy) · [Back to WaffleWealth](./)
 

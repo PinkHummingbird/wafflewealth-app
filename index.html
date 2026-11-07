@@ -6,7 +6,7 @@
 <title>WaffleWealth: net worth projection for iPhone</title>
 <meta name="description" content="Net worth projection for iPhone, without the spreadsheet. See where your net worth is heading, month by month. Free, no account, your figures stay yours.">
 <meta property="og:title" content="WaffleWealth: net worth projection for iPhone">
-<meta property="og:description" content="Your net worth, drawn forward month by month from what you type. Nothing leaves your phone.">
+<meta property="og:description" content="Your net worth, drawn forward month by month from what you type. No account, no bank login.">
 <meta name="google-site-verification" content="kUj-e8vOyrOqtDy4nev8-1xg59TAja_Ert2VObKIvqg">
 <link rel="canonical" href="https://pinkhummingbird.github.io/wafflewealth-app/">
 <meta property="og:image" content="https://pinkhummingbird.github.io/wafflewealth-app/assets/og-card.png">
@@ -131,16 +131,7 @@ p { margin: 0; }
 .lede + .lede { color: var(--ink-2); font-size: 1.05rem; }
 @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .hero-copy { max-width: none; } }
 
-/* ---- waitlist form ---- */
-.waitlist { display: flex; flex-direction: column; gap: 10px; }
-.waitlist .row { display: flex; gap: 8px; flex-wrap: wrap; }
-.waitlist input[type="email"] {
-  flex: 1 1 220px; min-width: 0; height: 52px; padding: 0 16px;
-  border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--raised); color: var(--ink);
-  font: inherit; font-size: 1rem;
-}
-.waitlist input[type="email"]::placeholder { color: var(--faint); }
-.waitlist input[type="email"]:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+/* ---- buttons ---- */
 .btn {
   height: 52px; padding: 0 22px; border: 0; border-radius: var(--r-md); cursor: pointer;
   background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 1rem; white-space: nowrap;
@@ -150,11 +141,6 @@ p { margin: 0; }
 .btn:active { transform: translateY(1px); }
 .btn[disabled] { opacity: 0.6; cursor: default; }
 .btn.store { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
-.waitlist .note { font-size: var(--fs-small); color: var(--faint); }
-.waitlist .status { font-size: var(--fs-small); color: var(--ink-2); min-height: 1.4em; }
-.waitlist .status.ok { color: var(--accent); }
-.waitlist .status.err { color: var(--alert); }
-.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* ---- the instrument ---- */
 .panel {
@@ -417,10 +403,6 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
         <li>On your phone, or your own iCloud</li>
         <li>Any currency</li>
       </ul>
-
-      <div id="store-cta" hidden>
-        <a class="btn store" id="store-link" href="#">Download on the App Store</a>
-      </div>
     </div>
 
     <!-- The instrument itself: the app's example position, projected live, touch to read. -->
@@ -484,7 +466,7 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
     <div class="wrap">
       <div class="sec-head">
         <h2>On your iPhone.</h2>
-        <p>Four tabs: Projection, Your money, History and Settings. These are the app's own example numbers.</p>
+        <p>Five tabs: Projection, Your money, Activity, History and Settings. These are the app's own example numbers.</p>
       </div>
       <div class="shots" id="screens" tabindex="0" aria-label="App screens, scrolls sideways">
         <figure class="phone"><div class="frame"><picture><source srcset="assets/screens/01-projection-dark.jpg" media="(prefers-color-scheme: dark)"><img src="assets/screens/01-projection-light.jpg" alt="The Projection screen: net worth, the line drawn forward, and the biggest moves since last month." loading="lazy" width="603" height="1311"></picture></div><figcaption><strong>Projection</strong>Net worth today, where it is heading, and the biggest moves since last month.</figcaption></figure>
@@ -511,7 +493,9 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
         <div><h3>When your money could pay for your life (FIRE)</h3><p>The month your money could cover your spending with no salary coming in, at a withdrawal rate you choose.</p><a href="try/">Work out your FIRE date in the demo &rarr;</a><br><a href="coast-fire-calculator/">Coast FIRE calculator &rarr;</a></div>
         <div><h3>What one year is made of</h3><p>Money in, money out, growth, interest, and each planned bonus or bill by name. Then each account, now against a year from now.</p></div>
         <div><h3>Typed one wrong? Take it back</h3><p>Swipe a balance away and every figure goes back to what it said without it. Put it back any time.</p></div>
-        <div><h3>What it doesn't do</h3><p>No transactions to track, no bank connections, no receipts, no budgets. Balances and monthly totals in, and that is all it needs.</p></div>
+        <div><h3>Add your bank's statements</h3><p>PDF, CSV, Excel, OFX, QFX, QBO, MT940, CAMT, QIF or Wise, read on your iPhone. No bank login.</p></div>
+        <div><h3>Four looks</h3><p>Original, Refined Honey, Midnight Trust and Soft UI.</p></div>
+        <div><h3>What it doesn't do</h3><p>No bank connections and no budgets. Balances and monthly totals are all it needs. Statements and transactions are there if you want them.</p></div>
       </div>
     </div>
   </section>
@@ -567,14 +551,14 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
       <div class="privacy">
         <ul>
           <li><strong>No tracking</strong><span>No analytics, no advertising, no third-party SDKs. The app has no server of its own.</span></li>
-          <li><strong>One optional request</strong><span>Daily exchange rates, off until you turn it on. It sends a three-letter currency code — never a balance, amount, account name or category.</span></li>
+          <li><strong>Two optional connections</strong><span>Your own iCloud, if you turn the copy on. Daily exchange rates, off until you turn them on, which send a three-letter currency code and never a balance, amount, account name or category.</span></li>
           <li><strong>Yours to take</strong><span>Export everything, any time, including an encrypted backup only your passphrase opens.</span></li>
-          <li><strong>Yours to delete</strong><span>Delete the app and it is all gone. The database lives inside it.</span></li>
+          <li><strong>Yours to delete</strong><span>Delete the app and it is gone from your iPhone. If the iCloud copy is on, remove it in Settings first.</span></li>
         </ul>
         <div class="airplane">
           <p class="label">The quickest check</p>
           <h3>Try it in Airplane Mode.</h3>
-          <p>Switch the radio off and use all of it: accounts, projection, breakdown, targets, history, export. Nothing needs a network.</p>
+          <p>Switch the radio off and use all of it: accounts, projection, breakdown, targets, history, export. Nothing needs a network, except the iCloud copy and the rates, if you turn them on.</p>
         </div>
       </div>
     </div>
@@ -585,11 +569,12 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
       <div>
         <h2>On the App Store now.</h2>
         <p class="lead">WaffleWealth is out, and free for iPhone. Download it, tap "Look around with example numbers", and you'll see the whole thing in a minute.</p>
-        <ol class="track" aria-label="Launch progress">
-          <li class="done"><strong>Built and tested</strong><span>On iPhone, in light and dark, with over 450 checks on the arithmetic.</span></li>
-          <li class="done"><strong>Reviewed by Apple</strong><span>Approved for the App Store.</span></li>
-          <li class="now"><strong>On the App Store</strong><span>Free to download. Where it is now.</span></li>
-        </ol>
+        <ul class="track" aria-label="New in 1.1">
+          <li class="done"><strong>Bank statements</strong><span>PDFs or your bank's download, read on your iPhone.</span></li>
+          <li class="done"><strong>Activity</strong><span>Every statement line and transaction, by month or account.</span></li>
+          <li class="done"><strong>iCloud and the web</strong><span>An optional copy in your own iCloud, and your figures on a computer.</span></li>
+          <li class="done"><strong>Four looks</strong><span>Original, Refined Honey, Midnight Trust or Soft UI.</span></li>
+        </ul>
       </div>
       <div class="launch-card">
         <a class="badge-soon" href="https://apps.apple.com/us/app/wafflewealth/id6811611595" aria-label="Download WaffleWealth on the App Store">
@@ -600,21 +585,8 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
           <dt>Price</dt><dd>Free</dd>
           <dt>Needs</dt><dd>iPhone with iOS 26 or later</dd>
           <dt>Account</dt><dd>None. Nothing to sign up for.</dd>
-          <dt>Your data</dt><dd>Stays on your phone</dd>
+          <dt>Your data</dt><dd>On your iPhone, or your own iCloud if you turn it on</dd>
         </dl>
-        <form class="waitlist" id="waitlist" novalidate>
-          <label for="email" class="label">Get one email when it's out</label>
-          <div class="row">
-            <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="waitlist-note">
-            <button class="btn" type="submit" id="submit">Tell me when it's live</button>
-          </div>
-          <label class="hp" aria-hidden="true">Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
-          <p class="status" id="status" role="status" aria-live="polite"></p>
-          <p class="note" id="waitlist-note">One email on launch day, then nothing. Your address is deleted after.</p>
-        </form>
-        <div id="store-cta-2" hidden>
-          <a class="btn store" id="store-link-2" href="#">Download on the App Store</a>
-        </div>
       </div>
     </div>
   </section>
@@ -626,8 +598,8 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
         <p>The ones people ask first.</p>
       </div>
       <div class="faq">
-        <details><summary>Do I have to update balances by hand?</summary><div class="a"><p>A balance is a number you type, once a month is plenty, and the app reminds you if you ask it to. From version 1.1 you can also add the statements your banks send you: WaffleWealth reads them on your iPhone, checks every figure against the statement's own totals, and adds the balances and lines. From a computer, upload them at <a href="web/">WaffleWealth on the web</a>.</p></div></details>
-        <details><summary>Why doesn't it connect to my bank?</summary><div class="a"><p>Because then your bank access would live on someone's server. WaffleWealth has no server and no account, so there is nowhere for your data to go. It also works with any bank in any country, including the pensions and deposits that bank connections can't reach.</p></div></details>
+        <details><summary>Do I have to update balances by hand?</summary><div class="a"><p>A balance is a number you type, once a month is plenty, and the app reminds you if you ask it to. From version 1.1 you can also add the statements your banks send you: WaffleWealth reads them on your iPhone, checks the figures against the statement's own totals where it prints them, and adds the balances and lines. From a computer, upload them at <a href="web/">WaffleWealth on the web</a>.</p></div></details>
+        <details><summary>Why doesn't it connect to my bank?</summary><div class="a"><p>Because then your bank access would live on someone's server. WaffleWealth has no server and no account, and never asks for your bank login. Your figures stay on your iPhone, or in your own iCloud if you turn that on. It also works with any bank in any country, including the pensions and deposits that bank connections can't reach.</p></div></details>
         <details><summary>Is this financial advice?</summary><div class="a"><p>No. It reports what your own numbers add up to. The income, spending and returns you type are assumptions, not predictions, and nothing in the app tells you to save, spend, borrow or invest.</p></div></details>
         <details><summary>What happens to my data?</summary><div class="a"><p>It stays in a database on your iPhone, encrypted while the phone is locked. From version 1.1, if you switch on iCloud in Settings, a copy goes into the private part of your own iCloud so you can use it from a computer; only your Apple ID can read it, and we can't. The details are in the <a href="privacy">privacy policy</a>.</p></div></details>
         <details><summary>Does it work outside the US?</summary><div class="a"><p>Yes. Every account keeps its own currency, any ISO currency is available, and you choose the one you see your net worth in.</p></div></details>
@@ -650,16 +622,6 @@ footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
 </footer>
 
 <script>
-/* ============================================================
-   SETUP — the only two lines you need to edit.
-   1. WAITLIST_ENDPOINT: your Formspree form URL, e.g. "https://formspree.io/f/abcdwxyz".
-      Leave empty and the form explains that it isn't connected yet.
-   2. APP_STORE_URL: paste the App Store link on launch day. The form is replaced by a
-      download button everywhere on the page.
-   ============================================================ */
-const WAITLIST_ENDPOINT = "https://formspree.io/f/mvkgvver";
-const APP_STORE_URL = "https://apps.apple.com/us/app/wafflewealth/id6811611595";
-
 /* ---------- The example position, the same one the app loads on first launch ---------- */
 const today = new Date();
 const EXAMPLE = {
@@ -850,60 +812,6 @@ sizeChart();
 draw(true);
 let resizeTimer = 0;
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { sizeChart(); draw(false); }, 120); });
-
-/* ---------- waitlist ---------- */
-const LIVE_SITE = "https://pinkhummingbird.github.io/wafflewealth-app/";
-/* The claude.ai preview runs the page in a sandboxed frame on claudeusercontent.com, which
-   blocks requests to other sites, so the form cannot send from there. */
-const framedBy = (() => { try { return Array.from(location.ancestorOrigins || []).join(" "); } catch (e) { return ""; } })();
-const isPreview = /claude\.ai$|claudeusercontent\.com$/.test(location.hostname)
-  || /claude\.ai/.test(framedBy) || /claude\.ai/.test(document.referrer)
-  || location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:";
-function wireForm(form, statusId) {
-  const status = document.getElementById(statusId);
-  const input = form.querySelector('input[type="email"]');
-  const button = form.querySelector('button[type="submit"]');
-  const say = (text, cls) => { status.textContent = text; status.className = "status" + (cls ? " " + cls : ""); };
-  try { if (localStorage.getItem("ww-waitlist") === "yes") { say("You're on the list. One email when it's out.", "ok"); input.hidden = true; button.hidden = true; } } catch (e) {}
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (form.querySelector('input[name="_gotcha"]').value) return;
-    const email = input.value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That doesn't look like an email address.", "err"); input.focus(); return; }
-    if (isPreview) {
-      status.innerHTML = "";
-      status.append("This is the preview copy, which can't send. The form works on the live site: ");
-      const a = document.createElement("a"); a.href = LIVE_SITE; a.target = "_blank"; a.rel = "noopener"; a.textContent = "pinkhummingbird.github.io/wafflewealth-app";
-      status.append(a); status.className = "status"; return;
-    }
-    if (!WAITLIST_ENDPOINT) {
-      say("The waitlist isn't connected yet. Email us instead: wafflewealth.app.support@gmail.com", "err");
-      return;
-    }
-    button.disabled = true; say("Sending…");
-    try {
-      const res = await fetch(WAITLIST_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ email, source: "wafflewealth landing page" }) });
-      if (!res.ok) throw new Error(String(res.status));
-      say("You're on the list. One email when it's out.", "ok");
-      input.hidden = true; button.hidden = true;
-      try { localStorage.setItem("ww-waitlist", "yes"); } catch (e) {}
-    } catch (err) {
-      console.warn("waitlist:", err);
-      say(err instanceof TypeError
-        ? "That didn't send: something blocked the request to formspree.io, often a content blocker. Allow it and try again, or email us: wafflewealth.app.support@gmail.com"
-        : "That didn't send. Email us instead: wafflewealth.app.support@gmail.com", "err");
-      button.disabled = false;
-    }
-  });
-}
-wireForm(document.getElementById("waitlist"), "status");
-
-/* launch day: one constant swaps every form for the store button */
-if (APP_STORE_URL) {
-  for (const id of ["store-link", "store-link-2"]) document.getElementById(id).href = APP_STORE_URL;
-  document.getElementById("store-cta-2").hidden = false;
-  document.getElementById("waitlist").hidden = true;
-}
 
 /* support address: copy, with a selection fallback */
 document.getElementById("copy-email").addEventListener("click", async (e) => {

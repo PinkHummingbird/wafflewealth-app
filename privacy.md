@@ -1,8 +1,8 @@
-# WaffleWealth — Privacy Policy
+# WaffleWealth: Privacy Policy
 
 [WaffleWealth home](./) · [Try the free calculator](try/) · [Get it on the App Store](https://apps.apple.com/us/app/wafflewealth/id6811611595)
 
-_Last updated: 15 October 2026 (the copy in iCloud now covers every input)_
+_Last updated: 7 November 2026_
 
 **Contact: wafflewealth.app.support@gmail.com**
 
@@ -14,9 +14,9 @@ WaffleWealth projects your net worth from figures you type in yourself. Those fi
 - **No servers of ours.** There is no backend, and we hold no copy of anything you enter.
 - **iCloud is your choice, and it is off until you turn it on** (version 1.1 and later). Switched on, a copy goes to the private part of your own iCloud, which only you can read. See [The copy in your iCloud](#the-copy-in-your-icloud).
 - **No tracking, no ads, no analytics, no third-party SDKs in the app.**
-- **Exactly one network request exists, it is off until you switch it on, and it carries a three-letter currency code.** Never a balance, an amount, an account name, or a category.
+- **Apart from your own iCloud, the app makes one request. It is off until you turn it on, and it sends a three-letter currency code.** Never a balance, an amount, an account name, or a category.
 - **App Privacy label: Data Not Collected.** Data in your own private iCloud is not collected by us: we have no way to read it.
-- **This website had a waitlist form** before launch. Addresses given there are deleted once the launch email is sent. See [The waitlist on this website](#the-waitlist-on-this-website).
+- **This website had a waitlist form** before launch. The form is gone. Addresses given there get one email saying the app is out, and are deleted once it is sent. See [The waitlist on this website](#the-waitlist-on-this-website).
 - **This website counts page visits** with GoatCounter, which sets no cookies and stores no personal data. The app counts nothing. See [Visits to this website](#visits-to-this-website).
 
 ## Where your data lives
@@ -37,21 +37,21 @@ From version 1.1, WaffleWealth can keep a copy of everything you have put into i
 - **Where it goes:** the private database of your own iCloud account, through Apple's CloudKit, in WaffleWealth's container. Only someone signed in with your Apple ID can read it. We, the developer, have no access to your private iCloud data.
 - **What goes:** your accounts (names, currencies, categories and settings), the balances recorded for them, balances you took back, transactions, documents with their files, the statements you added (which file, which account each bank account became, and each line as the bank printed it), your income and spending and the other assumptions, planned items, your target, exchange rates, account groups, history marks, and the record of how your assumptions and rates changed over time. Whether the app fetches exchange rates is a setting of each iPhone and does not go. Nothing the app works out from these figures is stored anywhere: each device works it out again.
 - **How it is protected:** Apple encrypts iCloud data in transit and at rest. If you use Advanced Data Protection, it is end-to-end encrypted, and the web page can reach it only if you turn on "Access iCloud Data on the Web" in your Apple ID settings. Apple's handling of iCloud data is described in [Apple's privacy policy](https://www.apple.com/legal/privacy/).
-- **The web page** at `/web/` runs in your browser. You sign in with your Apple ID through Apple; we never see your password. The page loads Apple's CloudKit library and talks to Apple's iCloud servers. The one other request it can make is the app's own: only when you press "Fetch today's rates", it asks `open.er-api.com` for daily exchange rates, sending your main currency code and nothing else (see [The one network request](#the-one-network-request) below). It has no visit counter. Everything the page shows is worked out in your browser, the same way the app works it out. Files you save from it (a spreadsheet of balances, a full file, or an encrypted copy) are made in your browser and go only where you save them; an encrypted copy's passphrase never leaves the page. A file you upload there goes into the same private database, in pieces of half a megabyte that your iPhone puts back together; it is never sent anywhere else. A statement you upload there can be read on the page itself, in your browser, with a copy of Mozilla's PDF.js kept on this site; or by WaffleWealth on your iPhone. Either way it is read on your own device, never on a server.
+- **The web page** at `/web/` runs in your browser. You sign in with your Apple ID through Apple; we never see your password. The page loads Apple's CloudKit library and talks to Apple's iCloud servers. The one other request it can make is the app's own: only when you press "Fetch today's rates", it asks `open.er-api.com` for daily exchange rates, sending your main currency code and nothing else (see [The one network request](#the-one-network-request) below). It has no visit counter. It also loads its typefaces from Google Fonts. Everything the page shows is worked out in your browser, the same way the app works it out. Files you save from it (a spreadsheet of balances, a full file, or an encrypted copy) are made in your browser and go only where you save them; an encrypted copy's passphrase never leaves the page. A file you upload there goes into the same private database, in pieces of half a megabyte that your iPhone puts back together; it is never sent anywhere else. A statement you upload there can be read on the page itself, in your browser, with a copy of Mozilla's PDF.js kept on this site; or by WaffleWealth on your iPhone. Either way it is read on your own device, never on a server.
 - **Turning it off** stops the copying and leaves the copy in iCloud as it is. **"Remove the copy from iCloud"** in Settings deletes everything WaffleWealth keeps there, including uploaded documents. Neither changes anything on your iPhone.
 - **Notifications from iCloud** are silent: they tell the app something changed so it can fetch it, and carry no figures.
 
 ## Statements and documents
 
-You can add bank statements (PDF, CSV or zip) and other files to WaffleWealth, from the Files app or, with iCloud on, from the web page. A statement is read on your iPhone, by the app itself, or on the web page, in your browser; pages that are only pictures are read on the iPhone, by iOS's own on-device text recognition. Nothing about a statement is sent anywhere to be read. Documents and what was read from statements are kept in the app with complete file protection, and in your iCloud only if the copy there is on.
+You can add bank statements (PDF, CSV, Excel, OFX, QFX, QBO, MT940, CAMT, QIF or Wise files, or a zip of them) and other files to WaffleWealth, from the Files app or, with iCloud on, from the web page. A statement is read on your iPhone, by the app itself, or on the web page, in your browser; pages that are only pictures are read on the iPhone, by iOS's own on-device text recognition. Nothing about a statement is sent anywhere to be read. Documents and what was read from statements are kept in the app with complete file protection, and in your iCloud only if the copy there is on.
 
 ## The one network request
 
-WaffleWealth can fetch daily reference exchange rates, so that accounts held in different currencies can be shown in one. This is the only thing the app ever sends, and:
+WaffleWealth can fetch daily reference exchange rates, so that accounts held in different currencies can be shown in one. Apart from your own iCloud, if you turn the copy on, this is the only thing the app sends, and:
 
-- **It is off when you install the app.** While it is off, WaffleWealth makes no network request at all. You turn it on yourself, under Income & spending, and you can turn it off again at any time.
-- **The request is `GET https://open.er-api.com/v6/latest/{your base currency}`** — for example `.../v6/latest/AED`. The three-letter code is the entire request. There is no account, no key, no body, and no header that names you.
-- **The host is `open.er-api.com`**, the open endpoint operated by ExchangeRate-API. What it receives is that currency code, and — as with any request to any website — the IP address your device is connecting from, which it necessarily sees in order to reply. Their handling of that request is governed by their own privacy policy.
+- **It is off when you install the app.** While this and the iCloud copy are off, WaffleWealth makes no network request at all. You turn it on yourself, under Income & spending, and you can turn it off again at any time.
+- **The request is `GET https://open.er-api.com/v6/latest/{your base currency}`**, for example `.../v6/latest/AED`. The three-letter code is the entire request. There is no account, no key, no body, and no header that names you.
+- **The host is `open.er-api.com`**, the open endpoint operated by ExchangeRate-API. What it receives is that currency code and, as with any request to any website, the IP address your device is connecting from, which it necessarily sees in order to reply. Their handling of that request is governed by their own privacy policy.
 - **No balance, amount, account name or category is ever transmitted**, because none of them is ever handed to the request in the first place.
 
 You can leave the switch off permanently and type exchange rates in by hand. The app works exactly the same way.
@@ -62,9 +62,9 @@ The web page makes the same request, to the same host, only when you press "Fetc
 
 WaffleWealth can export your data as a file: a spreadsheet of your balances, a full file of everything you have entered, or an encrypted copy.
 
-You choose where the file goes — iCloud Drive, another app, wherever you send it. Once it leaves the app it is yours to look after, and it is governed by whatever you sent it to.
+You choose where the file goes: iCloud Drive, another app, wherever you send it. Once it leaves the app it is yours to look after, and it is governed by whatever you sent it to.
 
-An encrypted backup is sealed with a passphrase that only you hold. It is never stored in the app and never sent anywhere. **If you lose it, the backup cannot be opened — not by us, not by anyone.** That is the point of it, and it is not recoverable.
+An encrypted backup is sealed with a passphrase that only you hold. It is never stored in the app and never sent anywhere. **If you lose it, the backup cannot be opened. Not by us, not by anyone.** That is the point of it, and it is not recoverable.
 
 ## Face ID lock and the monthly reminder
 
@@ -75,18 +75,18 @@ Both are off until you switch them on in Settings, and neither sends anything an
 
 ## The waitlist on this website
 
-Before launch, the homepage of this website had a form for being told when the app was out. It is the one place we hold anything about you, and it concerns the website only: the app itself works exactly as described above.
+Before launch, the home page of this website had a form for being told when the app was out. The form is gone now. It concerned the website only: the app itself works exactly as described above.
 
-- **What is sent:** the email address you type. The form is handled by Formspree, Inc. on our behalf, so their servers also see what any web server sees when a browser sends a request: your IP address and browser details. Their handling of that is governed by [Formspree's privacy policy](https://formspree.io/legal/privacy-policy).
-- **What it is used for:** one email telling you the app is available. Nothing else. No newsletter, no marketing, and it is not passed to anyone.
-- **How long it is kept:** until that email has been sent. Then the address is deleted.
+- **What was sent:** the email address you typed. The form was handled by Formspree, Inc. on our behalf, so their servers also saw what any web server sees when a browser sends a request: your IP address and browser details. Their handling of that is governed by [Formspree's privacy policy](https://formspree.io/legal/privacy-policy).
+- **What it is used for:** one email saying the app is out. Nothing else, and it is never passed to anyone.
+- **How long it is kept:** until that email is sent. Then the address is deleted.
 - **How to be removed sooner:** email **wafflewealth.app.support@gmail.com** and it will be deleted.
 
 ## Visits to this website
 
 This website, and only this website, counts page visits with [GoatCounter](https://www.goatcounter.com), an open-source counter. It sets no cookies, does not track you across sites, and stores no personal data: it records which page was opened, the referring site, and broad details such as browser, screen size and country, worked out from the request and not kept with your IP address. We use the totals to see whether anyone is visiting. Their handling is described in [GoatCounter's privacy policy](https://www.goatcounter.com/help/privacy). Numbers you type into the demo never leave the page.
 
-The home page and the demo load their typefaces from Google Fonts. To send the fonts, Google's servers see what any web server sees: your IP address and browser details. No cookies are set for it. Google's handling is described in the [Google Fonts privacy FAQ](https://developers.google.com/fonts/faq/privacy).
+Every page of this website loads its typefaces from Google Fonts. To send the fonts, Google's servers see what any web server sees: your IP address and browser details. No cookies are set for it. Google's handling is described in the [Google Fonts privacy FAQ](https://developers.google.com/fonts/faq/privacy).
 
 ## What we do not do
 

@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>WaffleWealth on the Web</title>
-<meta name="description" content="Upload statements and add transactions from a computer. They go into your own private iCloud and show up in WaffleWealth on your iPhone.">
+<meta name="description" content="Your WaffleWealth on a computer: projection, FIRE, accounts, history, planned money and statements, from your own private iCloud.">
 <meta property="og:title" content="WaffleWealth on the Web">
-<meta property="og:description" content="Upload statements and add transactions from a computer. They go into your own private iCloud and show up in WaffleWealth on your iPhone.">
+<meta property="og:description" content="Your WaffleWealth on a computer: projection, FIRE, accounts, history, planned money and statements, from your own private iCloud.">
 <link rel="canonical" href="https://pinkhummingbird.github.io/wafflewealth-app/web/">
 <meta property="og:url" content="https://pinkhummingbird.github.io/wafflewealth-app/web/">
 <meta property="og:image" content="https://pinkhummingbird.github.io/wafflewealth-app/assets/og-card.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="WaffleWealth: free net worth and FIRE calculator, with a line rising to its FIRE date">
+<meta property="og:image:alt" content="WaffleWealth: net worth line rising to its FIRE date">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#14100A" media="(prefers-color-scheme: dark)">
@@ -301,7 +301,7 @@ footer a { color: var(--ink-2); }
     <div>
       <p class="label">For WaffleWealth on iPhone</p>
       <h1 id="h-welcome">WaffleWealth, <span class="honey">on a big screen.</span></h1>
-      <p class="lede">Everything the app does, here: your projection, Target and FIRE, your accounts and their history, planned money, and the statements your banks send. It all lives in your own iCloud, so WaffleWealth on your iPhone shows the same figures, worked out the same way.</p>
+      <p class="lede">Your WaffleWealth on a computer: projection, Target and FIRE, accounts and their history, planned money and statements. It lives in your own iCloud, so your iPhone shows the same figures.</p>
       <ol class="steps">
         <li><div><b>On your iPhone, switch the copy on.</b><span>In WaffleWealth, open Settings and turn on “Keep a copy in iCloud”.</span></div></li>
         <li><div><b>Here, sign in with the same Apple ID.</b><span>Apple signs you in. We never see your password, and there's no account to make.</span></div></li>
@@ -313,7 +313,7 @@ footer a { color: var(--ink-2); }
         <h2>Sign in to your iCloud</h2>
         <p>With the Apple ID your iPhone uses for iCloud.</p>
         <div id="apple-sign-in-button"></div>
-        <p class="soon" id="not-ready" hidden><b>Signing in opens very soon.</b> The iPhone side is ready; the last switch on Apple's side is being turned. Meanwhile, look around with example numbers.</p>
+        <p class="soon" id="not-ready" hidden><b>Signing in isn't available right now.</b> Look around with example numbers.</p>
         <p class="error" id="start-error" role="alert" hidden></p>
         <button type="button" class="btn ghost" id="try-example">Look around with example numbers</button>
       </div>
@@ -323,8 +323,8 @@ footer a { color: var(--ink-2); }
 
   <section class="wrap private" id="private" aria-label="Where your figures go">
     <div><h3>Your iCloud, not ours</h3><p>Everything goes to the private part of your own iCloud, which only you can read. WaffleWealth has no server and no copy, and its developer can't see your iCloud.</p></div>
-    <div><h3>Read on your own device</h3><p>A statement is read here in your browser, or by WaffleWealth on your iPhone, never on a server. Every figure is checked against the statement's own totals before anything is added.</p></div>
-    <div><h3>Nothing extra on this page</h3><p>No visit counter, no tracking. It loads Apple's own iCloud library and the site's fonts, and nothing else.</p></div>
+    <div><h3>Read on your own device</h3><p>A statement is read here in your browser, or by WaffleWealth on your iPhone, never on a server. Where a statement prints its totals, every line is checked against them before anything is added.</p></div>
+    <div><h3>Nothing extra on this page</h3><p>No visit counter, no tracking. It loads Apple's iCloud library and the site's fonts. Only when you press “Fetch today's rates” does it ask open.er-api.com, sending just your main currency code.</p></div>
   </section>
 
   <!-- Signed in, or the example: the three lists. -->
@@ -369,13 +369,13 @@ footer a { color: var(--ink-2); }
             <path d="M27 48V28m0 0-8 8m8-8 8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <strong>Drop statements here</strong>
-          <span class="sub">PDFs or downloads from your banks (OFX, QFX, MT940, CAMT, QIF, CSV or Excel .xlsx), a Wise CSV, a zip of them, or any file you want with your figures. Up to 25 MB each.</span>
+          <span class="sub">PDFs or downloads from your banks (OFX, QFX, QBO, MT940, CAMT, QIF, CSV or Excel), a Wise CSV, a zip of them, or any file you want with your figures. Up to 25 MB each.</span>
           <input type="file" id="file" multiple>
           <span class="btn small">Choose files</span>
-          <span class="busy" id="uploading" hidden></span>
+          <span class="busy" id="uploading" role="status" hidden></span>
         </label>
         <p class="ok" id="upload-ok" role="status" hidden></p>
-        <ul class="error" id="upload-problems" hidden style="margin:0;padding-left:30px"></ul>
+        <ul class="error" id="upload-problems" aria-live="assertive" hidden style="margin:0;padding-left:30px"></ul>
         <div class="card" id="review" hidden aria-live="polite"></div>
       </div>
       <div class="card list" aria-labelledby="h-docs">

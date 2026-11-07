@@ -7,7 +7,7 @@
      PDF reader come from this site only; the one outside request is the site's fonts. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>WaffleWealth Statement Reader</title>
-<meta name="description" content="Read a bank statement PDF in your browser: the accounts, balances and lines, each checked against the statement's own totals. The PDF never leaves your device.">
+<meta name="description" content="Read a bank statement, PDF or your bank's download, in your browser: the accounts, balances and lines, checked against its own totals where it prints them. Your files never leave your device.">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
@@ -252,12 +252,12 @@ footer a { color: var(--ink-2); }
 </header>
 
 <main class="wrap">
-  <p class="dev" role="note"><b>Still under intense development.</b> Readers change often and can get a statement wrong, so check every figure against your PDF before you rely on it.</p>
+  <p class="dev" role="note"><b>Preview.</b> Readers change often, so check every figure against your statement.</p>
   <section class="opening">
     <div class="intro">
       <h1>Read a bank statement, <span class="honey">here on your device.</span></h1>
-      <p>Add the PDF your bank sends you, the file it lets you download (OFX, QFX, MT940, CAMT, QIF, CSV or Excel .xlsx), or a Wise CSV. This page finds each account in it, the balance on the statement’s last day and every line, then checks that the lines add up to the statement’s own totals.</p>
-      <p><strong>The PDF is read in this browser tab and goes nowhere.</strong> The page is not allowed to connect to anything, and nothing is saved: a reload or Clear forgets it.</p>
+      <p>Add the PDF your bank sends you, the file it lets you download (OFX, QFX, QBO, MT940, CAMT, QIF, CSV or Excel), or a Wise CSV. This page finds each account in it, the balance on the statement’s last day and every line, then checks the lines against the statement’s own totals, where it prints them.</p>
+      <p><strong>Your files are read in this tab and go nowhere.</strong> It can’t send anything anywhere. The only outside request is for the site’s fonts. Nothing is saved: a reload or Clear forgets it.</p>
       <div class="banks" aria-label="Statements with a reader of their own">
         <span>UAE-Wio</span><span>UAE-Emirates-Islamic</span><span>SG-Citibank</span><span>SG-UOB</span><span>UK-HSBC</span><span>US-Chase</span><span>US-Chase-Card</span><span>US-BofA</span><span>US-WellsFargo</span><span>US-TD</span><span>US-BMO-Card</span><span>IN-KVB</span><span>ET-CBE</span><span>INTL-Wise (CSV)</span><span>Any bank: OFX or QFX</span><span>Any bank: MT940</span><span>Any bank: CAMT</span><span>Any bank: QIF</span><span>Any bank: CSV</span><span>Any bank: Excel (.xlsx)</span><span>Any bank: plain table</span>
       </div>
@@ -271,17 +271,17 @@ footer a { color: var(--ink-2); }
           <path d="M11 30h22M11 38h30M11 46h18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
         <strong>Drop statements here</strong>
-        <span class="sub">PDFs from any of your banks, a download (OFX, QFX, MT940, CAMT, QIF, CSV or Excel .xlsx), or a Wise CSV or zip</span>
+        <span class="sub">PDFs from any of your banks, a download (OFX, QFX, QBO, MT940, CAMT, QIF, CSV or Excel), or a Wise CSV or zip</span>
         <input type="file" id="file" accept="application/pdf,.pdf,text/csv,.csv,.tsv,.tab,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,application/vnd.ms-excel,.xls,application/zip,.zip,.ofx,.qfx,.qbo,application/x-ofx,.sta,.mt940,.940,.swi,.qif,.xml,.txt" multiple>
         <span class="choose">Choose files</span>
-        <span class="reading" id="reading" hidden>Reading <span id="reading-name"></span></span>
+        <span class="reading" id="reading" role="status" hidden>Reading <span id="reading-name"></span></span>
       </label>
       <div class="name-row">
         <label for="holder">Your name, as statements print it</label>
         <input type="text" id="holder" autocomplete="name" spellcheck="false" placeholder="Optional">
         <span class="cap">Used only for statements that don’t print it, to tell money moving between your own accounts from money in and out.</span>
       </div>
-      <ul class="problems" id="problems" hidden></ul>
+      <ul class="problems" id="problems" aria-live="assertive" hidden></ul>
     </div>
   </section>
 
@@ -320,7 +320,7 @@ footer a { color: var(--ink-2); }
     </div>
     <div>
       <h3>No way out</h3>
-      <p>The page’s security policy sets <code>connect-src 'none'</code>: the browser blocks any request it tries to make. It has no visit counter either, unlike the rest of this site.</p>
+      <p>The page’s security settings stop it sending anything. It has no visit counter.</p>
     </div>
     <div>
       <h3>Nothing kept</h3>
